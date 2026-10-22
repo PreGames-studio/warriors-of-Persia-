@@ -15,7 +15,7 @@ func _ready() -> void:
 func _on_body_entered(body: Node2D) -> void:
 	if body is Hero and (body as Hero).is_local_leader:
 		if hint_label != null:
-			hint_label.text = "فروشگاه روستا فعال است! (کلید V)"
+			hint_label.text = "فروشگاه روستا فعال است!"
 		if EventBus != null:
 			EventBus.shop_requested.emit(true)
 

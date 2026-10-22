@@ -64,18 +64,6 @@ func _process(delta: float) -> void:
 		_refresh_hero_hud(hero)
 		_refresh_skill_buttons(hero)
 
-	if Input.is_action_just_pressed("toggle_inventory"):
-		inventory_popup.visible = not inventory_popup.visible
-		if inventory_popup.visible:
-			shop_popup.visible = false
-			inventory_popup.refresh_ui()
-
-	if Input.is_action_just_pressed("toggle_shop"):
-		shop_popup.visible = not shop_popup.visible
-		if shop_popup.visible:
-			inventory_popup.visible = false
-			shop_popup.refresh_ui()
-
 	if _toast_timer > 0.0:
 		_toast_timer -= delta
 		if _toast_timer <= 0.0 and toast_label != null:
@@ -188,7 +176,7 @@ func _refresh_skill_buttons(hero: Hero) -> void:
 			btn.disabled = true
 			btn.modulate = Color(0.55, 0.58, 0.68)
 		else:
-			btn.text = "%s\n(%d مانا | کلید %d)" % [String(sk["name"]), m_cost, i + 1]
+			btn.text = "%s\n(%d مانا)" % [String(sk["name"]), m_cost]
 			btn.disabled = false
 			btn.modulate = Color(1.0, 1.0, 1.0) if hero.mana_current >= float(m_cost) else Color(0.55, 0.72, 1.0)
 

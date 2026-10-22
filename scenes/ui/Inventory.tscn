@@ -45,7 +45,7 @@ text = "کیف آیتم‌ها و کریستال‌ها (Inventory)"
 
 [node name="CloseBtn" type="Button" parent="Margin/VBox/TopRow"]
 layout_mode = 2
-text = "بستن (X)"
+text = "بستن"
 
 [node name="CrystalsSummaryLabel" type="Label" parent="Margin/VBox"]
 layout_mode = 2
