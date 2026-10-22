@@ -1,0 +1,332 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/HUD.gd" id="1_hud"]
+[ext_resource type="PackedScene" path="res://scenes/ui/PartyHUD.tscn" id="2_party"]
+[ext_resource type="Script" path="res://scripts/ui/MinimapWidget.gd" id="3_minimap"]
+[ext_resource type="Script" path="res://scripts/ui/VirtualJoystick.gd" id="4_joystick"]
+[ext_resource type="PackedScene" path="res://scenes/ui/Inventory.tscn" id="5_inv"]
+[ext_resource type="PackedScene" path="res://scenes/ui/Shop.tscn" id="6_shop"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_glass"]
+bg_color = Color(0.07, 0.1, 0.18, 0.82)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.95, 0.8, 0.35, 0.65)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_top"]
+bg_color = Color(0.07, 0.1, 0.18, 0.76)
+border_width_bottom = 2
+border_color = Color(0.35, 0.78, 1, 0.55)
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[node name="HUD" type="CanvasLayer"]
+layer = 10
+script = ExtResource("1_hud")
+
+[node name="RootControl" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="HeroStatusPanel" type="PanelContainer" parent="RootControl"]
+layout_mode = 0
+offset_left = 14.0
+offset_top = 12.0
+offset_right = 342.0
+offset_bottom = 150.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_glass")
+
+[node name="Margin" type="MarginContainer" parent="RootControl/HeroStatusPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="VBox" type="VBoxContainer" parent="RootControl/HeroStatusPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="HeroTitleLabel" type="Label" parent="RootControl/HeroStatusPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.92, 0.45, 1)
+theme_override_font_sizes/font_size = 14
+text = "قهرمان ۱ (جنگجو) — سطح ۱"
+
+[node name="EconomyLabel" type="Label" parent="RootControl/HeroStatusPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.95, 1, 1)
+theme_override_font_sizes/font_size = 12
+text = "سکه: ۳۰   |   کریستال همراه: ۰"
+
+[node name="HPBarRow" type="HBoxContainer" parent="RootControl/HeroStatusPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="TagLabel" type="Label" parent="RootControl/HeroStatusPanel/Margin/VBox/HPBarRow"]
+custom_minimum_size = Vector2(58, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.28, 0.98, 0.55, 1)
+theme_override_font_sizes/font_size = 11
+text = "MP خون"
+
+[node name="HPBar" type="ProgressBar" parent="RootControl/HeroStatusPanel/Margin/VBox/HPBarRow"]
+custom_minimum_size = Vector2(0, 14)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+value = 100.0
+show_percentage = false
+
+[node name="HPValLabel" type="Label" parent="RootControl/HeroStatusPanel/Margin/VBox/HPBarRow"]
+custom_minimum_size = Vector2(58, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "160/160"
+horizontal_alignment = 2
+
+[node name="ManaBarRow" type="HBoxContainer" parent="RootControl/HeroStatusPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="TagLabel" type="Label" parent="RootControl/HeroStatusPanel/Margin/VBox/ManaBarRow"]
+custom_minimum_size = Vector2(58, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.35, 0.72, 1, 1)
+theme_override_font_sizes/font_size = 11
+text = "MANA"
+
+[node name="ManaBar" type="ProgressBar" parent="RootControl/HeroStatusPanel/Margin/VBox/ManaBarRow"]
+custom_minimum_size = Vector2(0, 14)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+value = 100.0
+show_percentage = false
+
+[node name="ManaValLabel" type="Label" parent="RootControl/HeroStatusPanel/Margin/VBox/ManaBarRow"]
+custom_minimum_size = Vector2(58, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "100/100"
+horizontal_alignment = 2
+
+[node name="XPBarRow" type="HBoxContainer" parent="RootControl/HeroStatusPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="TagLabel" type="Label" parent="RootControl/HeroStatusPanel/Margin/VBox/XPBarRow"]
+custom_minimum_size = Vector2(58, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.22, 1)
+theme_override_font_sizes/font_size = 11
+text = "XP"
+
+[node name="XPBar" type="ProgressBar" parent="RootControl/HeroStatusPanel/Margin/VBox/XPBarRow"]
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+show_percentage = false
+
+[node name="XPValLabel" type="Label" parent="RootControl/HeroStatusPanel/Margin/VBox/XPBarRow"]
+custom_minimum_size = Vector2(58, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "0/120"
+horizontal_alignment = 2
+
+[node name="PartyHUD" parent="RootControl" instance=ExtResource("2_party")]
+layout_mode = 0
+offset_left = 14.0
+offset_top = 158.0
+offset_right = 342.0
+offset_bottom = 398.0
+
+[node name="TopCenterBar" type="PanelContainer" parent="RootControl"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -280.0
+offset_top = 0.0
+offset_right = 415.0
+offset_bottom = 96.0
+grow_horizontal = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_top")
+
+[node name="VBox" type="VBoxContainer" parent="RootControl/TopCenterBar"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="ZoneTitleLabel" type="Label" parent="RootControl/TopCenterBar/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.98, 1, 1)
+theme_override_font_sizes/font_size = 14
+text = "مکان فعلی: جهان باز"
+horizontal_alignment = 1
+
+[node name="QuickButtons" type="HBoxContainer" parent="RootControl/TopCenterBar/VBox"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 8
+
+[node name="BtnVillage" type="Button" parent="RootControl/TopCenterBar/VBox/QuickButtons"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "روستا (Village)"
+
+[node name="BtnOpenWorld" type="Button" parent="RootControl/TopCenterBar/VBox/QuickButtons"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "جهان باز (OpenWorld)"
+
+[node name="BtnDungeon" type="Button" parent="RootControl/TopCenterBar/VBox/QuickButtons"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "دانجن باس (Dungeon)"
+
+[node name="BtnInventory" type="Button" parent="RootControl/TopCenterBar/VBox/QuickButtons"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "کیف آیتم (B)"
+
+[node name="BtnShop" type="Button" parent="RootControl/TopCenterBar/VBox/QuickButtons"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "فروشگاه (V)"
+
+[node name="ToastLabel" type="Label" parent="RootControl/TopCenterBar/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.4, 1)
+theme_override_font_sizes/font_size = 12
+text = "WASD یا جوی‌استیک برای حرکت | Space حمله | کلیدهای ۱ تا ۴ اسکیل"
+horizontal_alignment = 1
+
+[node name="MinimapPanel" type="PanelContainer" parent="RootControl"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -194.0
+offset_top = 12.0
+offset_right = -14.0
+offset_bottom = 136.0
+grow_horizontal = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_glass")
+
+[node name="Minimap" type="Control" parent="RootControl/MinimapPanel"]
+layout_mode = 2
+script = ExtResource("3_minimap")
+
+[node name="VirtualJoystick" type="Control" parent="RootControl"]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 28.0
+offset_top = -172.0
+offset_right = 180.0
+offset_bottom = -20.0
+grow_vertical = 0
+script = ExtResource("4_joystick")
+
+[node name="ActionCluster" type="Control" parent="RootControl"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -430.0
+offset_top = -235.0
+offset_right = -16.0
+offset_bottom = -14.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="PassiveLabel" type="Label" parent="RootControl/ActionCluster"]
+layout_mode = 0
+offset_left = 130.0
+offset_top = 4.0
+offset_right = 410.0
+offset_bottom = 24.0
+theme_override_colors/font_color = Color(0.65, 0.92, 1, 1)
+theme_override_font_sizes/font_size = 11
+text = "پسیو: طنین مانا"
+horizontal_alignment = 2
+
+[node name="AttackBtn" type="Button" parent="RootControl/ActionCluster"]
+layout_mode = 0
+offset_left = 290.0
+offset_top = 128.0
+offset_right = 408.0
+offset_bottom = 212.0
+theme_override_font_sizes/font_size = 14
+text = "حمله پایه
+(Space)"
+
+[node name="SkillBtn1" type="Button" parent="RootControl/ActionCluster"]
+layout_mode = 0
+offset_left = 156.0
+offset_top = 152.0
+offset_right = 278.0
+offset_bottom = 212.0
+theme_override_font_sizes/font_size = 11
+text = "ضربه درخشان"
+
+[node name="SkillBtn2" type="Button" parent="RootControl/ActionCluster"]
+layout_mode = 0
+offset_left = 156.0
+offset_top = 84.0
+offset_right = 278.0
+offset_bottom = 144.0
+theme_override_font_sizes/font_size = 11
+text = "گوی انرژی"
+
+[node name="SkillBtn3" type="Button" parent="RootControl/ActionCluster"]
+layout_mode = 0
+offset_left = 286.0
+offset_top = 58.0
+offset_right = 408.0
+offset_bottom = 118.0
+theme_override_font_sizes/font_size = 11
+text = "موج ستاره‌ای"
+
+[node name="SkillBtn4" type="Button" parent="RootControl/ActionCluster"]
+layout_mode = 0
+offset_left = 28.0
+offset_top = 116.0
+offset_right = 148.0
+offset_bottom = 188.0
+theme_override_font_sizes/font_size = 11
+text = "طوفان افسانه"
+
+[node name="ModalContainer" type="Control" parent="RootControl"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Inventory" parent="RootControl/ModalContainer" instance=ExtResource("5_inv")]
+visible = false
+layout_mode = 0
+
+[node name="Shop" parent="RootControl/ModalContainer" instance=ExtResource("6_shop")]
+visible = false
+layout_mode = 0

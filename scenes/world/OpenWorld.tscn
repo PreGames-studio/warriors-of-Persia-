@@ -1,0 +1,220 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/PortalZone.gd" id="1_portal"]
+[ext_resource type="Texture2D" path="res://assets/sprites/glow_ring.png" id="2_glow"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_portal"]
+radius = 54.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_river_bank"]
+size = Vector2(120, 540)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_mountain_block"]
+size = Vector2(780, 180)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hwall"]
+size = Vector2(2200, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_vwall"]
+size = Vector2(40, 1400)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bridge"]
+bg_color = Color(0.55, 0.36, 0.2, 1)
+border_width_top = 4
+border_width_bottom = 4
+border_color = Color(0.32, 0.2, 0.1, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="OpenWorld" type="Node2D"]
+
+[node name="PlainsGrass" type="ColorRect" parent="."]
+offset_right = 2200.0
+offset_bottom = 1400.0
+mouse_filter = 2
+color = Color(0.22, 0.52, 0.3, 1)
+
+[node name="EastHighland" type="ColorRect" parent="."]
+offset_left = 1140.0
+offset_right = 2200.0
+offset_bottom = 1400.0
+mouse_filter = 2
+color = Color(0.27, 0.49, 0.28, 1)
+
+[node name="RiverWater" type="ColorRect" parent="."]
+offset_left = 1020.0
+offset_right = 1140.0
+offset_bottom = 1400.0
+mouse_filter = 2
+color = Color(0.16, 0.56, 0.88, 1)
+
+[node name="WoodenBridge" type="Panel" parent="."]
+offset_left = 995.0
+offset_top = 600.0
+offset_right = 1165.0
+offset_bottom = 760.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_bridge")
+
+[node name="MountainRangeVisual" type="Polygon2D" parent="."]
+color = Color(0.36, 0.35, 0.42, 1)
+polygon = PackedVector2Array(1240, 210, 1390, 45, 1540, 195, 1710, 35, 1890, 190, 2060, 60, 2180, 210)
+
+[node name="MountainSnowPeaks" type="Polygon2D" parent="."]
+color = Color(0.92, 0.96, 1, 1)
+polygon = PackedVector2Array(1345, 95, 1390, 45, 1435, 95, 1665, 85, 1710, 35, 1755, 85, 2020, 102, 2060, 60, 2100, 102)
+
+[node name="LandmarkPlainsLabel" type="Label" parent="."]
+offset_left = 540.0
+offset_top = 500.0
+offset_right = 760.0
+offset_bottom = 526.0
+theme_override_colors/font_color = Color(0.85, 1, 0.82, 0.85)
+theme_override_font_sizes/font_size = 14
+text = "دشت سبز (منطقه شکار)"
+horizontal_alignment = 1
+
+[node name="LandmarkBridgeLabel" type="Label" parent="."]
+offset_left = 995.0
+offset_top = 570.0
+offset_right = 1165.0
+offset_bottom = 596.0
+theme_override_colors/font_color = Color(0.8, 0.95, 1, 0.95)
+theme_override_font_sizes/font_size = 13
+text = "پل رودخانه خروشان"
+horizontal_alignment = 1
+
+[node name="PortalToVillage" type="Area2D" parent="."]
+position = Vector2(210, 680)
+script = ExtResource("1_portal")
+target_zone_id = "village"
+portal_label_text = "<- ورود به روستای امن (فروشگاه)"
+portal_color = Color(0.3, 1, 0.62, 0.9)
+
+[node name="RingSprite" type="Sprite2D" parent="PortalToVillage"]
+scale = Vector2(0.95, 0.95)
+texture = ExtResource("2_glow")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PortalToVillage"]
+shape = SubResource("CircleShape2D_portal")
+
+[node name="PortalLabel" type="Label" parent="PortalToVillage"]
+offset_left = -115.0
+offset_top = -78.0
+offset_right = 115.0
+offset_bottom = -52.0
+theme_override_colors/font_color = Color(0.55, 1, 0.72, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.12, 0.08, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 13
+text = "ورود به روستای امن"
+horizontal_alignment = 1
+
+[node name="DungeonPortalForest" type="Area2D" parent="."]
+position = Vector2(1580, 410)
+script = ExtResource("1_portal")
+target_zone_id = "dungeon"
+target_dungeon_tier = 1
+portal_label_text = "دانجن جنگل باستانی (Lv.1)"
+portal_color = Color(0.82, 0.38, 1, 0.92)
+
+[node name="RingSprite" type="Sprite2D" parent="DungeonPortalForest"]
+scale = Vector2(1.0, 1.0)
+texture = ExtResource("2_glow")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DungeonPortalForest"]
+shape = SubResource("CircleShape2D_portal")
+
+[node name="PortalLabel" type="Label" parent="DungeonPortalForest"]
+offset_left = -115.0
+offset_top = -80.0
+offset_right = 115.0
+offset_bottom = -54.0
+theme_override_colors/font_color = Color(0.92, 0.68, 1, 1)
+theme_override_colors/font_outline_color = Color(0.1, 0.04, 0.16, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 13
+text = "دانجن ۱: جنگل باستانی"
+horizontal_alignment = 1
+
+[node name="DungeonPortalMountain" type="Area2D" parent="."]
+position = Vector2(1880, 980)
+script = ExtResource("1_portal")
+target_zone_id = "dungeon"
+target_dungeon_tier = 3
+portal_label_text = "دانجن کوهستان آتش (Lv.3)"
+portal_color = Color(1, 0.42, 0.35, 0.92)
+
+[node name="RingSprite" type="Sprite2D" parent="DungeonPortalMountain"]
+scale = Vector2(1.05, 1.05)
+texture = ExtResource("2_glow")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DungeonPortalMountain"]
+shape = SubResource("CircleShape2D_portal")
+
+[node name="PortalLabel" type="Label" parent="DungeonPortalMountain"]
+offset_left = -115.0
+offset_top = -80.0
+offset_right = 115.0
+offset_bottom = -54.0
+theme_override_colors/font_color = Color(1, 0.72, 0.55, 1)
+theme_override_colors/font_outline_color = Color(0.16, 0.05, 0.05, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 13
+text = "دانجن ۲: کوهستان آتش (سخت)"
+horizontal_alignment = 1
+
+[node name="TerrainColliders" type="StaticBody2D" parent="."]
+
+[node name="RiverUpperCollider" type="CollisionShape2D" parent="TerrainColliders"]
+position = Vector2(1080, 300)
+shape = SubResource("RectangleShape2D_river_bank")
+
+[node name="RiverLowerCollider" type="CollisionShape2D" parent="TerrainColliders"]
+position = Vector2(1080, 1080)
+shape = SubResource("RectangleShape2D_river_bank")
+
+[node name="MountainCollider" type="CollisionShape2D" parent="TerrainColliders"]
+position = Vector2(1700, 120)
+shape = SubResource("RectangleShape2D_mountain_block")
+
+[node name="TopWall" type="CollisionShape2D" parent="TerrainColliders"]
+position = Vector2(1100, 20)
+shape = SubResource("RectangleShape2D_hwall")
+
+[node name="BottomWall" type="CollisionShape2D" parent="TerrainColliders"]
+position = Vector2(1100, 1380)
+shape = SubResource("RectangleShape2D_hwall")
+
+[node name="LeftWall" type="CollisionShape2D" parent="TerrainColliders"]
+position = Vector2(20, 700)
+shape = SubResource("RectangleShape2D_vwall")
+
+[node name="RightWall" type="CollisionShape2D" parent="TerrainColliders"]
+position = Vector2(2180, 700)
+shape = SubResource("RectangleShape2D_vwall")
+
+[node name="HeroSpawnPoint" type="Marker2D" parent="."]
+position = Vector2(420, 680)
+
+[node name="EnemySpawnPoints" type="Node2D" parent="."]
+
+[node name="MobSpawn1" type="Marker2D" parent="EnemySpawnPoints"]
+position = Vector2(730, 660)
+
+[node name="MobSpawn2" type="Marker2D" parent="EnemySpawnPoints"]
+position = Vector2(820, 440)
+
+[node name="MobSpawn3" type="Marker2D" parent="EnemySpawnPoints"]
+position = Vector2(790, 910)
+
+[node name="MobSpawn4" type="Marker2D" parent="EnemySpawnPoints"]
+position = Vector2(1380, 660)
+
+[node name="MobSpawn5" type="Marker2D" parent="EnemySpawnPoints"]
+position = Vector2(1660, 760)
+
+[node name="UnitsContainer" type="Node2D" parent="."]
+y_sort_enabled = true
