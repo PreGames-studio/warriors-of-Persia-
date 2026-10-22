@@ -200,18 +200,18 @@ text = "دانجن باس (Dungeon)"
 [node name="BtnInventory" type="Button" parent="RootControl/TopCenterBar/VBox/QuickButtons"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
-text = "کیف آیتم (B)"
+text = "کیف آیتم"
 
 [node name="BtnShop" type="Button" parent="RootControl/TopCenterBar/VBox/QuickButtons"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
-text = "فروشگاه (V)"
+text = "فروشگاه"
 
 [node name="ToastLabel" type="Label" parent="RootControl/TopCenterBar/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.9, 0.4, 1)
 theme_override_font_sizes/font_size = 12
-text = "WASD یا جوی‌استیک برای حرکت | Space حمله | کلیدهای ۱ تا ۴ اسکیل"
+text = "با جوی‌استیک حرکت کنید و برای مبارزه، دکمه‌های لمسی را لمس کنید"
 horizontal_alignment = 1
 
 [node name="MinimapPanel" type="PanelContainer" parent="RootControl"]
@@ -275,8 +275,7 @@ offset_top = 128.0
 offset_right = 408.0
 offset_bottom = 212.0
 theme_override_font_sizes/font_size = 14
-text = "حمله پایه
-(Space)"
+text = "حمله پایه"
 
 [node name="SkillBtn1" type="Button" parent="RootControl/ActionCluster"]
 layout_mode = 0

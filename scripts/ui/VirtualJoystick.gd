@@ -1,7 +1,7 @@
 class_name VirtualJoystick
 extends Control
-## جوی‌استیک مجازی لمسی و ماوسی (VirtualJoystick)
-## مناسب کنترل موبایل (چندلمسی) و قابل تست مستقیم با کلیک و کشیدن ماوس روی دسکتاپ.
+## جوی‌استیک مجازی کاملاً لمسی (VirtualJoystick)
+## کنترل حرکت موبایل با پشتیبانی از چندلمسی؛ ورودی ماوس پذیرفته نمی‌شود.
 
 signal direction_changed(output_vector: Vector2)
 
@@ -35,23 +35,6 @@ func _gui_input(event: InputEvent) -> void:
 		var drag: InputEventScreenDrag = event as InputEventScreenDrag
 		if drag.index == _touch_index:
 			_update_knob(drag.position - center)
-			accept_event()
-
-	elif event is InputEventMouseButton:
-		var mb: InputEventMouseButton = event as InputEventMouseButton
-		if mb.button_index == MOUSE_BUTTON_LEFT:
-			if mb.pressed and _touch_index == -1:
-				_touch_index = 99
-				_update_knob(mb.position - center)
-				accept_event()
-			elif not mb.pressed and _touch_index == 99:
-				_reset_knob()
-				accept_event()
-
-	elif event is InputEventMouseMotion:
-		var mm: InputEventMouseMotion = event as InputEventMouseMotion
-		if _touch_index == 99:
-			_update_knob(mm.position - center)
 			accept_event()
 
 

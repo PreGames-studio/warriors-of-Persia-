@@ -1,7 +1,7 @@
 class_name Hero
 extends UnitBase
 ## کلاس قهرمان قابل بازی و هم‌تیمی‌ها (Hero)
-## قابلیت حرکت با کیبورد، ماوس یا جوی‌استیک مجازی (موبایل)، ۴ اسکیل فعال + ۱ پسیو،
+## حرکت فقط با جوی‌استیک لمسی موبایل، ۴ اسکیل فعال + ۱ پسیو،
 ## رشد سقف مانا با لول‌آپ، و هوش مصنوعی کمکی فقط برای تست محلی بازیکنان آنلاین ۲ تا ۵.
 
 enum Role {
@@ -59,8 +59,7 @@ func _physics_process(delta: float) -> void:
 
 	var move_dir: Vector2 = Vector2.ZERO
 	if is_local_leader:
-		move_dir = _read_player_movement_input()
-		_handle_player_combat_shortcuts()
+		move_dir = joystick_vector
 	else:
 		# در فاز اسکلت (قبل از اتصال سرور آنلاین)، هم‌تیمی‌های متصل شماره ۲ تا ۵
 		# توسط AI کمکی هدایت می‌شوند تا تست تیم ۱ تا ۵ نفره روی یک دستگاه ممکن باشد.
@@ -156,28 +155,6 @@ static func get_role_title_fa(role_val: int) -> String:
 		Role.SUPPORT:
 			return "پشتیبان"
 	return "قهرمان"
-
-
-## خواندن ترکیبی ورودی حرکت از جوی‌استیک لمسی/ماوس و کلیدهای WASD/جهت‌نما
-func _read_player_movement_input() -> Vector2:
-	if joystick_vector.length() > 0.12:
-		return joystick_vector
-
-	var key_vec: Vector2 = Input.get_vector("move_left", "move_right", "move_up", "move_down")
-	return key_vec
-
-
-func _handle_player_combat_shortcuts() -> void:
-	if Input.is_action_pressed("basic_attack"):
-		perform_basic_attack()
-	if Input.is_action_just_pressed("skill_1"):
-		use_skill(0)
-	elif Input.is_action_just_pressed("skill_2"):
-		use_skill(1)
-	elif Input.is_action_just_pressed("skill_3"):
-		use_skill(2)
-	elif Input.is_action_just_pressed("skill_4"):
-		use_skill(3)
 
 
 func _update_cooldowns_and_passive(delta: float) -> void:

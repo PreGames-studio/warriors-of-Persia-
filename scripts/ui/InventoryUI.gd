@@ -1,7 +1,7 @@
 class_name InventoryUI
 extends PanelContainer
 ## پنجره کیف آیتم‌ها و کریستال‌های همراه (Inventory)
-## نمایش ۱۶ اسلات آیتم (قابل مصرف یا تجهیز با کلیک) و فهرست کریستال‌های جمع‌آوری‌شده تیم.
+## نمایش ۱۶ اسلات آیتم (قابل مصرف یا تجهیز با لمس) و فهرست کریستال‌های جمع‌آوری‌شده تیم.
 
 @onready var crystals_summary_label: Label = $Margin/VBox/CrystalsSummaryLabel
 @onready var slots_grid: GridContainer = $Margin/VBox/SlotsGrid
@@ -60,7 +60,7 @@ func refresh_ui() -> void:
 		if i < loot.inventory_items.size():
 			var item: Item = loot.inventory_items[i]
 			slot_btn.text = item.title
-			slot_btn.tooltip_text = "%s\n(کلیک برای استفاده)" % item.description
+			slot_btn.tooltip_text = "%s\n(لمس برای استفاده)" % item.description
 			slot_btn.modulate = item.tint_color.lightened(0.25)
 			var idx: int = i
 			slot_btn.pressed.connect(func() -> void:
