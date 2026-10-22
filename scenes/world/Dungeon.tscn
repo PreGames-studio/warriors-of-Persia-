@@ -1,0 +1,95 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/PortalZone.gd" id="1_portal"]
+[ext_resource type="Texture2D" path="res://assets/sprites/glow_ring.png" id="2_glow"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_exit"]
+radius = 52.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hwall"]
+size = Vector2(1500, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_vwall"]
+size = Vector2(40, 1050)
+
+[node name="Dungeon" type="Node2D"]
+
+[node name="DungeonStoneFloor" type="ColorRect" parent="."]
+offset_right = 1500.0
+offset_bottom = 1050.0
+mouse_filter = 2
+color = Color(0.14, 0.11, 0.22, 1)
+
+[node name="BossArenaCarpet" type="Polygon2D" parent="."]
+color = Color(0.28, 0.14, 0.36, 1)
+polygon = PackedVector2Array(450, 140, 1050, 140, 1140, 320, 1050, 500, 450, 500, 360, 320)
+
+[node name="BossRuneCircle" type="Sprite2D" parent="."]
+modulate = Color(0.95, 0.32, 0.85, 0.28)
+position = Vector2(750, 320)
+scale = Vector2(2.3, 2.3)
+texture = ExtResource("2_glow")
+
+[node name="ExitPortalToWorld" type="Area2D" parent="."]
+position = Vector2(750, 960)
+script = ExtResource("1_portal")
+target_zone_id = "open_world"
+portal_label_text = "خروج از دانجن به جهان باز"
+portal_color = Color(0.32, 0.92, 1, 0.9)
+
+[node name="RingSprite" type="Sprite2D" parent="ExitPortalToWorld"]
+scale = Vector2(0.9, 0.9)
+texture = ExtResource("2_glow")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ExitPortalToWorld"]
+shape = SubResource("CircleShape2D_exit")
+
+[node name="PortalLabel" type="Label" parent="ExitPortalToWorld"]
+offset_left = -115.0
+offset_top = -76.0
+offset_right = 115.0
+offset_bottom = -50.0
+theme_override_colors/font_color = Color(0.65, 0.96, 1, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.05, 0.14, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 13
+text = "خروج به جهان باز"
+horizontal_alignment = 1
+
+[node name="DungeonWalls" type="StaticBody2D" parent="."]
+
+[node name="TopWall" type="CollisionShape2D" parent="DungeonWalls"]
+position = Vector2(750, 20)
+shape = SubResource("RectangleShape2D_hwall")
+
+[node name="BottomWall" type="CollisionShape2D" parent="DungeonWalls"]
+position = Vector2(750, 1030)
+shape = SubResource("RectangleShape2D_hwall")
+
+[node name="LeftWall" type="CollisionShape2D" parent="DungeonWalls"]
+position = Vector2(20, 525)
+shape = SubResource("RectangleShape2D_vwall")
+
+[node name="RightWall" type="CollisionShape2D" parent="DungeonWalls"]
+position = Vector2(1480, 525)
+shape = SubResource("RectangleShape2D_vwall")
+
+[node name="HeroSpawnPoint" type="Marker2D" parent="."]
+position = Vector2(750, 845)
+
+[node name="EnemySpawnPoints" type="Node2D" parent="."]
+
+[node name="GuardLeft" type="Marker2D" parent="EnemySpawnPoints"]
+position = Vector2(510, 620)
+
+[node name="GuardRight" type="Marker2D" parent="EnemySpawnPoints"]
+position = Vector2(990, 620)
+
+[node name="GuardElite" type="Marker2D" parent="EnemySpawnPoints"]
+position = Vector2(750, 520)
+
+[node name="BossSpawnPoint" type="Marker2D" parent="."]
+position = Vector2(750, 300)
+
+[node name="UnitsContainer" type="Node2D" parent="."]
+y_sort_enabled = true
