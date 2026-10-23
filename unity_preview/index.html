@@ -1,0 +1,2355 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" href="./icon.png" />
+  <title>Warriors of Persia 3D — اپ قابل بازی جنگجویان پارس</title>
+  <style>
+    @font-face {
+      font-family: 'Vazirmatn';
+      src: url('./fonts/Vazirmatn-Regular.ttf') format('truetype');
+      font-weight: 400;
+    }
+    @font-face {
+      font-family: 'Vazirmatn';
+      src: url('./fonts/Vazirmatn-Bold.ttf') format('truetype');
+      font-weight: 700;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    body {
+      font-family: 'Vazirmatn', system-ui, -apple-system, sans-serif;
+      background: #0b111e;
+      color: #f1f5f9;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ================= TOP APP & UNITY MODE SWITCH BAR ================= */
+    .app-topbar {
+      height: 44px;
+      background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+      border-bottom: 1px solid #334155;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      z-index: 40;
+      gap: 6px;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand-badge {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #fff;
+      font-weight: 700;
+      font-size: 12px;
+      padding: 3px 9px;
+      border-radius: 6px;
+      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35);
+    }
+    .zone-pill {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid #38bdf8;
+      color: #7dd3fc;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .zone-pill.safe {
+      border-color: #4ade80;
+      color: #86efac;
+    }
+
+    .nav-group {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+
+    .top-btn {
+      background: #1e293b;
+      color: #e2e8f0;
+      border: 1px solid #475569;
+      padding: 5px 10px;
+      font-family: 'Vazirmatn', sans-serif;
+      font-size: 11.5px;
+      font-weight: 700;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s;
+    }
+    .top-btn:hover {
+      background: #334155;
+      border-color: #64748b;
+    }
+    .top-btn.active {
+      background: #0284c7;
+      border-color: #38bdf8;
+      color: #fff;
+    }
+    .top-btn.gold {
+      background: linear-gradient(135deg, #b45309, #78350f);
+      border-color: #f59e0b;
+      color: #fef08a;
+    }
+    .top-btn.emerald {
+      background: linear-gradient(135deg, #047857, #064e3b);
+      border-color: #34d399;
+      color: #d1fae5;
+    }
+    .top-btn.purple {
+      background: linear-gradient(135deg, #6d28d9, #4c1d95);
+      border-color: #a78bfa;
+      color: #ede9fe;
+    }
+
+    /* ================= MAIN 3D GAME VIEWPORT ================= */
+    #game-stage {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      background: #090d16;
+    }
+
+    #three-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* 3D Floating World Labels & Damage Popups */
+    #labels-layer, #popups-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .world-label-3d {
+      position: absolute;
+      transform: translate(-50%, -100%);
+      background: rgba(15, 23, 42, 0.86);
+      color: #ffffff;
+      padding: 3px 9px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.55);
+    }
+
+    .dmg-popup {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      font-weight: 700;
+      font-size: 15px;
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.95);
+      white-space: nowrap;
+      pointer-events: none;
+      transition: opacity 0.15s;
+    }
+
+    /* ================= TOAST NOTIFICATION BANNER ================= */
+    #toast-banner {
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.92);
+      border: 2px solid #38bdf8;
+      color: #f8fafc;
+      padding: 7px 18px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      z-index: 35;
+      pointer-events: none;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+      opacity: 0;
+      transition: opacity 0.25s;
+    }
+    #toast-banner.visible {
+      opacity: 1;
+    }
+
+    /* ================= HERO STATS HUD (TOP-RIGHT) ================= */
+    .hero-hud-card {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 265px;
+      background: rgba(15, 23, 42, 0.88);
+      border: 2px solid #3b82f6;
+      border-radius: 12px;
+      padding: 10px 12px;
+      z-index: 20;
+      backdrop-filter: blur(6px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    .hero-hud-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .hero-name-txt {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fde047;
+    }
+    .hero-lvl-badge {
+      background: #1d4ed8;
+      color: #fff;
+      font-weight: 700;
+      font-size: 11.5px;
+      padding: 1px 8px;
+      border-radius: 999px;
+      border: 1px solid #60a5fa;
+    }
+
+    .stat-bar-row {
+      margin-bottom: 5px;
+    }
+    .stat-bar-track {
+      height: 14px;
+      background: #090d16;
+      border-radius: 7px;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid #334155;
+    }
+    .stat-bar-fill {
+      height: 100%;
+      transition: width 0.2s ease-out;
+    }
+    .fill-hp { background: linear-gradient(90deg, #16a34a, #4ade80); }
+    .fill-mana { background: linear-gradient(90deg, #2563eb, #38bdf8); }
+    .fill-xp { background: linear-gradient(90deg, #ca8a04, #facc15); }
+
+    .stat-bar-text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 1px 3px #000;
+      direction: ltr;
+    }
+
+    .economy-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(148, 163, 184, 0.2);
+      font-size: 11.5px;
+      font-weight: 700;
+    }
+
+    /* ================= PARTY CO-OP PANEL (RIGHT SIDE UNDER HERO HUD) ================= */
+    .party-hud-card {
+      position: absolute;
+      top: 158px;
+      right: 12px;
+      width: 265px;
+      background: rgba(15, 23, 42, 0.86);
+      border: 1px solid #475569;
+      border-radius: 10px;
+      padding: 8px 10px;
+      z-index: 20;
+      backdrop-filter: blur(5px);
+      max-height: 225px;
+      display: flex;
+      flex-direction: column;
+    }
+    .party-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #93c5fd;
+      margin-bottom: 6px;
+    }
+    .party-add-btn {
+      background: #059669;
+      color: #fff;
+      border: 1px solid #34d399;
+      border-radius: 5px;
+      padding: 2px 7px;
+      font-family: 'Vazirmatn', sans-serif;
+      font-size: 10.5px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .party-add-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .party-list {
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .party-member-row {
+      background: rgba(30, 41, 59, 0.85);
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 4px 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+    }
+    .party-member-row.offline {
+      opacity: 0.55;
+      border-color: #7f1d1d;
+    }
+    .pm-btn {
+      background: #334155;
+      color: #e2e8f0;
+      border: 1px solid #475569;
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: 'Vazirmatn', sans-serif;
+      font-size: 10px;
+      cursor: pointer;
+      margin-right: 3px;
+    }
+    .pm-btn:hover { background: #475569; }
+
+    /* ================= MINIMAP RADAR (TOP-LEFT) ================= */
+    .minimap-card {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      width: 175px;
+      background: rgba(15, 23, 42, 0.88);
+      border: 2px solid #475569;
+      border-radius: 12px;
+      padding: 7px;
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .minimap-title {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: #cbd5e1;
+      margin-bottom: 4px;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+    }
+    #minimap-canvas {
+      width: 158px;
+      height: 104px;
+      border-radius: 6px;
+      background: #0f172a;
+      border: 1px solid #334155;
+    }
+
+    /* ================= VIRTUAL JOYSTICK (BOTTOM-LEFT) ================= */
+    .joystick-zone {
+      position: absolute;
+      bottom: 24px;
+      left: 28px;
+      width: 132px;
+      height: 132px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.14), rgba(15, 23, 42, 0.65));
+      border: 2px solid rgba(125, 211, 252, 0.45);
+      z-index: 25;
+      touch-action: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55);
+    }
+    .joystick-knob {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #7dd3fc, #0284c7);
+      border: 2px solid #ffffff;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+      transform: translate(0px, 0px);
+      pointer-events: none;
+    }
+    .joystick-hint {
+      position: absolute;
+      bottom: -20px;
+      font-size: 10px;
+      color: #94a3b8;
+      white-space: nowrap;
+    }
+
+    /* ================= SKILLS & BASIC ATTACK CLUSTER (BOTTOM-RIGHT) ================= */
+    .combat-cluster {
+      position: absolute;
+      bottom: 20px;
+      right: 24px;
+      width: 245px;
+      height: 185px;
+      z-index: 25;
+    }
+
+    .btn-basic-attack {
+      position: absolute;
+      bottom: 4px;
+      left: 8px;
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #fb923c, #c2410c);
+      border: 3px solid #fde047;
+      color: #ffffff;
+      font-family: 'Vazirmatn', sans-serif;
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 0 22px rgba(249, 115, 22, 0.65);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-basic-attack:active {
+      transform: scale(0.92);
+    }
+
+    .skill-btn {
+      position: absolute;
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      border: 2px solid #bae6fd;
+      color: #ffffff;
+      font-family: 'Vazirmatn', sans-serif;
+      font-size: 10.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+      overflow: hidden;
+    }
+    .skill-btn:active {
+      transform: scale(0.92);
+    }
+    .skill-btn .mana-tag {
+      font-size: 9px;
+      color: #e0f2fe;
+      opacity: 0.9;
+    }
+    .skill-cd-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(9, 13, 22, 0.82);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: #fde047;
+    }
+    .skill-btn.on-cd .skill-cd-overlay {
+      display: flex;
+    }
+
+    /* Arc layout around basic attack */
+    .sk-pos-1 { bottom: 106px; left: 4px; background: radial-gradient(circle, #06b6d4, #0e7490); }
+    .sk-pos-2 { bottom: 102px; left: 74px; background: radial-gradient(circle, #3b82f6, #1d4ed8); }
+    .sk-pos-3 { bottom: 60px; left: 132px; background: radial-gradient(circle, #a855f7, #6b21a8); }
+    .sk-pos-4 { bottom: 0px; left: 122px; background: radial-gradient(circle, #eab308, #a16207); border-color: #fef08a; }
+
+    /* Context Action Button (e.g. Open Shop when near stall) */
+    #context-action-btn {
+      position: absolute;
+      bottom: 34px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #f59e0b, #b45309);
+      border: 2px solid #fef08a;
+      color: #fff;
+      font-family: 'Vazirmatn', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 10px 22px;
+      border-radius: 999px;
+      cursor: pointer;
+      z-index: 30;
+      box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5);
+      display: none;
+    }
+
+    /* ================= MODALS (SHOP, INVENTORY, SCHEMATIC/UNITY) ================= */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(9, 13, 22, 0.78);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-window {
+      width: 100%;
+      max-width: 680px;
+      max-height: 88vh;
+      background: #1e293b;
+      border: 2px solid #475569;
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.7);
+    }
+
+    .modal-win-header {
+      padding: 12px 16px;
+      background: #0f172a;
+      border-bottom: 1px solid #334155;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 15px;
+      font-weight: 700;
+      color: #fde047;
+    }
+
+    .modal-win-body {
+      padding: 14px 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .shop-banner {
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: rgba(16, 185, 129, 0.14);
+      border: 1px solid #34d399;
+      font-size: 12.5px;
+      color: #d1fae5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .shop-banner.warn {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: #f59e0b;
+      color: #fef08a;
+    }
+
+    .shop-actions-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .action-card-btn {
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #38bdf8;
+      background: #0f172a;
+      color: #f8fafc;
+      font-family: 'Vazirmatn', sans-serif;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .action-card-btn:hover:not(:disabled) {
+      background: #1e3a8a;
+    }
+    .action-card-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      border-color: #475569;
+    }
+
+    .catalog-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .catalog-row {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 9px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* 16-Slot Inventory Grid */
+    .inv-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .inv-slot {
+      min-height: 62px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-family: 'Vazirmatn', sans-serif;
+      font-size: 11.5px;
+      color: #94a3b8;
+      cursor: pointer;
+    }
+    .inv-slot.filled {
+      border-color: #38bdf8;
+      background: rgba(14, 116, 144, 0.25);
+      color: #f8fafc;
+      font-weight: 700;
+    }
+    .inv-slot.filled:hover {
+      background: rgba(14, 116, 144, 0.45);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP NAVIGATION & QUICK CONTROLS BAR -->
+  <div class="app-topbar">
+    <div class="brand-group">
+      <span class="brand-badge">⚔️ جنگجویان پارس 3D</span>
+      <span class="zone-pill" id="top-zone-title">جهان باز (دشت، رودخانه و کوهستان)</span>
+    </div>
+
+    <!-- Map Quick Travel & Modals -->
+    <div class="nav-group">
+      <button class="top-btn" data-travel="village" data-tier="1">🏛️ روستای امن</button>
+      <button class="top-btn active" data-travel="open_world" data-tier="1">🌍 جهان باز</button>
+      <button class="top-btn" data-travel="dungeon" data-tier="1">🟣 دانجن ۱ (Lv.1)</button>
+      <button class="top-btn" data-travel="dungeon" data-tier="3">🔥 دانجن ۲ (Lv.3)</button>
+    </div>
+
+    <div class="nav-group">
+      <button class="top-btn emerald" id="btn-open-inventory">🎒 کیف آیتم (<span id="badge-inv-count">1</span>/16)</button>
+      <button class="top-btn gold" id="btn-open-shop">🏪 فروشگاه روستا</button>
+      <button class="top-btn purple" id="btn-open-schematic">📐 شماتیک و کد Unity</button>
+      <button class="top-btn active" id="btn-open-downloads" style="background:linear-gradient(135deg,#16a34a,#15803d);border-color:#86efac;">⬇ دانلود مستقیم خروجی</button>
+    </div>
+  </div>
+
+  <!-- MAIN 3D STAGE -->
+  <div id="game-stage">
+    <canvas id="three-canvas"></canvas>
+    <div id="labels-layer"></div>
+    <div id="popups-layer"></div>
+
+    <!-- Notification Toast -->
+    <div id="toast-banner">ورود به جهان باز سه‌بعدی!</div>
+
+    <!-- HERO STATS HUD (TOP-RIGHT) -->
+    <div class="hero-hud-card">
+      <div class="hero-hud-header">
+        <span class="hero-name-txt" id="hud-hero-name">قهرمان ۱ (شما) — جنگجو</span>
+        <span class="hero-lvl-badge" id="hud-hero-lvl">Lv. 1</span>
+      </div>
+
+      <div class="stat-bar-row">
+        <div class="stat-bar-track">
+          <div class="stat-bar-fill fill-hp" id="bar-hp" style="width: 100%;"></div>
+          <div class="stat-bar-text" id="txt-hp">HP: 160 / 160</div>
+        </div>
+      </div>
+
+      <div class="stat-bar-row">
+        <div class="stat-bar-track">
+          <div class="stat-bar-fill fill-mana" id="bar-mana" style="width: 100%;"></div>
+          <div class="stat-bar-text" id="txt-mana">MANA: 100 / 100</div>
+        </div>
+      </div>
+
+      <div class="stat-bar-row">
+        <div class="stat-bar-track" style="height: 11px;">
+          <div class="stat-bar-fill fill-xp" id="bar-xp" style="width: 0%;"></div>
+          <div class="stat-bar-text" id="txt-xp" style="font-size:9px;">XP: 0 / 100</div>
+        </div>
+      </div>
+
+      <div class="economy-row">
+        <span style="color:#fde047;">🪙 سکه: <span id="hud-coins">30</span></span>
+        <span style="color:#67e8f9;">💎 کریستال همراه: <span id="hud-crystals">0</span></span>
+        <span style="color:#fca5a5;">⚔️ قدرت: <span id="hud-atk">24</span></span>
+      </div>
+    </div>
+
+    <!-- PARTY CO-OP HUD (1 TO 5 PLAYERS) -->
+    <div class="party-hud-card">
+      <div class="party-header">
+        <span>👥 تیم کوآپ (<span id="party-online-count">1</span>/5 آنلاین)</span>
+        <button class="party-add-btn" id="btn-add-ally">+ افزودن هم‌تیمی</button>
+      </div>
+      <div class="party-list" id="party-list-container"></div>
+    </div>
+
+    <!-- MINIMAP RADAR (TOP-LEFT) -->
+    <div class="minimap-card">
+      <div class="minimap-title">
+        <span>رادار نقشه ۳ بعدی</span>
+        <span id="minimap-zone-tag" style="color:#38bdf8;">OpenWorld</span>
+      </div>
+      <canvas id="minimap-canvas" width="158" height="104"></canvas>
+      <div style="margin-top:5px; width:100%; display:flex; justify-content:space-between;">
+        <button class="pm-btn" id="btn-cam-mode" style="width:100%; padding:3px;">🎥 دوربین: تعقیب قهرمان (کلیک برای چرخش آزاد)</button>
+      </div>
+    </div>
+
+    <!-- VIRTUAL JOYSTICK (BOTTOM-LEFT) -->
+    <div class="joystick-zone" id="joystick-zone">
+      <div class="joystick-knob" id="joystick-knob"></div>
+      <div class="joystick-hint">جوی‌استیک لمسی یا WASD</div>
+    </div>
+
+    <!-- CONTEXT INTERACTION BUTTON -->
+    <button id="context-action-btn">🏪 باز کردن فروشگاه روستای امن</button>
+
+    <!-- COMBAT & 4 SKILLS CLUSTER (BOTTOM-RIGHT) -->
+    <div class="combat-cluster">
+      <button class="skill-btn sk-pos-1" data-skill="0">
+        <span>ضربه۱</span>
+        <span class="mana-tag">15 MP</span>
+        <div class="skill-cd-overlay" id="cd-0"></div>
+      </button>
+      <button class="skill-btn sk-pos-2" data-skill="1">
+        <span>گوی۲</span>
+        <span class="mana-tag">25 MP</span>
+        <div class="skill-cd-overlay" id="cd-1"></div>
+      </button>
+      <button class="skill-btn sk-pos-3" data-skill="2">
+        <span>موج۳</span>
+        <span class="mana-tag">40 MP</span>
+        <div class="skill-cd-overlay" id="cd-2"></div>
+      </button>
+      <button class="skill-btn sk-pos-4" data-skill="3">
+        <span>طوفان۴</span>
+        <span class="mana-tag">60 MP</span>
+        <div class="skill-cd-overlay" id="cd-3"></div>
+      </button>
+
+      <button class="btn-basic-attack" id="btn-basic-attack">
+        <span>⚔️</span>
+        <span>حمله پایه</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= MODAL 1: VILLAGE SHOP (فروشگاه روستا) ================= -->
+  <div class="modal-backdrop" id="modal-shop">
+    <div class="modal-window">
+      <div class="modal-win-header">
+        <span>🏪 فروشگاه روستای امن (تبدیل کریستال به سکه و خرید تجهیزات)</span>
+        <button class="top-btn" data-close="modal-shop">✖ بستن</button>
+      </div>
+      <div class="modal-win-body">
+        <div class="shop-banner" id="shop-zone-banner">
+          <span id="shop-status-msg">خوش آمدید! کریستال‌های شکار را به سکه تبدیل کنید.</span>
+          <button class="top-btn emerald" id="btn-shop-go-village" style="display:none;">🏛️ سفر فوری به روستای امن</button>
+        </div>
+
+        <div class="shop-actions-grid">
+          <button class="action-card-btn" id="btn-sell-crystals">
+            💎 فروش همه کریستال‌ها (۰ عدد -> +۰ سکه)
+          </button>
+          <button class="action-card-btn" id="btn-recover-level">
+            🔄 جبران جریمه مرگ (۰ سطح قابل بازیابی)
+          </button>
+        </div>
+
+        <div style="font-size:13px; font-weight:700; color:#93c5fd; margin-top:4px;">
+          کاتالوگ آیتم‌ها و تجهیزات قهرمان (موجودی شما: <span id="shop-coins-val" style="color:#fde047;">30</span> سکه):
+        </div>
+        <div class="catalog-list" id="shop-catalog-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL 2: 16-SLOT INVENTORY (کیف آیتم‌ها) ================= -->
+  <div class="modal-backdrop" id="modal-inventory">
+    <div class="modal-window">
+      <div class="modal-win-header">
+        <span>🎒 کیف آیتم‌ها و کریستال‌های همراه تیم (۱۶ خانه)</span>
+        <button class="top-btn" data-close="modal-inventory">✖ بستن</button>
+      </div>
+      <div class="modal-win-body">
+        <div class="shop-banner">
+          <span id="inv-crystals-summary">کریستال‌های همراه تیم: ۰ عدد (ارزش فروش در روستا: ۰ سکه)</span>
+        </div>
+        <div style="font-size:12px; color:#cbd5e1;">
+          روی هر آیتم کلیک/لمس کنید تا بلافاصله مصرف یا روی قهرمان تجهیز شود:
+        </div>
+        <div class="inv-grid" id="inv-slots-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL 3: SCHEMATIC & UNITY 3D EXPORT ================= -->
+  <div class="modal-backdrop" id="modal-schematic">
+    <div class="modal-window" style="max-width: 880px;">
+      <div class="modal-win-header">
+        <span>📐 نقشه شماتیک مهندسی و خروجی سه‌بعدی موتور Unity</span>
+        <div style="display:flex; gap:6px;">
+          <button class="top-btn purple" id="btn-download-obj">⬇ دانلود مدل 3D (.OBJ برای یونیتی)</button>
+          <button class="top-btn" data-close="modal-schematic">✖ بستن</button>
+        </div>
+      </div>
+      <div class="modal-win-body">
+        <div style="text-align:center;">
+          <img src="./Maps_Schematic_Blueprint.png" alt="Schematic Blueprint" style="max-width:100%; border-radius:10px; border:1px solid #38bdf8;" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL 4: DIRECT DOWNLOAD CENTER (مرکز دانلود مستقیم خروجی‌ها) ================= -->
+  <div class="modal-backdrop open" id="modal-downloads">
+    <div class="modal-window" style="max-width: 640px;">
+      <div class="modal-win-header">
+        <span>📦 مرکز دانلود مستقیم خروجی نهایی (Warriors of Persia 3D Build)</span>
+        <button class="top-btn" data-close="modal-downloads">✖ بستن و بازگشت به بازی</button>
+      </div>
+      <div class="modal-win-body">
+        <div class="shop-banner">
+          <span>تمام خروجی‌های بازی با آخرین تغییرات آماده دانلود مستقیم هستند:</span>
+        </div>
+
+        <div class="catalog-list">
+          <div class="catalog-row">
+            <div>
+              <div style="font-weight:700; color:#4ade80; font-size:13.5px;">۱. پکیج کامل خروجی بازی + پروژه یونیتی (ZIP)</div>
+              <div style="font-size:11.5px; color:#cbd5e1;">شامل اپ قابل نصب موبایل، نسخه تک‌فایل، اسکریپت‌های C# یونیتی و پلان شماتیک</div>
+            </div>
+            <a href="/download-app-zip" download="WarriorsOfPersia_3D_Final_Build.zip" class="top-btn emerald" style="text-decoration:none; padding:8px 14px;">
+              ⬇ دانلود مستقیم ZIP
+            </a>
+          </div>
+
+          <div class="catalog-row">
+            <div>
+              <div style="font-weight:700; color:#fde047; font-size:13.5px;">۲. نسخه تک‌فایل اجرایی آفلاین (موبایل و کامپیوتر)</div>
+              <div style="font-size:11.5px; color:#cbd5e1;">فایل مستقل <code>WarriorsOfPersia_3D_Standalone.html</code> (اجرا بدون نیاز به سرور)</div>
+            </div>
+            <a href="/download-standalone-html" download="WarriorsOfPersia_3D_Standalone.html" class="top-btn gold" style="text-decoration:none; padding:8px 14px;">
+              ⬇ دانلود اپ تک‌فایل
+            </a>
+          </div>
+
+          <div class="catalog-row">
+            <div>
+              <div style="font-weight:700; color:#c084fc; font-size:13.5px;">۳. مدل سه‌بعدی نقشه فعلی برای موتور Unity (.OBJ)</div>
+              <div style="font-size:11.5px; color:#cbd5e1;">آماده Drag & Drop مستقیم داخل پوشه Assets در Unity Editor</div>
+            </div>
+            <button class="top-btn purple" id="btn-download-obj-2" style="padding:8px 14px;">
+              ⬇ دانلود مدل 3D (.OBJ)
+            </button>
+          </div>
+
+          <div class="catalog-row">
+            <div>
+              <div style="font-weight:700; color:#38bdf8; font-size:13.5px;">۴. تصویر پلان شماتیک مهندسی هر ۳ نقشه (PNG)</div>
+              <div style="font-size:11.5px; color:#cbd5e1;">نقشه شماتیک کامل با مختصات دقیق (X, Y, Z) در یونیتی</div>
+            </div>
+            <a href="./Maps_Schematic_Blueprint.png" download="Maps_Schematic_Blueprint.png" class="top-btn active" style="text-decoration:none; padding:8px 14px;">
+              ⬇ دانلود پلان شماتیک
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as THREE from './lib/three.module.js';
+    import { OrbitControls } from './lib/OrbitControls.js';
+    import { OBJExporter } from './lib/OBJExporter.js';
+
+    // Register PWA Service Worker for installable mobile experience
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
+
+    // =====================================================================
+    // SYNTHESIZED SOUND EFFECTS (WebAudio API - zero external audio lag)
+    // =====================================================================
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+    function playTone(freq, duration = 0.14, type = 'sine', gainVal = 0.08) {
+      try {
+        if (!audioCtx) audioCtx = new AudioCtx();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(gainVal, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    // =====================================================================
+    // CORE GAME STATE (Matching GDScript & Unity C# Architecture)
+    // =====================================================================
+    const ROLES = [
+      { id: 0, title: 'جنگجو', color: 0x2563eb },
+      { id: 1, title: 'جادوگر', color: 0x9333ea },
+      { id: 2, title: 'کماندار', color: 0x16a34a },
+      { id: 3, title: 'تانک', color: 0xd97706 },
+      { id: 4, title: 'پشتیبان', color: 0xdb2777 }
+    ];
+
+    const SKILLS = [
+      { id: 'skill_1', name: 'ضربه درخشان', manaCost: 15, cooldown: 3.0, mult: 1.45, mode: 'melee', color: 0x38bdf8 },
+      { id: 'skill_2', name: 'گوی انرژی', manaCost: 25, cooldown: 6.0, mult: 1.95, mode: 'projectile', color: 0x60a5fa },
+      { id: 'skill_3', name: 'موج ستاره‌ای', manaCost: 40, cooldown: 10.0, mult: 2.65, mode: 'aoe', color: 0xc084fc },
+      { id: 'skill_4', name: 'طوفان افسانه', manaCost: 60, cooldown: 18.0, mult: 3.80, mode: 'ultimate', color: 0xfacc15 }
+    ];
+
+    const SHOP_CATALOG = [
+      { id: 'potion_hp', title: 'معجون سبز حیات', desc: '+۶۰ بازیابی سلامتی (HP)', price: 20, power: 60, type: 'hp' },
+      { id: 'potion_mana', title: 'معجون آبی مانا', desc: '+۵۰ بازیابی مانا (MANA)', price: 20, power: 50, type: 'mana' },
+      { id: 'sword_radiant', title: 'شمشیر درخشان شوالیه', desc: '+۸ قدرت حمله دائمی برای قهرمان', price: 55, power: 8, type: 'atk' },
+      { id: 'amulet_star', title: 'طلسم ستاره‌ای مانا', desc: '+۳۰ سقف مانا (MANA) دائمی', price: 65, power: 30, type: 'max_mana' }
+    ];
+
+    const state = {
+      currentZone: 'open_world', // 'village', 'open_world', 'dungeon'
+      dungeonTier: 1,
+      coins: 30,
+      lostLevelsRecoverable: 0,
+      crystals: [],
+      inventory: [ { ...SHOP_CATALOG[0] } ], // 1 starter potion
+      skillCooldowns: [0, 0, 0, 0],
+      basicAttackCd: 0,
+      freeCameraMode: false,
+      party: [
+        {
+          slot: 0,
+          name: 'قهرمان ۱ (شما)',
+          roleIndex: 0,
+          isLocal: true,
+          isOnline: true,
+          level: 1,
+          xp: 0,
+          xpToNext: 100,
+          hp: 160,
+          hpMax: 160,
+          mana: 100,
+          manaMax: 100,
+          atk: 24,
+          mesh: null
+        }
+      ]
+    };
+
+    // =====================================================================
+    // THREE.JS 3D SCENE SETUP
+    // =====================================================================
+    const canvas = document.getElementById('three-canvas');
+    const stage = document.getElementById('game-stage');
+    const labelsLayer = document.getElementById('labels-layer');
+    const popupsLayer = document.getElementById('popups-layer');
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.12;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(46, 1, 0.5, 600);
+    camera.position.set(-68, 44, 36);
+
+    const orbitControls = new OrbitControls(camera, renderer.domElement);
+    orbitControls.enableDamping = true;
+    orbitControls.enabled = false;
+
+    const hemiLight = new THREE.HemisphereLight(0xe0f2fe, 0x1e293b, 0.9);
+    scene.add(hemiLight);
+
+    const dirLight = new THREE.DirectionalLight(0xfff7ed, 1.45);
+    dirLight.position.set(-45, 95, 55);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.set(2048, 2048);
+    dirLight.shadow.camera.left = -125;
+    dirLight.shadow.camera.right = 125;
+    dirLight.shadow.camera.top = 90;
+    dirLight.shadow.camera.bottom = -90;
+    scene.add(dirLight);
+
+    let mapRoot = new THREE.Group();
+    scene.add(mapRoot);
+
+    let portalsList = [];
+    let enemiesList = [];
+    let crystals3DList = [];
+    let projectilesList = [];
+    let vfxRingsList = [];
+    let floatingLabels = [];
+    let activePopups = [];
+    let portalCooldown = 0;
+
+    // Shared 3D Materials
+    const MATS = {
+      plainsGrass: new THREE.MeshStandardMaterial({ color: 0x2f7d44, roughness: 0.82 }),
+      highlandGrass: new THREE.MeshStandardMaterial({ color: 0x3f743d, roughness: 0.8 }),
+      dirtRoad: new THREE.MeshStandardMaterial({ color: 0xb08d5e, roughness: 0.88 }),
+      persianStone: new THREE.MeshStandardMaterial({ color: 0xd6c196, roughness: 0.65 }),
+      turquoiseTile: new THREE.MeshStandardMaterial({ color: 0x1fc2c8, roughness: 0.25, metalness: 0.2, emissive: 0x08363b }),
+      riverWater: new THREE.MeshStandardMaterial({ color: 0x1d8cf8, roughness: 0.15, metalness: 0.1, emissive: 0x0a2e52 }),
+      woodBridge: new THREE.MeshStandardMaterial({ color: 0x8c5830, roughness: 0.75 }),
+      darkWood: new THREE.MeshStandardMaterial({ color: 0x523218, roughness: 0.8 }),
+      mountainRock: new THREE.MeshStandardMaterial({ color: 0x5a5868, roughness: 0.85 }),
+      snowCap: new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.45 }),
+      cypressFoliage: new THREE.MeshStandardMaterial({ color: 0x1b6336, roughness: 0.75 }),
+      goldTrim: new THREE.MeshStandardMaterial({ color: 0xf5c542, roughness: 0.3, metalness: 0.7, emissive: 0x3b2a04 }),
+      portalGreen: new THREE.MeshStandardMaterial({ color: 0x34f59b, emissive: 0x16a34a, roughness: 0.2 }),
+      portalPurple: new THREE.MeshStandardMaterial({ color: 0xd8b4fe, emissive: 0x9333ea, roughness: 0.2 }),
+      portalFire: new THREE.MeshStandardMaterial({ color: 0xfb923c, emissive: 0xea580c, roughness: 0.2 }),
+      volcanicRock: new THREE.MeshStandardMaterial({ color: 0x36262a, roughness: 0.85 }),
+      dungeonFloor: new THREE.MeshStandardMaterial({ color: 0x1e1830, roughness: 0.7 }),
+      dungeonCarpet: new THREE.MeshStandardMaterial({ color: 0x52216b, roughness: 0.6 }),
+      skinTone: new THREE.MeshStandardMaterial({ color: 0xffdab9, roughness: 0.55 }),
+      capeRed: new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.6 }),
+      enemyNormal: new THREE.MeshStandardMaterial({ color: 0xe11d48, roughness: 0.45 }),
+      enemyElite: new THREE.MeshStandardMaterial({ color: 0xf97316, emissive: 0x7c2d12, roughness: 0.35 }),
+      bossMat: new THREE.MeshStandardMaterial({ color: 0x9333ea, emissive: 0x4c1d95, roughness: 0.3 })
+    };
+
+    // =====================================================================
+    // UI NOTIFICATIONS & FLOATING 3D POPUPS
+    // =====================================================================
+    let toastTimeout = null;
+    function showToast(text, borderColor = '#38bdf8') {
+      const banner = document.getElementById('toast-banner');
+      banner.textContent = text;
+      banner.style.borderColor = borderColor;
+      banner.classList.add('visible');
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => banner.classList.remove('visible'), 2800);
+    }
+
+    function spawnFloatingPopup(text, worldPos, color = '#fde047') {
+      const el = document.createElement('div');
+      el.className = 'dmg-popup';
+      el.style.color = color;
+      el.textContent = text;
+      popupsLayer.appendChild(el);
+      activePopups.push({
+        el,
+        pos: worldPos.clone().add(new THREE.Vector3(0, 4.5, 0)),
+        age: 0,
+        maxAge: 0.75
+      });
+    }
+
+    function addWorldLabel(text, posVec3, borderColor = '#38bdf8') {
+      const el = document.createElement('div');
+      el.className = 'world-label-3d';
+      el.style.borderColor = borderColor;
+      el.textContent = text;
+      labelsLayer.appendChild(el);
+      floatingLabels.push({ el, pos: posVec3.clone() });
+      return floatingLabels[floatingLabels.length - 1];
+    }
+
+    // =====================================================================
+    // 3D OBJECT BUILDERS
+    // =====================================================================
+    function buildColumn3D(x, y, z) {
+      const g = new THREE.Group();
+      g.position.set(x, y, z);
+      const base = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.8, 2.3), MATS.persianStone);
+      base.position.y = 0.4;
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1.0, 7.0, 12), MATS.persianStone);
+      shaft.position.y = 4.3;
+      shaft.castShadow = true;
+      const cap = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.9, 2.5), MATS.goldTrim);
+      cap.position.y = 8.2;
+      g.add(base, shaft, cap);
+      return g;
+    }
+
+    function buildPortal3D(x, y, z, matGlow, label, colorHex, targetZone, targetTier = 1) {
+      const g = new THREE.Group();
+      g.position.set(x, y, z);
+      const pad = new THREE.Mesh(new THREE.CylinderGeometry(6.0, 6.8, 0.7, 24), MATS.persianStone);
+      pad.position.y = 0.35;
+      g.add(pad, buildColumn3D(-4.0, 0.35, 0), buildColumn3D(4.0, 0.35, 0));
+
+      const lintel = new THREE.Mesh(new THREE.BoxGeometry(10.8, 1.2, 2.4), MATS.persianStone);
+      lintel.position.y = 9.1;
+      g.add(lintel);
+
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(3.0, 0.36, 14, 36), matGlow);
+      ring.position.y = 4.5;
+      g.add(ring);
+
+      addWorldLabel(label, new THREE.Vector3(x, y + 11.2, z), colorHex);
+      portalsList.push({ group: g, ring, pos: new THREE.Vector3(x, y, z), targetZone, targetTier, label });
+      return g;
+    }
+
+    function buildCypress3D(x, y, z, sc = 1) {
+      const g = new THREE.Group();
+      g.position.set(x, y, z);
+      g.scale.setScalar(sc);
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.65, 2.4, 8), MATS.darkWood);
+      trunk.position.y = 1.2;
+      const c1 = new THREE.Mesh(new THREE.ConeGeometry(2.4, 6.0, 10), MATS.cypressFoliage);
+      c1.position.y = 4.8;
+      c1.castShadow = true;
+      const c2 = new THREE.Mesh(new THREE.ConeGeometry(1.7, 4.6, 10), MATS.cypressFoliage);
+      c2.position.y = 7.9;
+      g.add(trunk, c1, c2);
+      return g;
+    }
+
+    function buildHeroUnit3D(member) {
+      const g = new THREE.Group();
+      const roleObj = ROLES[member.roleIndex] || ROLES[0];
+      const armorMat = new THREE.MeshStandardMaterial({ color: roleObj.color, roughness: 0.35, metalness: 0.25 });
+
+      const aura = new THREE.Mesh(
+        new THREE.RingGeometry(1.5, 2.1, 24),
+        member.isLocal ? MATS.portalGreen : MATS.turquoiseTile
+      );
+      aura.rotation.x = -Math.PI / 2;
+      aura.position.y = 0.12;
+      g.add(aura);
+
+      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.1, 2.1, 12), armorMat);
+      torso.position.y = 1.45;
+      torso.castShadow = true;
+      g.add(torso);
+      g.userData.armorMesh = torso;
+
+      const cape = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.0, 0.24), MATS.capeRed);
+      cape.position.set(0, 1.45, -0.82);
+      cape.rotation.x = 0.16;
+      g.add(cape);
+
+      const head = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), MATS.skinTone);
+      head.position.y = 3.4;
+      head.castShadow = true;
+      g.add(head);
+
+      const crown = new THREE.Mesh(new THREE.CylinderGeometry(1.23, 1.23, 0.42, 16), MATS.goldTrim);
+      crown.position.y = 3.95;
+      g.add(crown);
+
+      const weapon = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.22, 3.1), MATS.turquoiseTile);
+      weapon.position.set(1.3, 1.8, 1.0);
+      g.add(weapon);
+
+      const lbl = addWorldLabel(
+        `${member.name} (${roleObj.title})`,
+        new THREE.Vector3(0, 5.8, 0),
+        member.isLocal ? '#4ade80' : '#38bdf8'
+      );
+      g.userData.labelRef = lbl;
+      return g;
+    }
+
+    function spawnEnemyUnit3D(x, y, z, level, rank = 'normal', customTitle = '') {
+      const isBoss = rank === 'boss';
+      const isElite = rank === 'elite';
+      const g = new THREE.Group();
+      g.position.set(x, y, z);
+      const scale = isBoss ? 2.15 : (isElite ? 1.35 : 1.0);
+      g.scale.setScalar(scale);
+
+      const mat = isBoss ? MATS.bossMat : (isElite ? MATS.enemyElite : MATS.enemyNormal);
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 1.15, 2.2, 10), mat);
+      body.position.y = 1.4;
+      body.castShadow = true;
+      g.add(body);
+
+      const head = new THREE.Mesh(new THREE.SphereGeometry(1.12, 14, 14), isBoss ? MATS.bossMat : MATS.volcanicRock);
+      head.position.y = 3.2;
+      g.add(head);
+
+      const hornL = new THREE.Mesh(new THREE.ConeGeometry(0.28, 1.2, 8), MATS.goldTrim);
+      hornL.position.set(-0.78, 4.15, 0);
+      hornL.rotation.z = 0.38;
+      const hornR = new THREE.Mesh(new THREE.ConeGeometry(0.28, 1.2, 8), MATS.goldTrim);
+      hornR.position.set(0.78, 4.15, 0);
+      hornR.rotation.z = -0.38;
+      g.add(hornL, hornR);
+
+      const hpMax = isBoss ? (260 + level * 90) : (isElite ? (110 + level * 35) : (65 + level * 22));
+      const atk = isBoss ? (22 + level * 6) : (isElite ? (14 + level * 4) : (9 + level * 3));
+      const xpReward = isBoss ? (120 * level) : (isElite ? (45 * level) : (25 * level));
+      const title = customTitle || (isBoss ? `👹 باس دیو باستانی (Lv.${level})` : (isElite ? `👾 نگهبان الیت (Lv.${level})` : `👾 هیولا (Lv.${level})`));
+
+      const lbl = addWorldLabel(`${title} [${hpMax}/${hpMax}]`, new THREE.Vector3(x, y + 4.8 * scale, z), isBoss ? '#f43f5e' : '#fb7185');
+
+      const enemyObj = {
+        group: g,
+        homePos: new THREE.Vector3(x, y, z),
+        level,
+        rank,
+        title,
+        hp: hpMax,
+        hpMax,
+        atk,
+        xpReward,
+        scale,
+        atkTimer: 1.5,
+        shockwaveTimer: 4.5,
+        dead: false,
+        respawnTimer: 0,
+        labelRef: lbl
+      };
+      mapRoot.add(g);
+      enemiesList.push(enemyObj);
+    }
+
+    function spawnCrystal3D(posVec3, enemyLevel, rank) {
+      let cType = 'small';
+      let title = 'خرده کریستال آبی';
+      let coinValue = 10 + enemyLevel * 5;
+      let colorHex = 0x38bdf8;
+      let sc = 0.9;
+
+      if (rank === 'boss') {
+        cType = 'boss';
+        title = 'کریستال باستانی باس';
+        coinValue = 45 + enemyLevel * 20;
+        colorHex = 0xfacc15;
+        sc = 1.55;
+      } else if (rank === 'elite' || enemyLevel >= 3) {
+        cType = 'medium';
+        title = 'کریستال تابناک';
+        coinValue = 18 + enemyLevel * 10;
+        colorHex = 0x34d399;
+        sc = 1.2;
+      }
+
+      const mat = new THREE.MeshStandardMaterial({ color: colorHex, emissive: colorHex, emissiveIntensity: 0.45, roughness: 0.2 });
+      const gem = new THREE.Mesh(new THREE.OctahedronGeometry(1.15 * sc, 0), mat);
+      gem.position.copy(posVec3);
+      gem.position.y += 1.6;
+      mapRoot.add(gem);
+
+      crystals3DList.push({
+        mesh: gem,
+        data: {
+          type: cType,
+          title: `${title} (Lv.${enemyLevel})`,
+          level: enemyLevel,
+          coinValue
+        }
+      });
+    }
+
+    // =====================================================================
+    // ZONE BUILDERS (OpenWorld 3D, Village 3D, Dungeon 3D)
+    // =====================================================================
+    function loadZone3D(zoneId, tier = 1) {
+      state.currentZone = zoneId;
+      state.dungeonTier = tier;
+      portalCooldown = 2.2;
+
+      scene.remove(mapRoot);
+      mapRoot = new THREE.Group();
+      scene.add(mapRoot);
+
+      portalsList = [];
+      enemiesList = [];
+      crystals3DList = [];
+      projectilesList = [];
+      vfxRingsList = [];
+      floatingLabels = [];
+      labelsLayer.innerHTML = '';
+
+      let spawnPoint = new THREE.Vector3(0, 0, 0);
+
+      if (zoneId === 'open_world') {
+        scene.background = new THREE.Color(0x132032);
+        scene.fog = new THREE.FogExp2(0x132032, 0.0020);
+
+        const west = new THREE.Mesh(new THREE.BoxGeometry(102, 3, 140), MATS.plainsGrass);
+        west.position.set(-58, -1.5, 0);
+        west.receiveShadow = true;
+        const east = new THREE.Mesh(new THREE.BoxGeometry(102, 4.2, 140), MATS.highlandGrass);
+        east.position.set(58, -0.9, 0);
+        east.receiveShadow = true;
+        const river = new THREE.Mesh(new THREE.BoxGeometry(14, 1.8, 140), MATS.riverWater);
+        river.position.set(0, -1.2, 0);
+        const roadW = new THREE.Mesh(new THREE.BoxGeometry(82, 0.18, 9), MATS.dirtRoad);
+        roadW.position.set(-48, 0.08, 0);
+        const roadE = new THREE.Mesh(new THREE.BoxGeometry(48, 0.18, 9), MATS.dirtRoad);
+        roadE.position.set(30, 1.25, 0);
+        mapRoot.add(west, east, river, roadW, roadE);
+
+        // Wooden Bridge
+        const bridge = new THREE.Group();
+        bridge.position.set(0, 0.8, 0);
+        const deck = new THREE.Mesh(new THREE.BoxGeometry(22, 0.9, 14), MATS.woodBridge);
+        const rN = new THREE.Mesh(new THREE.BoxGeometry(22, 1.9, 0.9), MATS.darkWood);
+        rN.position.set(0, 1.2, -6.5);
+        const rS = new THREE.Mesh(new THREE.BoxGeometry(22, 1.9, 0.9), MATS.darkWood);
+        rS.position.set(0, 1.2, 6.5);
+        bridge.add(deck, rN, rS);
+        mapRoot.add(bridge);
+        addWorldLabel('🌉 پل رودخانه خروشان', new THREE.Vector3(0, 4.8, 0), '#7dd3fc');
+
+        // Mountains along north
+        [[-72, -56, 15, 24], [-42, -58, 17, 28], [-16, -55, 14, 22], [24, -55, 18, 30], [52, -57, 21, 35], [82, -54, 17, 27]].forEach(([px, pz, r, h]) => {
+          const pk = new THREE.Group();
+          pk.position.set(px, 0, pz);
+          const rk = new THREE.Mesh(new THREE.ConeGeometry(r, h, 7), MATS.mountainRock);
+          rk.position.y = h * 0.5;
+          const sn = new THREE.Mesh(new THREE.ConeGeometry(r * 0.45, h * 0.4, 7), MATS.snowCap);
+          sn.position.y = h * 0.8;
+          pk.add(rk, sn);
+          mapRoot.add(pk);
+        });
+
+        // Trees
+        [[-78, -28], [-70, 30], [-45, -34], [-32, 35], [36, -36], [72, -32], [68, -14]].forEach(([tx, tz]) => {
+          mapRoot.add(buildCypress3D(tx, tx > 0 ? 1.2 : 0, tz, 1.05));
+        });
+
+        // 3 Portals
+        const pVil = buildPortal3D(-88, 0, 0, MATS.portalGreen, '⬅️ ورود به روستای امن (فروشگاه)', '#4ade80', 'village', 1);
+        pVil.rotation.y = Math.PI / 2;
+        const pFor = buildPortal3D(54, 1.2, -28, MATS.portalPurple, '🟣 دانجن ۱: جنگل باستانی (Lv.1)', '#d8b4fe', 'dungeon', 1);
+        const pFir = buildPortal3D(78, 1.2, 30, MATS.portalFire, '🔥 دانجن ۲: کوهستان آتش (Lv.3)', '#fb923c', 'dungeon', 3);
+        mapRoot.add(pVil, pFor, pFir);
+
+        // Enemies in OpenWorld
+        spawnEnemyUnit3D(-36, 0, -2, 1, 'normal');
+        spawnEnemyUnit3D(-28, 0, -22, 1, 'normal');
+        spawnEnemyUnit3D(-30, 0, 22, 1, 'normal');
+        spawnEnemyUnit3D(30, 1.2, -4, 2, 'elite');
+        spawnEnemyUnit3D(58, 1.2, 10, 3, 'elite');
+
+        spawnPoint.set(-66, 0, 0);
+      } else if (zoneId === 'village') {
+        scene.background = new THREE.Color(0x112626);
+        scene.fog = new THREE.FogExp2(0x112626, 0.0022);
+
+        const ground = new THREE.Mesh(new THREE.BoxGeometry(140, 3, 95), MATS.plainsGrass);
+        ground.position.set(0, -1.5, 0);
+        ground.receiveShadow = true;
+        const plaza = new THREE.Mesh(new THREE.CylinderGeometry(36, 37, 0.5, 8), MATS.persianStone);
+        plaza.position.set(0, 0.25, 0);
+        plaza.receiveShadow = true;
+        mapRoot.add(ground, plaza);
+
+        // Healing Fountain at (0, 0, 0)
+        const fnt = new THREE.Group();
+        const fBase = new THREE.Mesh(new THREE.CylinderGeometry(8.2, 9.2, 1.2, 24), MATS.persianStone);
+        fBase.position.y = 0.8;
+        const fWater = new THREE.Mesh(new THREE.CylinderGeometry(7.3, 7.3, 0.9, 24), MATS.turquoiseTile);
+        fWater.position.y = 1.1;
+        const fOrb = new THREE.Mesh(new THREE.SphereGeometry(1.6, 20, 20), MATS.portalGreen);
+        fOrb.position.y = 5.4;
+        fnt.add(fBase, fWater, fOrb);
+        mapRoot.add(fnt);
+        addWorldLabel('💧 چشمه امن شفا و مانا (پر شدن خودکار HP/MANA)', new THREE.Vector3(0, 8.8, 0), '#34d399');
+
+        // Village Shop Stall at (-18, 0, -16)
+        const shop = new THREE.Group();
+        shop.position.set(-18, 0.5, -16);
+        const counter = new THREE.Mesh(new THREE.BoxGeometry(12, 2.6, 5.5), MATS.woodBridge);
+        counter.position.y = 1.3;
+        const canopy = new THREE.Mesh(new THREE.BoxGeometry(14, 1.0, 7.5), MATS.turquoiseTile);
+        canopy.position.y = 6.0;
+        shop.add(counter, canopy);
+        mapRoot.add(shop);
+        addWorldLabel('🏪 فروشگاه روستا (فروش کریستال -> سکه)', new THREE.Vector3(-18, 9.5, -16), '#facc15');
+
+        for (let i = 0; i < 6; i++) {
+          const ang = (i / 6) * Math.PI * 2;
+          mapRoot.add(buildColumn3D(Math.cos(ang) * 30, 0.5, Math.sin(ang) * 30));
+        }
+
+        const pOut = buildPortal3D(54, 0, 0, MATS.turquoiseTile, '➡️ دروازه خروج به جهان باز', '#38bdf8', 'open_world', 1);
+        pOut.rotation.y = -Math.PI / 2;
+        mapRoot.add(pOut);
+
+        spawnPoint.set(0, 0.5, 12);
+      } else if (zoneId === 'dungeon') {
+        scene.background = new THREE.Color(0x110b1d);
+        scene.fog = new THREE.FogExp2(0x110b1d, 0.0026);
+
+        const floor = new THREE.Mesh(new THREE.BoxGeometry(140, 3, 110), MATS.dungeonFloor);
+        floor.position.set(0, -1.5, 0);
+        floor.receiveShadow = true;
+        const carpet = new THREE.Mesh(new THREE.BoxGeometry(22, 0.2, 85), MATS.dungeonCarpet);
+        carpet.position.set(0, 0.1, 4);
+        const arena = new THREE.Mesh(new THREE.CylinderGeometry(28, 30, 1.1, 8), MATS.dungeonCarpet);
+        arena.position.set(0, 0.55, -24);
+        mapRoot.add(floor, carpet, arena);
+
+        [-26, -6, 14, 34].forEach(zPos => {
+          mapRoot.add(buildColumn3D(-20, 0, zPos), buildColumn3D(20, 0, zPos));
+        });
+
+        const pExit = buildPortal3D(0, 0, 42, MATS.portalGreen, '⬇️ خروج از دانجن به جهان باز', '#38bdf8', 'open_world', 1);
+        mapRoot.add(pExit);
+
+        spawnEnemyUnit3D(-14, 0, 6, tier, 'normal');
+        spawnEnemyUnit3D(14, 0, 6, tier, 'normal');
+        spawnEnemyUnit3D(0, 0, -4, tier + 1, 'elite');
+        spawnEnemyUnit3D(0, 1.1, -24, tier + 2, 'boss', `👹 باس دانجن سطح ${tier}: دیو باستانی`);
+
+        spawnPoint.set(0, 0, 28);
+      }
+
+      // Sync Online Party Heroes in 3D World
+      syncPartyUnitsIn3D(spawnPoint);
+      updateTopZoneBanner();
+    }
+
+    function syncPartyUnitsIn3D(basePos) {
+      const leader = state.party[0];
+      const refPos = basePos || (leader.mesh ? leader.mesh.position.clone() : new THREE.Vector3(0, 0, 0));
+
+      state.party.forEach((m, idx) => {
+        if (m.mesh) {
+          mapRoot.remove(m.mesh);
+          m.mesh = null;
+        }
+        // Strict rule: offline players are NOT replaced by bots and leave the field
+        if (!m.isOnline) return;
+
+        const mesh = buildHeroUnit3D(m);
+        const angle = idx * 1.35;
+        const offsetR = idx === 0 ? 0 : 6.5;
+        mesh.position.set(refPos.x + Math.cos(angle) * offsetR, refPos.y, refPos.z + Math.sin(angle) * offsetR);
+        mapRoot.add(mesh);
+        m.mesh = mesh;
+      });
+      renderPartyHUD();
+      updateHeroStatsHUD();
+    }
+
+    function updateTopZoneBanner() {
+      const pill = document.getElementById('top-zone-title');
+      const mmTag = document.getElementById('minimap-zone-tag');
+      if (state.currentZone === 'village') {
+        pill.textContent = '🏛️ روستای امن (فروشگاه و چشمه شفا)';
+        pill.className = 'zone-pill safe';
+        mmTag.textContent = 'Safe Village';
+      } else if (state.currentZone === 'open_world') {
+        pill.textContent = '🌍 جهان باز (دشت، رودخانه و کوهستان)';
+        pill.className = 'zone-pill';
+        mmTag.textContent = 'OpenWorld';
+      } else {
+        pill.textContent = `⚔️ دانجن سطح ${state.dungeonTier} (باس و غنائم)`;
+        pill.className = 'zone-pill';
+        mmTag.textContent = `Dungeon Lv.${state.dungeonTier}`;
+      }
+
+      document.querySelectorAll('[data-travel]').forEach(btn => {
+        const match = btn.dataset.travel === state.currentZone && Number(btn.dataset.tier) === state.dungeonTier;
+        btn.classList.toggle('active', match);
+      });
+
+      showToast(`ورود به: ${pill.textContent}`, state.currentZone === 'village' ? '#4ade80' : '#38bdf8');
+    }
+
+    // =====================================================================
+    // PARTY MANAGEMENT (1 TO 5 PLAYERS, FREE ROLES, ONLINE/OFFLINE)
+    // =====================================================================
+    function renderPartyHUD() {
+      const container = document.getElementById('party-list-container');
+      container.innerHTML = '';
+      const onlineCount = state.party.filter(p => p.isOnline).length;
+      document.getElementById('party-online-count').textContent = onlineCount;
+      document.getElementById('btn-add-ally').disabled = state.party.length >= 5;
+
+      state.party.forEach((m, idx) => {
+        const roleObj = ROLES[m.roleIndex] || ROLES[0];
+        const row = document.createElement('div');
+        row.className = 'party-member-row' + (m.isOnline ? '' : ' offline');
+        row.innerHTML = `
+          <div>
+            <strong>${m.name}</strong>
+            <span style="color:#7dd3fc;">(${roleObj.title} Lv.${m.level})</span>
+          </div>
+          <div>
+            <button class="pm-btn" data-role-slot="${idx}">نقش</button>
+            ${idx > 0 ? `<button class="pm-btn" data-online-slot="${idx}">${m.isOnline ? '🟢 آنلاین' : '🔴 آفلاین'}</button>` : ''}
+          </div>
+        `;
+        container.appendChild(row);
+      });
+
+      container.querySelectorAll('[data-role-slot]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const s = Number(btn.dataset.roleSlot);
+          state.party[s].roleIndex = (state.party[s].roleIndex + 1) % ROLES.length;
+          const newRole = ROLES[state.party[s].roleIndex];
+          if (state.party[s].mesh && state.party[s].mesh.userData.armorMesh) {
+            state.party[s].mesh.userData.armorMesh.material.color.setHex(newRole.color);
+            state.party[s].mesh.userData.labelRef.el.textContent = `${state.party[s].name} (${newRole.title})`;
+          }
+          renderPartyHUD();
+          updateHeroStatsHUD();
+        });
+      });
+
+      container.querySelectorAll('[data-online-slot]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const s = Number(btn.dataset.onlineSlot);
+          const member = state.party[s];
+          member.isOnline = !member.isOnline;
+          if (!member.isOnline && member.mesh) {
+            mapRoot.remove(member.mesh);
+            member.mesh.userData.labelRef.el.style.display = 'none';
+            member.mesh = null;
+            showToast(`${member.name} آفلاین شد! (ربات جایگزین نشد)`, '#f59e0b');
+          } else if (member.isOnline) {
+            syncPartyUnitsIn3D();
+            showToast(`${member.name} دوباره آنلاین شد و به میدان بازگشت!`, '#4ade80');
+          }
+          renderPartyHUD();
+        });
+      });
+    }
+
+    document.getElementById('btn-add-ally').addEventListener('click', () => {
+      if (state.party.length >= 5) return;
+      const slot = state.party.length;
+      const newMember = {
+        slot,
+        name: `بازیکن ${slot + 1}`,
+        roleIndex: slot % ROLES.length,
+        isLocal: false,
+        isOnline: true,
+        level: state.party[0].level,
+        xp: 0,
+        xpToNext: 100,
+        hp: 160,
+        hpMax: 160,
+        mana: 100,
+        manaMax: 100,
+        atk: 20,
+        mesh: null
+      };
+      state.party.push(newMember);
+      syncPartyUnitsIn3D();
+      playTone(580, 0.16, 'triangle');
+      showToast(`${newMember.name} به تیم پیوست!`, '#4ade80');
+    });
+
+    // =====================================================================
+    // COMBAT, 4 SKILLS, PROJECTILES & SHARED XP
+    // =====================================================================
+    function spawnGlowRingVFX(centerPos, maxR, colorHex) {
+      const geo = new THREE.RingGeometry(1.0, 2.1, 32);
+      const mat = new THREE.MeshBasicMaterial({ color: colorHex, side: THREE.DoubleSide, transparent: true, opacity: 0.92 });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.copy(centerPos);
+      mesh.position.y += 0.55;
+      mapRoot.add(mesh);
+      vfxRingsList.push({ mesh, scale: 1, maxScale: maxR });
+    }
+
+    function dealDamageToEnemy(enemy, rawDmg) {
+      if (enemy.dead) return;
+      const dmg = Math.max(1, Math.round(rawDmg));
+      enemy.hp = Math.max(0, enemy.hp - dmg);
+      enemy.group.position.y += 0.8;
+      spawnFloatingPopup(`-${dmg}`, enemy.group.position, '#fde047');
+
+      enemy.labelRef.el.textContent = `${enemy.title} [${enemy.hp}/${enemy.hpMax}]`;
+
+      if (enemy.hp <= 0) {
+        enemy.dead = true;
+        enemy.respawnTimer = enemy.rank === 'boss' ? 14 : 7;
+        enemy.group.visible = false;
+        enemy.labelRef.el.style.display = 'none';
+
+        // Spawn magnetic 3D crystal & grant Shared XP
+        spawnCrystal3D(enemy.group.position, enemy.level, enemy.rank);
+        grantSharedTeamXP(enemy.xpReward);
+        playTone(660, 0.22, 'triangle');
+      }
+    }
+
+    function grantSharedTeamXP(xpAmount) {
+      state.party.forEach(m => {
+        if (!m.isOnline) return;
+        m.xp += xpAmount;
+        while (m.xp >= m.xpToNext) {
+          m.xp -= m.xpToNext;
+          m.level += 1;
+          m.xpToNext = Math.round(m.xpToNext * 1.35);
+          m.hpMax += 25;
+          m.hp = m.hpMax;
+          m.manaMax += 25; // +25 Mana per level up rule
+          m.mana = m.manaMax;
+          m.atk += 5;
+          if (m.isLocal && m.mesh) {
+            spawnFloatingPopup(`🎉 ارتقای سطح! Lv.${m.level} (+۲۵ مانا)`, m.mesh.position, '#4ade80');
+            showToast(`ارتقای سطح! اکنون سطح ${m.level} هستید (+۲۵ سقف مانا و قدرت)`, '#fde047');
+            playTone(880, 0.3, 'sine');
+          }
+        }
+      });
+      updateHeroStatsHUD();
+      renderPartyHUD();
+    }
+
+    function performBasicAttack() {
+      const leader = state.party[0];
+      if (!leader.mesh || state.basicAttackCd > 0) return;
+      if (state.currentZone === 'village') {
+        showToast('در روستای امن مبارزه غیرفعال است!', '#4ade80');
+        return;
+      }
+
+      state.basicAttackCd = 0.45;
+      playTone(320, 0.1, 'sawtooth');
+      spawnGlowRingVFX(leader.mesh.position, 6.5, 0x38bdf8);
+
+      enemiesList.forEach(en => {
+        if (!en.dead && en.group.position.distanceTo(leader.mesh.position) <= 13.5) {
+          dealDamageToEnemy(en, leader.atk);
+        }
+      });
+    }
+
+    function useHeroSkill(skillIdx) {
+      const leader = state.party[0];
+      const sk = SKILLS[skillIdx];
+      if (!leader.mesh || !sk) return;
+      if (state.currentZone === 'village') {
+        showToast('در روستای امن استفاده از مهارت رزمی غیرفعال است!', '#4ade80');
+        return;
+      }
+      if (state.skillCooldowns[skillIdx] > 0) return;
+      if (leader.mana < sk.manaCost) {
+        showToast('مانا کافی نیست! (نوار آبی MANA)', '#38bdf8');
+        return;
+      }
+
+      leader.mana -= sk.manaCost;
+      state.skillCooldowns[skillIdx] = sk.cooldown;
+      updateHeroStatsHUD();
+
+      const totalDmg = leader.atk * sk.mult;
+      playTone(440 + skillIdx * 110, 0.2, 'triangle');
+
+      if (sk.mode === 'projectile') {
+        // Spawn homing 3D energy orb projectile
+        const orb = new THREE.Mesh(
+          new THREE.SphereGeometry(1.1, 14, 14),
+          new THREE.MeshBasicMaterial({ color: sk.color })
+        );
+        orb.position.copy(leader.mesh.position).add(new THREE.Vector3(0, 2.2, 0));
+        mapRoot.add(orb);
+
+        // Aim at nearest alive enemy or forward
+        let dir = new THREE.Vector3(Math.sin(leader.mesh.rotation.y), 0, Math.cos(leader.mesh.rotation.y));
+        let nearest = null;
+        let minD = 999;
+        enemiesList.forEach(en => {
+          if (!en.dead) {
+            const d = en.group.position.distanceTo(leader.mesh.position);
+            if (d < minD) { minD = d; nearest = en; }
+          }
+        });
+        if (nearest) {
+          dir.subVectors(nearest.group.position, leader.mesh.position).setY(0).normalize();
+        }
+        projectilesList.push({ mesh: orb, dir, dmg: totalDmg, life: 2.2 });
+      } else {
+        const radius = sk.mode === 'ultimate' ? 22 : (sk.mode === 'aoe' ? 16 : 11);
+        if (sk.mode === 'ultimate') {
+          leader.hp = Math.min(leader.hpMax, leader.hp + leader.hpMax * 0.20);
+          spawnFloatingPopup(`+${Math.round(leader.hpMax * 0.20)} HP`, leader.mesh.position, '#4ade80');
+        }
+        spawnGlowRingVFX(leader.mesh.position, radius, sk.color);
+        enemiesList.forEach(en => {
+          if (!en.dead && en.group.position.distanceTo(leader.mesh.position) <= radius * 1.25) {
+            dealDamageToEnemy(en, totalDmg);
+          }
+        });
+      }
+    }
+
+    document.getElementById('btn-basic-attack').addEventListener('click', performBasicAttack);
+    document.querySelectorAll('.skill-btn').forEach(btn => {
+      btn.addEventListener('click', () => useHeroSkill(Number(btn.dataset.skill)));
+    });
+
+    // =====================================================================
+    // HUD, SHOP & INVENTORY UI UPDATES
+    // =====================================================================
+    function updateHeroStatsHUD() {
+      const leader = state.party[0];
+      const roleObj = ROLES[leader.roleIndex] || ROLES[0];
+      document.getElementById('hud-hero-name').textContent = `${leader.name} — ${roleObj.title}`;
+      document.getElementById('hud-hero-lvl').textContent = `Lv. ${leader.level}`;
+
+      document.getElementById('bar-hp').style.width = `${(leader.hp / leader.hpMax) * 100}%`;
+      document.getElementById('txt-hp').textContent = `HP: ${Math.round(leader.hp)} / ${Math.round(leader.hpMax)}`;
+
+      document.getElementById('bar-mana').style.width = `${(leader.mana / leader.manaMax) * 100}%`;
+      document.getElementById('txt-mana').textContent = `MANA: ${Math.round(leader.mana)} / ${Math.round(leader.manaMax)}`;
+
+      document.getElementById('bar-xp').style.width = `${(leader.xp / leader.xpToNext) * 100}%`;
+      document.getElementById('txt-xp').textContent = `XP: ${leader.xp} / ${leader.xpToNext}`;
+
+      document.getElementById('hud-coins').textContent = state.coins;
+      document.getElementById('hud-crystals').textContent = state.crystals.length;
+      document.getElementById('hud-atk').textContent = Math.round(leader.atk);
+      document.getElementById('badge-inv-count').textContent = state.inventory.length;
+    }
+
+    function refreshShopModal() {
+      const inVillage = state.currentZone === 'village';
+      const banner = document.getElementById('shop-zone-banner');
+      const msg = document.getElementById('shop-status-msg');
+      const goBtn = document.getElementById('btn-shop-go-village');
+
+      document.getElementById('shop-coins-val').textContent = state.coins;
+
+      if (inVillage) {
+        banner.className = 'shop-banner';
+        msg.textContent = 'خوش آمدید به فروشگاه روستای امن! کریستال‌های شکار را به سکه تبدیل کنید.';
+        goBtn.style.display = 'none';
+      } else {
+        banner.className = 'shop-banner warn';
+        msg.textContent = 'توجه: معامله در فروشگاه فقط داخل «روستای امن» فعال است!';
+        goBtn.style.display = 'inline-flex';
+      }
+
+      const totalVal = state.crystals.reduce((s, c) => s + c.coinValue, 0);
+      const sellBtn = document.getElementById('btn-sell-crystals');
+      sellBtn.textContent = `💎 فروش همه کریستال‌ها (${state.crystals.length} عدد -> +${totalVal} سکه)`;
+      sellBtn.disabled = !inVillage || state.crystals.length === 0;
+
+      const recCost = 45 * Math.max(1, state.party[0].level);
+      const recBtn = document.getElementById('btn-recover-level');
+      recBtn.textContent = `🔄 جبران جریمه مرگ (${state.lostLevelsRecoverable} سطح | هزینه: ${recCost} سکه)`;
+      recBtn.disabled = !inVillage || state.lostLevelsRecoverable <= 0 || state.coins < recCost;
+
+      const catList = document.getElementById('shop-catalog-list');
+      catList.innerHTML = '';
+      SHOP_CATALOG.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'catalog-row';
+        row.innerHTML = `
+          <div>
+            <div style="font-weight:700; color:#f8fafc;">${item.title}</div>
+            <div style="font-size:11.5px; color:#94a3b8;">${item.desc}</div>
+          </div>
+          <button class="top-btn gold" ${(!inVillage || state.coins < item.price || state.inventory.length >= 16) ? 'disabled' : ''}>
+            خرید (${item.price} سکه)
+          </button>
+        `;
+        row.querySelector('button').addEventListener('click', () => {
+          if (state.coins >= item.price && state.inventory.length < 16) {
+            state.coins -= item.price;
+            state.inventory.push({ ...item });
+            playTone(720, 0.14, 'sine');
+            showToast(`خریداری شد و به کیف اضافه گردید: ${item.title}`, '#fde047');
+            updateHeroStatsHUD();
+            refreshShopModal();
+          }
+        });
+        catList.appendChild(row);
+      });
+    }
+
+    document.getElementById('btn-sell-crystals').addEventListener('click', () => {
+      if (state.currentZone !== 'village' || state.crystals.length === 0) return;
+      const gained = state.crystals.reduce((s, c) => s + c.coinValue, 0);
+      state.crystals = [];
+      state.coins += gained;
+      playTone(820, 0.2, 'triangle');
+      showToast(`فروش کریستال‌ها انجام شد! +${gained} سکه طلا`, '#fde047');
+      updateHeroStatsHUD();
+      refreshShopModal();
+    });
+
+    document.getElementById('btn-recover-level').addEventListener('click', () => {
+      const leader = state.party[0];
+      const cost = 45 * Math.max(1, leader.level);
+      if (state.currentZone !== 'village' || state.lostLevelsRecoverable <= 0 || state.coins < cost) return;
+      state.coins -= cost;
+      state.lostLevelsRecoverable -= 1;
+      leader.level += 1;
+      leader.hpMax += 25;
+      leader.hp = leader.hpMax;
+      leader.manaMax += 25;
+      leader.mana = leader.manaMax;
+      leader.atk += 5;
+      playTone(880, 0.25, 'sine');
+      showToast(`سطح ازدست‌رفته بازیابی شد! اکنون سطح ${leader.level} هستید.`, '#4ade80');
+      updateHeroStatsHUD();
+      refreshShopModal();
+    });
+
+    document.getElementById('btn-shop-go-village').addEventListener('click', () => {
+      loadZone3D('village', 1);
+      refreshShopModal();
+    });
+
+    function refreshInventoryModal() {
+      const totalVal = state.crystals.reduce((s, c) => s + c.coinValue, 0);
+      document.getElementById('inv-crystals-summary').textContent =
+        `کریستال‌های همراه تیم: ${state.crystals.length} عدد (ارزش فروش در روستا: ${totalVal} سکه)`;
+
+      const grid = document.getElementById('inv-slots-grid');
+      grid.innerHTML = '';
+      for (let i = 0; i < 16; i++) {
+        const slot = document.createElement('button');
+        const item = state.inventory[i];
+        if (item) {
+          slot.className = 'inv-slot filled';
+          slot.innerHTML = `<span>${item.title}</span><span style="font-size:10px; color:#7dd3fc;">(لمس برای مصرف)</span>`;
+          slot.addEventListener('click', () => {
+            const leader = state.party[0];
+            if (item.type === 'hp') leader.hp = Math.min(leader.hpMax, leader.hp + item.power);
+            if (item.type === 'mana') leader.mana = Math.min(leader.manaMax, leader.mana + item.power);
+            if (item.type === 'atk') leader.atk += item.power;
+            if (item.type === 'max_mana') { leader.manaMax += item.power; leader.mana += item.power; }
+            state.inventory.splice(i, 1);
+            playTone(640, 0.14, 'sine');
+            showToast(`استفاده شد: ${item.title}`, '#4ade80');
+            updateHeroStatsHUD();
+            refreshInventoryModal();
+          });
+        } else {
+          slot.className = 'inv-slot';
+          slot.textContent = `خانه خالی ${i + 1}`;
+          slot.disabled = true;
+        }
+        grid.appendChild(slot);
+      }
+    }
+
+    // Modal Open/Close Handlers
+    document.getElementById('btn-open-shop').addEventListener('click', () => {
+      refreshShopModal();
+      document.getElementById('modal-shop').classList.add('open');
+    });
+    document.getElementById('context-action-btn').addEventListener('click', () => {
+      refreshShopModal();
+      document.getElementById('modal-shop').classList.add('open');
+    });
+    document.getElementById('btn-open-inventory').addEventListener('click', () => {
+      refreshInventoryModal();
+      document.getElementById('modal-inventory').classList.add('open');
+    });
+    document.getElementById('btn-open-schematic').addEventListener('click', () => {
+      document.getElementById('modal-schematic').classList.add('open');
+    });
+    document.querySelectorAll('[data-close]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.getElementById(btn.dataset.close).classList.remove('open');
+      });
+    });
+
+    // Quick Travel Buttons
+    document.querySelectorAll('[data-travel]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        loadZone3D(btn.dataset.travel, Number(btn.dataset.tier));
+      });
+    });
+
+    // Camera Mode Toggle & Export OBJ
+    document.getElementById('btn-cam-mode').addEventListener('click', (e) => {
+      state.freeCameraMode = !state.freeCameraMode;
+      orbitControls.enabled = state.freeCameraMode;
+      e.currentTarget.textContent = state.freeCameraMode
+        ? '🎥 دوربین: چرخش آزاد Unity (کلیک برای قفل روی قهرمان)'
+        : '🎥 دوربین: تعقیب قهرمان (کلیک برای چرخش آزاد)';
+    });
+
+    function exportCurrentMapObj() {
+      const exporter = new OBJExporter();
+      const objStr = exporter.parse(mapRoot);
+      const blob = new Blob([objStr], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `WarriorsOfPersia_${state.currentZone}_3D.obj`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    document.getElementById('btn-download-obj').addEventListener('click', exportCurrentMapObj);
+    document.getElementById('btn-download-obj-2').addEventListener('click', exportCurrentMapObj);
+
+    document.getElementById('btn-open-downloads').addEventListener('click', () => {
+      document.getElementById('modal-downloads').classList.add('open');
+    });
+
+    // =====================================================================
+    // VIRTUAL JOYSTICK & KEYBOARD INPUT
+    // =====================================================================
+    const keys = {};
+    window.addEventListener('keydown', e => {
+      keys[e.code] = true;
+      if (e.code === 'Space') performBasicAttack();
+      if (e.code === 'Digit1') useHeroSkill(0);
+      if (e.code === 'Digit2') useHeroSkill(1);
+      if (e.code === 'Digit3') useHeroSkill(2);
+      if (e.code === 'Digit4') useHeroSkill(3);
+    });
+    window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+    const joyZone = document.getElementById('joystick-zone');
+    const joyKnob = document.getElementById('joystick-knob');
+    let joyVec = { x: 0, y: 0 };
+    let joyActive = false;
+
+    function updateJoystick(cxClient, cyClient) {
+      const rect = joyZone.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      let dx = cxClient - cx;
+      let dy = cyClient - cy;
+      const maxR = 44;
+      const dist = Math.hypot(dx, dy);
+      if (dist > maxR) {
+        dx = (dx / dist) * maxR;
+        dy = (dy / dist) * maxR;
+      }
+      joyKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+      joyVec.x = dx / maxR;
+      joyVec.y = dy / maxR;
+    }
+
+    joyZone.addEventListener('pointerdown', e => {
+      joyActive = true;
+      joyZone.setPointerCapture(e.pointerId);
+      updateJoystick(e.clientX, e.clientY);
+    });
+    joyZone.addEventListener('pointermove', e => {
+      if (joyActive) updateJoystick(e.clientX, e.clientY);
+    });
+    const endJoy = () => {
+      joyActive = false;
+      joyVec.x = 0;
+      joyVec.y = 0;
+      joyKnob.style.transform = 'translate(0px, 0px)';
+    };
+    joyZone.addEventListener('pointerup', endJoy);
+    joyZone.addEventListener('pointercancel', endJoy);
+
+    // =====================================================================
+    // LIVE MINIMAP RADAR RENDERER
+    // =====================================================================
+    const mmCanvas = document.getElementById('minimap-canvas');
+    const mmCtx = mmCanvas.getContext('2d');
+
+    function drawMinimap() {
+      const w = mmCanvas.width;
+      const h = mmCanvas.height;
+      mmCtx.fillStyle = state.currentZone === 'dungeon' ? '#1a122b' : '#143322';
+      mmCtx.fillRect(0, 0, w, h);
+
+      if (state.currentZone === 'open_world') {
+        mmCtx.fillStyle = '#1d4ed8';
+        mmCtx.fillRect(w * 0.47, 0, w * 0.06, h);
+        mmCtx.fillStyle = '#92400e';
+        mmCtx.fillRect(w * 0.45, h * 0.44, w * 0.10, h * 0.12);
+      }
+
+      const toMM = (pos) => ({
+        x: ((pos.x + 105) / 210) * w,
+        y: ((pos.z + 65) / 130) * h
+      });
+
+      // Portals
+      portalsList.forEach(p => {
+        const pt = toMM(p.pos);
+        mmCtx.strokeStyle = '#c084fc';
+        mmCtx.lineWidth = 2;
+        mmCtx.beginPath();
+        mmCtx.arc(pt.x, pt.y, 4.5, 0, Math.PI * 2);
+        mmCtx.stroke();
+      });
+
+      // Crystals
+      crystals3DList.forEach(c => {
+        const pt = toMM(c.mesh.position);
+        mmCtx.fillStyle = '#fde047';
+        mmCtx.fillRect(pt.x - 2, pt.y - 2, 4, 4);
+      });
+
+      // Enemies
+      enemiesList.forEach(en => {
+        if (en.dead) return;
+        const pt = toMM(en.group.position);
+        mmCtx.fillStyle = en.rank === 'boss' ? '#f43f5e' : '#fb7185';
+        mmCtx.beginPath();
+        mmCtx.arc(pt.x, pt.y, en.rank === 'boss' ? 5 : 3, 0, Math.PI * 2);
+        mmCtx.fill();
+      });
+
+      // Online Party Heroes
+      state.party.forEach(m => {
+        if (!m.isOnline || !m.mesh) return;
+        const pt = toMM(m.mesh.position);
+        mmCtx.fillStyle = m.isLocal ? '#4ade80' : '#38bdf8';
+        mmCtx.beginPath();
+        mmCtx.arc(pt.x, pt.y, m.isLocal ? 4.2 : 3.2, 0, Math.PI * 2);
+        mmCtx.fill();
+      });
+    }
+
+    // =====================================================================
+    // MAIN GAME LOOP (PHYSICS, AI, PORTALS, FOUNTAIN, COOLDOWNS)
+    // =====================================================================
+    function onResize() {
+      camera.aspect = stage.clientWidth / stage.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(stage.clientWidth, stage.clientHeight);
+    }
+    window.addEventListener('resize', onResize);
+
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = Math.min(clock.getDelta(), 0.1);
+      const elapsed = clock.getElapsedTime();
+
+      const leader = state.party[0];
+      if (portalCooldown > 0) portalCooldown -= dt;
+      if (state.basicAttackCd > 0) state.basicAttackCd -= dt;
+
+      // Update Skill Cooldowns & Passive Mana Regen
+      for (let i = 0; i < 4; i++) {
+        const btn = document.querySelector(`[data-skill="${i}"]`);
+        const cdEl = document.getElementById(`cd-${i}`);
+        if (state.skillCooldowns[i] > 0) {
+          state.skillCooldowns[i] = Math.max(0, state.skillCooldowns[i] - dt);
+          btn.classList.add('on-cd');
+          cdEl.textContent = state.skillCooldowns[i].toFixed(1);
+        } else {
+          btn.classList.remove('on-cd');
+        }
+      }
+
+      // Passive Mana Resonance (+3x in Safe Village + Fountain Healing)
+      const isSafe = state.currentZone === 'village';
+      const manaRegen = (4.0 + (leader.level - 1) * 0.8) * (isSafe ? 3.0 : 1.0);
+      if (leader.mana < leader.manaMax) {
+        leader.mana = Math.min(leader.manaMax, leader.mana + manaRegen * dt);
+      }
+      if (isSafe && leader.hp < leader.hpMax) {
+        leader.hp = Math.min(leader.hpMax, leader.hp + 25.0 * dt);
+      }
+      updateHeroStatsHUD();
+
+      // 1. Local Leader Movement
+      if (leader.mesh) {
+        let mx = joyVec.x;
+        let mz = joyVec.y;
+        if (keys['KeyW'] || keys['ArrowUp']) mz -= 1;
+        if (keys['KeyS'] || keys['ArrowDown']) mz += 1;
+        if (keys['KeyA'] || keys['ArrowLeft']) mx -= 1;
+        if (keys['KeyD'] || keys['ArrowRight']) mx += 1;
+
+        const len = Math.hypot(mx, mz);
+        if (len > 0.05) {
+          mx /= Math.max(1, len);
+          mz /= Math.max(1, len);
+          const speed = 28;
+          let nx = THREE.MathUtils.clamp(leader.mesh.position.x + mx * speed * dt, -94, 94);
+          let nz = THREE.MathUtils.clamp(leader.mesh.position.z + mz * speed * dt, -48, 48);
+
+          // River collider in OpenWorld (must cross via central wooden bridge at |z| <= 7.5)
+          if (state.currentZone === 'open_world' && Math.abs(nx) < 7.2 && Math.abs(nz) > 7.2) {
+            nx = leader.mesh.position.x;
+          }
+
+          leader.mesh.position.x = nx;
+          leader.mesh.position.z = nz;
+          leader.mesh.position.y = (state.currentZone === 'open_world' && nx > 7) ? 1.2 : 0;
+          leader.mesh.rotation.y = Math.atan2(mx, mz);
+        }
+
+        // Update Leader Label
+        leader.mesh.userData.labelRef.pos.set(
+          leader.mesh.position.x,
+          leader.mesh.position.y + 5.8,
+          leader.mesh.position.z
+        );
+
+        // Check Village Shop Proximity
+        const ctxBtn = document.getElementById('context-action-btn');
+        if (state.currentZone === 'village' && leader.mesh.position.distanceTo(new THREE.Vector3(-18, 0.5, -16)) < 16) {
+          ctxBtn.style.display = 'block';
+        } else {
+          ctxBtn.style.display = 'none';
+        }
+
+        // Check Physical Portal Entry
+        if (portalCooldown <= 0) {
+          for (const p of portalsList) {
+            p.ring.rotation.z = elapsed * 1.6;
+            if (leader.mesh.position.distanceTo(p.pos) < 6.2) {
+              playTone(520, 0.22, 'sine');
+              loadZone3D(p.targetZone, p.targetTier);
+              break;
+            }
+          }
+        }
+
+        // Smooth Top-Down 3D Camera Follow
+        if (!state.freeCameraMode) {
+          const targetCam = new THREE.Vector3(leader.mesh.position.x, leader.mesh.position.y + 42, leader.mesh.position.z + 34);
+          camera.position.lerp(targetCam, 0.12);
+          camera.lookAt(leader.mesh.position.x, leader.mesh.position.y + 1.5, leader.mesh.position.z);
+        } else {
+          orbitControls.update();
+        }
+      }
+
+      // 2. Connected Online Teammates (Slots 1..4) Follow & Co-op Combat
+      state.party.forEach((ally, idx) => {
+        if (idx === 0 || !ally.isOnline || !ally.mesh || !leader.mesh) return;
+        const formAngle = idx * 1.45;
+        const desiredPos = new THREE.Vector3(
+          leader.mesh.position.x + Math.cos(formAngle) * 7.5,
+          leader.mesh.position.y,
+          leader.mesh.position.z + Math.sin(formAngle) * 6.5
+        );
+        if (ally.mesh.position.distanceTo(desiredPos) > 1.5) {
+          const dir = desiredPos.clone().sub(ally.mesh.position).normalize();
+          ally.mesh.position.addScaledVector(dir, 24 * dt);
+          ally.mesh.rotation.y = Math.atan2(dir.x, dir.z);
+        }
+        ally.mesh.userData.labelRef.pos.set(ally.mesh.position.x, ally.mesh.position.y + 5.8, ally.mesh.position.z);
+      });
+
+      // 3. Enemies AI, Boss Shockwaves & Respawn
+      enemiesList.forEach((en, idx) => {
+        if (en.dead) {
+          en.respawnTimer -= dt;
+          if (en.respawnTimer <= 0) {
+            en.dead = false;
+            en.hp = en.hpMax;
+            en.group.position.copy(en.homePos);
+            en.group.visible = true;
+            en.labelRef.el.style.display = 'block';
+            en.labelRef.el.textContent = `${en.title} [${en.hp}/${en.hpMax}]`;
+          }
+          return;
+        }
+
+        // Idle bounce
+        en.group.position.y = THREE.MathUtils.lerp(
+          en.group.position.y,
+          en.homePos.y + Math.abs(Math.sin(elapsed * 3.2 + idx)) * 0.3,
+          0.15
+        );
+
+        if (leader.mesh) {
+          const dist = en.group.position.distanceTo(leader.mesh.position);
+          if (dist < 26 && dist > 3.8) {
+            const dir = leader.mesh.position.clone().sub(en.group.position).setY(0).normalize();
+            en.group.position.addScaledVector(dir, (en.rank === 'boss' ? 9 : 11) * dt);
+            en.group.rotation.y = Math.atan2(dir.x, dir.z);
+          }
+
+          // Melee attack against Hero
+          en.atkTimer -= dt;
+          if (dist <= 5.2 && en.atkTimer <= 0) {
+            en.atkTimer = 1.4;
+            leader.hp = Math.max(0, leader.hp - en.atk);
+            spawnFloatingPopup(`-${en.atk}`, leader.mesh.position, '#fb7185');
+            if (leader.hp <= 0) {
+              // Apply Death Penalty (-1 Level, recoverable in Village Shop)
+              if (leader.level > 1) {
+                leader.level -= 1;
+                leader.hpMax = Math.max(100, leader.hpMax - 25);
+                leader.manaMax = Math.max(80, leader.manaMax - 25);
+                leader.atk = Math.max(15, leader.atk - 4);
+                state.lostLevelsRecoverable += 1;
+                showToast('جریمه مرگ: -۱ سطح! (قابل بازیابی با سکه در فروشگاه روستا)', '#f43f5e');
+              } else {
+                showToast('قهرمان شکست خورد! باززایی در روستای امن...', '#f43f5e');
+              }
+              leader.hp = leader.hpMax;
+              leader.mana = leader.manaMax;
+              loadZone3D('village', 1);
+            }
+          }
+
+          // Boss Special AoE Shockwave
+          if (en.rank === 'boss' && dist < 24) {
+            en.shockwaveTimer -= dt;
+            if (en.shockwaveTimer <= 0) {
+              en.shockwaveTimer = 5.0;
+              spawnGlowRingVFX(en.group.position, 15, 0xf43f5e);
+              if (dist <= 15) {
+                const shockDmg = Math.round(en.atk * 1.35);
+                leader.hp = Math.max(1, leader.hp - shockDmg);
+                spawnFloatingPopup(`موج باس -${shockDmg}`, leader.mesh.position, '#f43f5e');
+              }
+            }
+          }
+        }
+
+        en.labelRef.pos.set(en.group.position.x, en.group.position.y + 4.8 * en.scale, en.group.position.z);
+      });
+
+      // 4. Magnetic 3D Crystals Collection
+      for (let i = crystals3DList.length - 1; i >= 0; i--) {
+        const c = crystals3DList[i];
+        c.mesh.rotation.y += dt * 3.0;
+        if (leader.mesh) {
+          const d = c.mesh.position.distanceTo(leader.mesh.position);
+          if (d < 18) {
+            const pull = leader.mesh.position.clone().sub(c.mesh.position).normalize();
+            c.mesh.position.addScaledVector(pull, 32 * dt);
+          }
+          if (d < 3.2) {
+            state.crystals.push(c.data);
+            mapRoot.remove(c.mesh);
+            crystals3DList.splice(i, 1);
+            playTone(760, 0.12, 'sine');
+            spawnFloatingPopup(`💎 +${c.data.title}`, leader.mesh.position, '#67e8f9');
+            updateHeroStatsHUD();
+          }
+        }
+      }
+
+      // 5. Projectiles Update
+      for (let i = projectilesList.length - 1; i >= 0; i--) {
+        const p = projectilesList[i];
+        p.life -= dt;
+        p.mesh.position.addScaledVector(p.dir, 46 * dt);
+        let hit = false;
+        for (const en of enemiesList) {
+          if (!en.dead && en.group.position.distanceTo(p.mesh.position) < 4.2) {
+            dealDamageToEnemy(en, p.dmg);
+            hit = true;
+            break;
+          }
+        }
+        if (hit || p.life <= 0) {
+          mapRoot.remove(p.mesh);
+          projectilesList.splice(i, 1);
+        }
+      }
+
+      // 6. VFX Rings Update
+      for (let i = vfxRingsList.length - 1; i >= 0; i--) {
+        const v = vfxRingsList[i];
+        v.scale += dt * 22;
+        v.mesh.scale.setScalar(v.scale);
+        v.mesh.material.opacity = Math.max(0, 1 - v.scale / v.maxScale);
+        if (v.scale >= v.maxScale) {
+          mapRoot.remove(v.mesh);
+          vfxRingsList.splice(i, 1);
+        }
+      }
+
+      renderer.render(scene, camera);
+      drawMinimap();
+
+      // Project 3D Labels & Damage Popups to 2D Screen
+      const sw = stage.clientWidth;
+      const sh = stage.clientHeight;
+      floatingLabels.forEach(item => {
+        if (item.el.style.display === 'none') return;
+        const pr = item.pos.clone().project(camera);
+        if (pr.z > 1) {
+          item.el.style.visibility = 'hidden';
+        } else {
+          item.el.style.visibility = 'visible';
+          item.el.style.left = `${(pr.x * 0.5 + 0.5) * sw}px`;
+          item.el.style.top = `${(-pr.y * 0.5 + 0.5) * sh}px`;
+        }
+      });
+
+      for (let i = activePopups.length - 1; i >= 0; i--) {
+        const pop = activePopups[i];
+        pop.age += dt;
+        pop.pos.y += dt * 4.5;
+        const pr = pop.pos.clone().project(camera);
+        pop.el.style.left = `${(pr.x * 0.5 + 0.5) * sw}px`;
+        pop.el.style.top = `${(-pr.y * 0.5 + 0.5) * sh}px`;
+        pop.el.style.opacity = Math.max(0, 1 - pop.age / pop.maxAge);
+        if (pop.age >= pop.maxAge) {
+          pop.el.remove();
+          activePopups.splice(i, 1);
+        }
+      }
+    }
+
+    onResize();
+    loadZone3D('open_world', 1);
+    animate();
+  </script>
+</body>
+</html>
