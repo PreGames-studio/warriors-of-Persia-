@@ -5,6 +5,7 @@ const path = require('path');
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = __dirname;
 const CS_SCRIPT_PATH = path.join(__dirname, '..', 'unity_3d', 'Assets', 'Scripts', 'World', 'PersianWorldMapBuilder.cs');
+const APK_PATH = path.join(__dirname, '..', 'WarriorsOfPersia_3D.apk');
 const APP_ZIP_PATH = path.join(__dirname, '..', 'WarriorsOfPersia_3D_Final_Build.zip');
 const STANDALONE_HTML_PATH = path.join(__dirname, 'WarriorsOfPersia_3D_Standalone.html');
 
@@ -33,6 +34,23 @@ const server = http.createServer((req, res) => {
         return;
       }
       res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end(data);
+    });
+    return;
+  }
+
+  if (urlPath === '/download-apk' || urlPath === '/WarriorsOfPersia_3D.apk') {
+    fs.readFile(APK_PATH, (err, data) => {
+      if (err) {
+        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('APK file not found');
+        return;
+      }
+      res.writeHead(200, {
+        'Content-Type': 'application/vnd.android.package-archive',
+        'Content-Disposition': 'attachment; filename="WarriorsOfPersia_3D.apk"',
+        'Content-Length': data.length
+      });
       res.end(data);
     });
     return;
