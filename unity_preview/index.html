@@ -2,13 +2,13 @@
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#0f172a" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" href="./icon.png" />
-  <title>Warriors of Persia 3D — اپ قابل بازی جنگجویان پارس</title>
+  <title>Warriors of Persia 3D — روستای پارسی و کوچه‌های بازار</title>
   <style>
     @font-face {
       font-family: 'Vazirmatn';
@@ -41,72 +41,68 @@
       flex-direction: column;
     }
 
-    /* ================= TOP APP & UNITY MODE SWITCH BAR ================= */
+    /* ================= COMPACT MOBILE-FRIENDLY TOP BAR ================= */
     .app-topbar {
-      height: 44px;
-      background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+      min-height: 38px;
+      padding: 4px 10px;
+      background: rgba(15, 23, 42, 0.94);
       border-bottom: 1px solid #334155;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 12px;
       z-index: 40;
       gap: 6px;
+      flex-wrap: nowrap;
+      overflow-x: auto;
     }
 
     .brand-group {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
+      flex-shrink: 0;
     }
     .brand-badge {
       background: linear-gradient(135deg, #f59e0b, #d97706);
       color: #fff;
       font-weight: 700;
-      font-size: 12px;
-      padding: 3px 9px;
-      border-radius: 6px;
-      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35);
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 5px;
+      white-space: nowrap;
     }
     .zone-pill {
-      background: rgba(15, 23, 42, 0.85);
-      border: 1px solid #38bdf8;
-      color: #7dd3fc;
-      padding: 3px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 700;
-    }
-    .zone-pill.safe {
-      border-color: #4ade80;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid #4ade80;
       color: #86efac;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
     }
 
     .nav-group {
       display: flex;
       align-items: center;
-      gap: 5px;
-      flex-wrap: wrap;
+      gap: 4px;
+      flex-shrink: 0;
     }
 
     .top-btn {
       background: #1e293b;
       color: #e2e8f0;
       border: 1px solid #475569;
-      padding: 5px 10px;
+      padding: 3px 8px;
       font-family: 'Vazirmatn', sans-serif;
-      font-size: 11.5px;
+      font-size: 10.5px;
       font-weight: 700;
-      border-radius: 6px;
+      border-radius: 5px;
       cursor: pointer;
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 4px;
-      transition: all 0.15s;
-    }
-    .top-btn:hover {
-      background: #334155;
-      border-color: #64748b;
+      gap: 3px;
+      white-space: nowrap;
     }
     .top-btn.active {
       background: #0284c7;
@@ -129,12 +125,12 @@
       color: #ede9fe;
     }
 
-    /* ================= MAIN 3D GAME VIEWPORT ================= */
+    /* ================= MAIN 3D STAGE ================= */
     #game-stage {
       flex: 1;
       position: relative;
       overflow: hidden;
-      background: #090d16;
+      background: #12202f;
     }
 
     #three-canvas {
@@ -143,7 +139,6 @@
       display: block;
     }
 
-    /* 3D Floating World Labels & Damage Popups */
     #labels-layer, #popups-layer {
       position: absolute;
       inset: 0;
@@ -154,74 +149,72 @@
     .world-label-3d {
       position: absolute;
       transform: translate(-50%, -100%);
-      background: rgba(15, 23, 42, 0.86);
+      background: rgba(15, 23, 42, 0.85);
       color: #ffffff;
-      padding: 3px 9px;
-      border-radius: 6px;
-      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-size: 10px;
       font-weight: 700;
       white-space: nowrap;
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
     }
 
     .dmg-popup {
       position: absolute;
       transform: translate(-50%, -50%);
       font-weight: 700;
-      font-size: 15px;
-      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.95);
+      font-size: 13px;
+      text-shadow: 0 2px 5px #000;
       white-space: nowrap;
       pointer-events: none;
-      transition: opacity 0.15s;
     }
 
-    /* ================= TOAST NOTIFICATION BANNER ================= */
+    /* ================= TOAST NOTIFICATION ================= */
     #toast-banner {
       position: absolute;
-      top: 14px;
+      top: 8px;
       left: 50%;
       transform: translateX(-50%);
       background: rgba(15, 23, 42, 0.92);
-      border: 2px solid #38bdf8;
+      border: 1.5px solid #4ade80;
       color: #f8fafc;
-      padding: 7px 18px;
+      padding: 4px 14px;
       border-radius: 999px;
-      font-size: 13px;
+      font-size: 11.5px;
       font-weight: 700;
       z-index: 35;
       pointer-events: none;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
       opacity: 0;
       transition: opacity 0.25s;
+      white-space: nowrap;
     }
     #toast-banner.visible {
       opacity: 1;
     }
 
-    /* ================= HERO STATS HUD (TOP-RIGHT) ================= */
+    /* ================= COMPACT HERO HUD (TOP-RIGHT) ================= */
     .hero-hud-card {
       position: absolute;
-      top: 12px;
-      right: 12px;
-      width: 265px;
-      background: rgba(15, 23, 42, 0.88);
-      border: 2px solid #3b82f6;
-      border-radius: 12px;
-      padding: 10px 12px;
+      top: 8px;
+      right: 8px;
+      width: 210px;
+      background: rgba(15, 23, 42, 0.82);
+      border: 1.5px solid #3b82f6;
+      border-radius: 9px;
+      padding: 6px 9px;
       z-index: 20;
-      backdrop-filter: blur(6px);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
     }
 
     .hero-hud-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
     .hero-name-txt {
-      font-size: 13px;
+      font-size: 11px;
       font-weight: 700;
       color: #fde047;
     }
@@ -229,26 +222,25 @@
       background: #1d4ed8;
       color: #fff;
       font-weight: 700;
-      font-size: 11.5px;
-      padding: 1px 8px;
+      font-size: 10px;
+      padding: 0px 6px;
       border-radius: 999px;
-      border: 1px solid #60a5fa;
     }
 
     .stat-bar-row {
-      margin-bottom: 5px;
+      margin-bottom: 3px;
     }
     .stat-bar-track {
-      height: 14px;
+      height: 11px;
       background: #090d16;
-      border-radius: 7px;
+      border-radius: 5px;
       overflow: hidden;
       position: relative;
       border: 1px solid #334155;
     }
     .stat-bar-fill {
       height: 100%;
-      transition: width 0.2s ease-out;
+      transition: width 0.2s;
     }
     .fill-hp { background: linear-gradient(90deg, #16a34a, #4ade80); }
     .fill-mana { background: linear-gradient(90deg, #2563eb, #38bdf8); }
@@ -260,10 +252,10 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 10px;
+      font-size: 8.5px;
       font-weight: 700;
       color: #fff;
-      text-shadow: 0 1px 3px #000;
+      text-shadow: 0 1px 2px #000;
       direction: ltr;
     }
 
@@ -271,420 +263,352 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-top: 6px;
-      padding-top: 6px;
+      margin-top: 4px;
+      padding-top: 3px;
       border-top: 1px solid rgba(148, 163, 184, 0.2);
-      font-size: 11.5px;
-      font-weight: 700;
-    }
-
-    /* ================= PARTY CO-OP PANEL (RIGHT SIDE UNDER HERO HUD) ================= */
-    .party-hud-card {
-      position: absolute;
-      top: 158px;
-      right: 12px;
-      width: 265px;
-      background: rgba(15, 23, 42, 0.86);
-      border: 1px solid #475569;
-      border-radius: 10px;
-      padding: 8px 10px;
-      z-index: 20;
-      backdrop-filter: blur(5px);
-      max-height: 225px;
-      display: flex;
-      flex-direction: column;
-    }
-    .party-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 11.5px;
-      font-weight: 700;
-      color: #93c5fd;
-      margin-bottom: 6px;
-    }
-    .party-add-btn {
-      background: #059669;
-      color: #fff;
-      border: 1px solid #34d399;
-      border-radius: 5px;
-      padding: 2px 7px;
-      font-family: 'Vazirmatn', sans-serif;
-      font-size: 10.5px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-    .party-add-btn:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
-    }
-    .party-list {
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .party-member-row {
-      background: rgba(30, 41, 59, 0.85);
-      border: 1px solid #334155;
-      border-radius: 6px;
-      padding: 4px 6px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 11px;
-    }
-    .party-member-row.offline {
-      opacity: 0.55;
-      border-color: #7f1d1d;
-    }
-    .pm-btn {
-      background: #334155;
-      color: #e2e8f0;
-      border: 1px solid #475569;
-      border-radius: 4px;
-      padding: 1px 5px;
-      font-family: 'Vazirmatn', sans-serif;
       font-size: 10px;
-      cursor: pointer;
-      margin-right: 3px;
+      font-weight: 700;
     }
-    .pm-btn:hover { background: #475569; }
 
-    /* ================= MINIMAP RADAR (TOP-LEFT) ================= */
+    /* ================= MINIMAP & CAMERA SWITCHER (TOP-LEFT) ================= */
     .minimap-card {
       position: absolute;
-      top: 12px;
-      left: 12px;
-      width: 175px;
-      background: rgba(15, 23, 42, 0.88);
-      border: 2px solid #475569;
-      border-radius: 12px;
-      padding: 7px;
+      top: 8px;
+      left: 8px;
+      width: 148px;
+      background: rgba(15, 23, 42, 0.84);
+      border: 1.5px solid #475569;
+      border-radius: 9px;
+      padding: 5px;
       z-index: 20;
       display: flex;
       flex-direction: column;
       align-items: center;
     }
     .minimap-title {
-      font-size: 10.5px;
+      font-size: 9.5px;
       font-weight: 700;
       color: #cbd5e1;
-      margin-bottom: 4px;
+      margin-bottom: 3px;
       width: 100%;
       display: flex;
       justify-content: space-between;
     }
     #minimap-canvas {
-      width: 158px;
-      height: 104px;
-      border-radius: 6px;
+      width: 136px;
+      height: 82px;
+      border-radius: 5px;
       background: #0f172a;
       border: 1px solid #334155;
+    }
+    .cam-switch-btn {
+      margin-top: 4px;
+      width: 100%;
+      background: #1e3a8a;
+      color: #bae6fd;
+      border: 1px solid #38bdf8;
+      border-radius: 4px;
+      padding: 3px 4px;
+      font-family: 'Vazirmatn', sans-serif;
+      font-size: 9.5px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* Quick Alley / Shop Teleport Chips inside Village */
+    #village-guide-bar {
+      position: absolute;
+      top: 42px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 4px;
+      z-index: 22;
+      background: rgba(15, 23, 42, 0.78);
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(250, 204, 21, 0.4);
+    }
+    .alley-chip {
+      background: rgba(30, 41, 59, 0.9);
+      color: #fef08a;
+      border: 1px solid #ca8a04;
+      border-radius: 999px;
+      padding: 2px 7px;
+      font-family: 'Vazirmatn', sans-serif;
+      font-size: 9.5px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .alley-chip:hover {
+      background: #a16207;
+      color: #fff;
     }
 
     /* ================= VIRTUAL JOYSTICK (BOTTOM-LEFT) ================= */
     .joystick-zone {
       position: absolute;
-      bottom: 24px;
-      left: 28px;
-      width: 132px;
-      height: 132px;
+      bottom: 14px;
+      left: 18px;
+      width: 108px;
+      height: 108px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(56, 189, 248, 0.14), rgba(15, 23, 42, 0.65));
-      border: 2px solid rgba(125, 211, 252, 0.45);
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.16), rgba(15, 23, 42, 0.68));
+      border: 2px solid rgba(125, 211, 252, 0.5);
       z-index: 25;
       touch-action: none;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55);
     }
     .joystick-knob {
-      width: 54px;
-      height: 54px;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
       background: radial-gradient(circle at 30% 30%, #7dd3fc, #0284c7);
       border: 2px solid #ffffff;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.6);
       transform: translate(0px, 0px);
       pointer-events: none;
     }
-    .joystick-hint {
-      position: absolute;
-      bottom: -20px;
-      font-size: 10px;
-      color: #94a3b8;
-      white-space: nowrap;
-    }
 
-    /* ================= SKILLS & BASIC ATTACK CLUSTER (BOTTOM-RIGHT) ================= */
+    /* ================= COMPACT SKILLS CLUSTER (BOTTOM-RIGHT) ================= */
     .combat-cluster {
       position: absolute;
-      bottom: 20px;
-      right: 24px;
-      width: 245px;
-      height: 185px;
+      bottom: 12px;
+      right: 14px;
+      width: 195px;
+      height: 145px;
       z-index: 25;
     }
 
     .btn-basic-attack {
       position: absolute;
-      bottom: 4px;
-      left: 8px;
-      width: 88px;
-      height: 88px;
+      bottom: 2px;
+      left: 6px;
+      width: 68px;
+      height: 68px;
       border-radius: 50%;
       background: radial-gradient(circle at 35% 35%, #fb923c, #c2410c);
-      border: 3px solid #fde047;
+      border: 2.5px solid #fde047;
       color: #ffffff;
       font-family: 'Vazirmatn', sans-serif;
-      font-size: 13.5px;
+      font-size: 11px;
       font-weight: 700;
       cursor: pointer;
-      box-shadow: 0 0 22px rgba(249, 115, 22, 0.65);
+      box-shadow: 0 0 16px rgba(249, 115, 22, 0.6);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
     }
-    .btn-basic-attack:active {
-      transform: scale(0.92);
-    }
+    .btn-basic-attack:active { transform: scale(0.92); }
 
     .skill-btn {
       position: absolute;
-      width: 58px;
-      height: 58px;
+      width: 46px;
+      height: 46px;
       border-radius: 50%;
-      border: 2px solid #bae6fd;
+      border: 1.5px solid #bae6fd;
       color: #ffffff;
       font-family: 'Vazirmatn', sans-serif;
-      font-size: 10.5px;
+      font-size: 9.5px;
       font-weight: 700;
       cursor: pointer;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.6);
       overflow: hidden;
     }
-    .skill-btn:active {
-      transform: scale(0.92);
-    }
+    .skill-btn:active { transform: scale(0.92); }
     .skill-btn .mana-tag {
-      font-size: 9px;
+      font-size: 8px;
       color: #e0f2fe;
-      opacity: 0.9;
     }
     .skill-cd-overlay {
       position: absolute;
       inset: 0;
-      background: rgba(9, 13, 22, 0.82);
+      background: rgba(9, 13, 22, 0.84);
       display: none;
       align-items: center;
       justify-content: center;
-      font-size: 14px;
+      font-size: 12px;
       font-weight: 700;
       color: #fde047;
     }
-    .skill-btn.on-cd .skill-cd-overlay {
-      display: flex;
-    }
+    .skill-btn.on-cd .skill-cd-overlay { display: flex; }
 
-    /* Arc layout around basic attack */
-    .sk-pos-1 { bottom: 106px; left: 4px; background: radial-gradient(circle, #06b6d4, #0e7490); }
-    .sk-pos-2 { bottom: 102px; left: 74px; background: radial-gradient(circle, #3b82f6, #1d4ed8); }
-    .sk-pos-3 { bottom: 60px; left: 132px; background: radial-gradient(circle, #a855f7, #6b21a8); }
-    .sk-pos-4 { bottom: 0px; left: 122px; background: radial-gradient(circle, #eab308, #a16207); border-color: #fef08a; }
+    .sk-pos-1 { bottom: 82px; left: 2px; background: radial-gradient(circle, #06b6d4, #0e7490); }
+    .sk-pos-2 { bottom: 78px; left: 56px; background: radial-gradient(circle, #3b82f6, #1d4ed8); }
+    .sk-pos-3 { bottom: 44px; left: 102px; background: radial-gradient(circle, #a855f7, #6b21a8); }
+    .sk-pos-4 { bottom: 0px; left: 94px; background: radial-gradient(circle, #eab308, #a16207); border-color: #fef08a; }
 
-    /* Context Action Button (e.g. Open Shop when near stall) */
+    /* Context Shop Interaction Button (Bottom-Center) */
     #context-action-btn {
       position: absolute;
-      bottom: 34px;
+      bottom: 18px;
       left: 50%;
       transform: translateX(-50%);
       background: linear-gradient(135deg, #f59e0b, #b45309);
       border: 2px solid #fef08a;
       color: #fff;
       font-family: 'Vazirmatn', sans-serif;
-      font-size: 14px;
+      font-size: 12.5px;
       font-weight: 700;
-      padding: 10px 22px;
+      padding: 8px 18px;
       border-radius: 999px;
       cursor: pointer;
       z-index: 30;
-      box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5);
+      box-shadow: 0 5px 18px rgba(245, 158, 11, 0.65);
       display: none;
+      white-space: nowrap;
     }
 
-    /* ================= MODALS (SHOP, INVENTORY, SCHEMATIC/UNITY) ================= */
+    /* ================= MODALS ================= */
     .modal-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(9, 13, 22, 0.78);
+      background: rgba(9, 13, 22, 0.8);
       backdrop-filter: blur(4px);
       z-index: 100;
       display: none;
       align-items: center;
       justify-content: center;
-      padding: 16px;
+      padding: 10px;
     }
-    .modal-backdrop.open {
-      display: flex;
-    }
+    .modal-backdrop.open { display: flex; }
 
     .modal-window {
       width: 100%;
-      max-width: 680px;
-      max-height: 88vh;
+      max-width: 620px;
+      max-height: 90vh;
       background: #1e293b;
       border: 2px solid #475569;
-      border-radius: 14px;
+      border-radius: 12px;
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.7);
     }
-
     .modal-win-header {
-      padding: 12px 16px;
+      padding: 9px 14px;
       background: #0f172a;
       border-bottom: 1px solid #334155;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 15px;
+      font-size: 13.5px;
       font-weight: 700;
       color: #fde047;
     }
-
     .modal-win-body {
-      padding: 14px 16px;
+      padding: 12px 14px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
-
     .shop-banner {
-      padding: 10px 12px;
-      border-radius: 8px;
-      background: rgba(16, 185, 129, 0.14);
+      padding: 8px 10px;
+      border-radius: 7px;
+      background: rgba(16, 185, 129, 0.15);
       border: 1px solid #34d399;
-      font-size: 12.5px;
+      font-size: 11.5px;
       color: #d1fae5;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       flex-wrap: wrap;
     }
-    .shop-banner.warn {
-      background: rgba(245, 158, 11, 0.15);
-      border-color: #f59e0b;
-      color: #fef08a;
-    }
-
     .shop-actions-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 10px;
+      gap: 8px;
     }
-
     .action-card-btn {
-      padding: 10px 12px;
-      border-radius: 8px;
+      padding: 8px 10px;
+      border-radius: 7px;
       border: 1px solid #38bdf8;
       background: #0f172a;
       color: #f8fafc;
       font-family: 'Vazirmatn', sans-serif;
-      font-size: 12.5px;
+      font-size: 11.5px;
       font-weight: 700;
       cursor: pointer;
-      transition: all 0.15s;
-    }
-    .action-card-btn:hover:not(:disabled) {
-      background: #1e3a8a;
     }
     .action-card-btn:disabled {
       opacity: 0.45;
       cursor: not-allowed;
       border-color: #475569;
     }
-
     .catalog-list {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
     }
     .catalog-row {
       background: #0f172a;
       border: 1px solid #334155;
-      border-radius: 8px;
-      padding: 9px 12px;
+      border-radius: 7px;
+      padding: 7px 10px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
-
-    /* 16-Slot Inventory Grid */
     .inv-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
+      gap: 6px;
     }
     .inv-slot {
-      min-height: 62px;
+      min-height: 52px;
       background: #0f172a;
       border: 1px solid #334155;
-      border-radius: 8px;
-      padding: 6px;
+      border-radius: 7px;
+      padding: 5px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       text-align: center;
       font-family: 'Vazirmatn', sans-serif;
-      font-size: 11.5px;
+      font-size: 10.5px;
       color: #94a3b8;
       cursor: pointer;
     }
     .inv-slot.filled {
       border-color: #38bdf8;
-      background: rgba(14, 116, 144, 0.25);
+      background: rgba(14, 116, 144, 0.28);
       color: #f8fafc;
       font-weight: 700;
-    }
-    .inv-slot.filled:hover {
-      background: rgba(14, 116, 144, 0.45);
     }
   </style>
 </head>
 <body>
 
-  <!-- TOP NAVIGATION & QUICK CONTROLS BAR -->
+  <!-- TOP NAVIGATION BAR -->
   <div class="app-topbar">
     <div class="brand-group">
       <span class="brand-badge">⚔️ جنگجویان پارس 3D</span>
-      <span class="zone-pill" id="top-zone-title">جهان باز (دشت، رودخانه و کوهستان)</span>
-    </div>
-
-    <!-- Map Quick Travel & Modals -->
-    <div class="nav-group">
-      <button class="top-btn" data-travel="village" data-tier="1">🏛️ روستای امن</button>
-      <button class="top-btn active" data-travel="open_world" data-tier="1">🌍 جهان باز</button>
-      <button class="top-btn" data-travel="dungeon" data-tier="1">🟣 دانجن ۱ (Lv.1)</button>
-      <button class="top-btn" data-travel="dungeon" data-tier="3">🔥 دانجن ۲ (Lv.3)</button>
+      <span class="zone-pill" id="top-zone-title">🏛️ روستای امن (کوچه‌ها و بازار)</span>
     </div>
 
     <div class="nav-group">
-      <button class="top-btn emerald" id="btn-open-inventory">🎒 کیف آیتم (<span id="badge-inv-count">1</span>/16)</button>
-      <button class="top-btn gold" id="btn-open-shop">🏪 فروشگاه روستا</button>
-      <button class="top-btn purple" id="btn-open-schematic">📐 شماتیک و کد Unity</button>
-      <button class="top-btn active" id="btn-open-downloads" style="background:linear-gradient(135deg,#16a34a,#15803d);border-color:#86efac;">⬇ دانلود مستقیم خروجی</button>
+      <button class="top-btn active" data-travel="village" data-tier="1">🏛️ روستای امن (بازار)</button>
+      <button class="top-btn" data-travel="open_world" data-tier="1">🌍 جهان باز</button>
+      <button class="top-btn" data-travel="dungeon" data-tier="1">🟣 دانجن ۱</button>
+      <button class="top-btn" data-travel="dungeon" data-tier="3">🔥 دانجن ۲</button>
+    </div>
+
+    <div class="nav-group">
+      <button class="top-btn" id="btn-open-party">👥 تیم (<span id="party-online-count">1</span>/5)</button>
+      <button class="top-btn emerald" id="btn-open-inventory">🎒 کیف (<span id="badge-inv-count">1</span>)</button>
+      <button class="top-btn gold" id="btn-open-shop">🏪 مغازه‌ها</button>
+      <button class="top-btn active" id="btn-open-downloads" style="background:#15803d;border-color:#86efac;">⬇ دانلود APK</button>
     </div>
   </div>
 
@@ -694,8 +618,17 @@
     <div id="labels-layer"></div>
     <div id="popups-layer"></div>
 
-    <!-- Notification Toast -->
-    <div id="toast-banner">ورود به جهان باز سه‌بعدی!</div>
+    <div id="toast-banner">به روستای پارسی خوش آمدید! در کوچه‌ها قدم بزنید و مغازه‌ها را ببینید.</div>
+
+    <!-- QUICK ALLEY & SHOP JUMP BAR (Visible in Village) -->
+    <div id="village-guide-bar">
+      <button class="alley-chip" data-alley="plaza">💧 میدان چشمه</button>
+      <button class="alley-chip" data-alley="bazaar_north">🏮 کوچه بازار شمالی</button>
+      <button class="alley-chip" data-alley="alley_smith">⚒️ راسته آهنگران</button>
+      <button class="alley-chip" data-alley="alley_herbs">🧪 کوچه عطاران</button>
+      <button class="alley-chip" data-alley="alley_carpet">🧶 گذر قالی‌بافان</button>
+      <button class="alley-chip" data-alley="alley_tea">🍵 کوچه چایخانه</button>
+    </div>
 
     <!-- HERO STATS HUD (TOP-RIGHT) -->
     <div class="hero-hud-card">
@@ -703,64 +636,48 @@
         <span class="hero-name-txt" id="hud-hero-name">قهرمان ۱ (شما) — جنگجو</span>
         <span class="hero-lvl-badge" id="hud-hero-lvl">Lv. 1</span>
       </div>
-
       <div class="stat-bar-row">
         <div class="stat-bar-track">
           <div class="stat-bar-fill fill-hp" id="bar-hp" style="width: 100%;"></div>
           <div class="stat-bar-text" id="txt-hp">HP: 160 / 160</div>
         </div>
       </div>
-
       <div class="stat-bar-row">
         <div class="stat-bar-track">
           <div class="stat-bar-fill fill-mana" id="bar-mana" style="width: 100%;"></div>
           <div class="stat-bar-text" id="txt-mana">MANA: 100 / 100</div>
         </div>
       </div>
-
       <div class="stat-bar-row">
-        <div class="stat-bar-track" style="height: 11px;">
+        <div class="stat-bar-track" style="height: 9px;">
           <div class="stat-bar-fill fill-xp" id="bar-xp" style="width: 0%;"></div>
-          <div class="stat-bar-text" id="txt-xp" style="font-size:9px;">XP: 0 / 100</div>
+          <div class="stat-bar-text" id="txt-xp" style="font-size:8px;">XP: 0 / 100</div>
         </div>
       </div>
-
       <div class="economy-row">
-        <span style="color:#fde047;">🪙 سکه: <span id="hud-coins">30</span></span>
-        <span style="color:#67e8f9;">💎 کریستال همراه: <span id="hud-crystals">0</span></span>
+        <span style="color:#fde047;">🪙 سکه: <span id="hud-coins">50</span></span>
+        <span style="color:#67e8f9;">💎 کریستال: <span id="hud-crystals">2</span></span>
         <span style="color:#fca5a5;">⚔️ قدرت: <span id="hud-atk">24</span></span>
       </div>
     </div>
 
-    <!-- PARTY CO-OP HUD (1 TO 5 PLAYERS) -->
-    <div class="party-hud-card">
-      <div class="party-header">
-        <span>👥 تیم کوآپ (<span id="party-online-count">1</span>/5 آنلاین)</span>
-        <button class="party-add-btn" id="btn-add-ally">+ افزودن هم‌تیمی</button>
-      </div>
-      <div class="party-list" id="party-list-container"></div>
-    </div>
-
-    <!-- MINIMAP RADAR (TOP-LEFT) -->
+    <!-- MINIMAP & CAMERA MODE (TOP-LEFT) -->
     <div class="minimap-card">
       <div class="minimap-title">
-        <span>رادار نقشه ۳ بعدی</span>
-        <span id="minimap-zone-tag" style="color:#38bdf8;">OpenWorld</span>
+        <span>نقشه روستا و کوچه‌ها</span>
+        <span id="minimap-zone-tag" style="color:#4ade80;">Village</span>
       </div>
-      <canvas id="minimap-canvas" width="158" height="104"></canvas>
-      <div style="margin-top:5px; width:100%; display:flex; justify-content:space-between;">
-        <button class="pm-btn" id="btn-cam-mode" style="width:100%; padding:3px;">🎥 دوربین: تعقیب قهرمان (کلیک برای چرخش آزاد)</button>
-      </div>
+      <canvas id="minimap-canvas" width="136" height="82"></canvas>
+      <button class="cam-switch-btn" id="btn-cam-mode">🎥 دوربین: نمای کوچه‌گردی (نزدیک)</button>
     </div>
 
     <!-- VIRTUAL JOYSTICK (BOTTOM-LEFT) -->
     <div class="joystick-zone" id="joystick-zone">
       <div class="joystick-knob" id="joystick-knob"></div>
-      <div class="joystick-hint">جوی‌استیک لمسی یا WASD</div>
     </div>
 
-    <!-- CONTEXT INTERACTION BUTTON -->
-    <button id="context-action-btn">🏪 باز کردن فروشگاه روستای امن</button>
+    <!-- CONTEXT SHOP INTERACTION BUTTON -->
+    <button id="context-action-btn">🏪 ورود به مغازه</button>
 
     <!-- COMBAT & 4 SKILLS CLUSTER (BOTTOM-RIGHT) -->
     <div class="combat-cluster">
@@ -787,139 +704,111 @@
 
       <button class="btn-basic-attack" id="btn-basic-attack">
         <span>⚔️</span>
-        <span>حمله پایه</span>
+        <span>حمله</span>
       </button>
     </div>
   </div>
 
-  <!-- ================= MODAL 1: VILLAGE SHOP (فروشگاه روستا) ================= -->
+  <!-- ================= MODAL 1: VILLAGE SHOPS (مغازه‌های بازار روستا) ================= -->
   <div class="modal-backdrop" id="modal-shop">
     <div class="modal-window">
       <div class="modal-win-header">
-        <span>🏪 فروشگاه روستای امن (تبدیل کریستال به سکه و خرید تجهیزات)</span>
+        <span id="shop-modal-title">🏪 بازار بزرگ روستای امن (مغازه‌ها و حجره‌ها)</span>
         <button class="top-btn" data-close="modal-shop">✖ بستن</button>
       </div>
       <div class="modal-win-body">
         <div class="shop-banner" id="shop-zone-banner">
-          <span id="shop-status-msg">خوش آمدید! کریستال‌های شکار را به سکه تبدیل کنید.</span>
-          <button class="top-btn emerald" id="btn-shop-go-village" style="display:none;">🏛️ سفر فوری به روستای امن</button>
+          <span id="shop-status-msg">به بازار روستا خوش آمدید! کریستال بفروشید یا از مغازه‌ها خرید کنید.</span>
+          <button class="top-btn emerald" id="btn-shop-go-village" style="display:none;">🏛️ بازگشت به روستا</button>
         </div>
 
         <div class="shop-actions-grid">
           <button class="action-card-btn" id="btn-sell-crystals">
-            💎 فروش همه کریستال‌ها (۰ عدد -> +۰ سکه)
+            💎 جواهرفروشی جمشید: فروش کریستال‌ها
           </button>
           <button class="action-card-btn" id="btn-recover-level">
-            🔄 جبران جریمه مرگ (۰ سطح قابل بازیابی)
+            🔮 مکتب ستاره‌شناس: بازیابی سطح ازدست‌رفته
           </button>
         </div>
 
-        <div style="font-size:13px; font-weight:700; color:#93c5fd; margin-top:4px;">
-          کاتالوگ آیتم‌ها و تجهیزات قهرمان (موجودی شما: <span id="shop-coins-val" style="color:#fde047;">30</span> سکه):
+        <div style="font-size:12px; font-weight:700; color:#93c5fd;">
+          اجناس مغازه‌های روستا (موجودی شما: <span id="shop-coins-val" style="color:#fde047;">50</span> سکه طلا):
         </div>
         <div class="catalog-list" id="shop-catalog-list"></div>
       </div>
     </div>
   </div>
 
-  <!-- ================= MODAL 2: 16-SLOT INVENTORY (کیف آیتم‌ها) ================= -->
+  <!-- ================= MODAL 2: INVENTORY (کیف ۱۶ خانه‌ای) ================= -->
   <div class="modal-backdrop" id="modal-inventory">
     <div class="modal-window">
       <div class="modal-win-header">
-        <span>🎒 کیف آیتم‌ها و کریستال‌های همراه تیم (۱۶ خانه)</span>
+        <span>🎒 کیف آیتم‌ها و کریستال‌های همراه (۱۶ خانه)</span>
         <button class="top-btn" data-close="modal-inventory">✖ بستن</button>
       </div>
       <div class="modal-win-body">
         <div class="shop-banner">
-          <span id="inv-crystals-summary">کریستال‌های همراه تیم: ۰ عدد (ارزش فروش در روستا: ۰ سکه)</span>
-        </div>
-        <div style="font-size:12px; color:#cbd5e1;">
-          روی هر آیتم کلیک/لمس کنید تا بلافاصله مصرف یا روی قهرمان تجهیز شود:
+          <span id="inv-crystals-summary">کریستال‌های همراه تیم: ۲ عدد</span>
         </div>
         <div class="inv-grid" id="inv-slots-grid"></div>
       </div>
     </div>
   </div>
 
-  <!-- ================= MODAL 3: SCHEMATIC & UNITY 3D EXPORT ================= -->
-  <div class="modal-backdrop" id="modal-schematic">
-    <div class="modal-window" style="max-width: 880px;">
+  <!-- ================= MODAL 3: PARTY CO-OP (مدیریت تیم ۱ تا ۵ نفره) ================= -->
+  <div class="modal-backdrop" id="modal-party">
+    <div class="modal-window" style="max-width:480px;">
       <div class="modal-win-header">
-        <span>📐 نقشه شماتیک مهندسی و خروجی سه‌بعدی موتور Unity</span>
-        <div style="display:flex; gap:6px;">
-          <button class="top-btn purple" id="btn-download-obj">⬇ دانلود مدل 3D (.OBJ برای یونیتی)</button>
-          <button class="top-btn" data-close="modal-schematic">✖ بستن</button>
-        </div>
+        <span>👥 مدیریت تیم کوآپ (۱ تا ۵ بازیکن)</span>
+        <button class="top-btn" data-close="modal-party">✖ بستن</button>
       </div>
       <div class="modal-win-body">
-        <div style="text-align:center;">
-          <img src="./Maps_Schematic_Blueprint.png" alt="Schematic Blueprint" style="max-width:100%; border-radius:10px; border:1px solid #38bdf8;" />
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:12px;">هم‌تیمی‌ها در کوچه‌های روستا و میدان نبرد همراه شما می‌آیند:</span>
+          <button class="top-btn emerald" id="btn-add-ally">+ افزودن هم‌تیمی</button>
         </div>
+        <div class="catalog-list" id="party-list-container"></div>
       </div>
     </div>
   </div>
 
-  <!-- ================= MODAL 4: DIRECT DOWNLOAD CENTER (مرکز دانلود مستقیم خروجی‌ها) ================= -->
-  <div class="modal-backdrop open" id="modal-downloads">
-    <div class="modal-window" style="max-width: 640px;">
+  <!-- ================= MODAL 4: DIRECT APK & BUILD DOWNLOADS ================= -->
+  <div class="modal-backdrop" id="modal-downloads">
+    <div class="modal-window" style="max-width: 600px;">
       <div class="modal-win-header">
-        <span>📦 مرکز دانلود مستقیم خروجی نهایی (Warriors of Persia 3D Build)</span>
-        <button class="top-btn" data-close="modal-downloads">✖ بستن و بازگشت به بازی</button>
+        <span>📦 دانلود مستقیم نسخه جدید APK (با نقشه کامل روستا و کوچه‌ها)</span>
+        <button class="top-btn" data-close="modal-downloads">✖ بستن</button>
       </div>
       <div class="modal-win-body">
-        <div class="shop-banner">
-          <span>تمام خروجی‌های بازی با آخرین تغییرات آماده دانلود مستقیم هستند:</span>
-        </div>
-
         <div class="catalog-list">
-          <div class="catalog-row" style="border-color:#4ade80; background:rgba(22, 163, 74, 0.16);">
+          <div class="catalog-row" style="border-color:#4ade80; background:rgba(22, 163, 74, 0.18);">
             <div>
-              <div style="font-weight:700; color:#4ade80; font-size:14px;">🤖 ۱. فایل نصبی اندروید (WarriorsOfPersia_3D.apk)</div>
-              <div style="font-size:11.5px; color:#d1fae5;">نسخه کامل و امضاشده (Signed v1 + v2) مخصوص نصب مستقیم روی گوشی و تبلت اندروید</div>
+              <div style="font-weight:700; color:#4ade80; font-size:13.5px;">🤖 ۱. فایل نصبی اندروید (WarriorsOfPersia_3D.apk)</div>
+              <div style="font-size:11px; color:#d1fae5;">نسخه کامل با کوچه‌های روستا، ۶ مغازه سه‌بعدی و رفع مشکل تصویر روی موبایل</div>
             </div>
-            <a href="/download-apk" download="WarriorsOfPersia_3D.apk" class="top-btn emerald" style="text-decoration:none; padding:9px 16px; font-size:13px;">
+            <a href="/download-apk" download="WarriorsOfPersia_3D.apk" class="top-btn emerald" style="text-decoration:none; padding:8px 14px;">
               📲 دانلود مستقیم APK
             </a>
           </div>
 
           <div class="catalog-row">
             <div>
-              <div style="font-weight:700; color:#67e8f9; font-size:13.5px;">۲. پکیج کامل خروجی بازی + پروژه یونیتی (ZIP)</div>
-              <div style="font-size:11.5px; color:#cbd5e1;">شامل فایل APK، اپ تک‌فایل، اسکریپت‌های C# یونیتی و پلان شماتیک</div>
+              <div style="font-weight:700; color:#67e8f9; font-size:13px;">۲. پکیج کامل ZIP (شامل APK + پروژه Unity C#)</div>
+              <div style="font-size:11px; color:#cbd5e1;">تمامی کدهای یونیتی، فایل APK و پلان شماتیک</div>
             </div>
-            <a href="/download-app-zip" download="WarriorsOfPersia_3D_Final_Build.zip" class="top-btn active" style="text-decoration:none; padding:8px 14px;">
-              ⬇ دانلود مستقیم ZIP
+            <a href="/download-app-zip" download="WarriorsOfPersia_3D_Final_Build.zip" class="top-btn active" style="text-decoration:none; padding:7px 12px;">
+              ⬇ دانلود ZIP
             </a>
           </div>
 
           <div class="catalog-row">
             <div>
-              <div style="font-weight:700; color:#fde047; font-size:13.5px;">۲. نسخه تک‌فایل اجرایی آفلاین (موبایل و کامپیوتر)</div>
-              <div style="font-size:11.5px; color:#cbd5e1;">فایل مستقل <code>WarriorsOfPersia_3D_Standalone.html</code> (اجرا بدون نیاز به سرور)</div>
+              <div style="font-weight:700; color:#c084fc; font-size:13px;">۳. دانلود مدل سه‌بعدی نقشه روستا برای Unity (.OBJ)</div>
+              <div style="font-size:11px; color:#cbd5e1;">فایل سه‌بعدی تمام خانه‌ها، کوچه‌ها و مغازه‌های روستا</div>
             </div>
-            <a href="/download-standalone-html" download="WarriorsOfPersia_3D_Standalone.html" class="top-btn gold" style="text-decoration:none; padding:8px 14px;">
-              ⬇ دانلود اپ تک‌فایل
-            </a>
-          </div>
-
-          <div class="catalog-row">
-            <div>
-              <div style="font-weight:700; color:#c084fc; font-size:13.5px;">۳. مدل سه‌بعدی نقشه فعلی برای موتور Unity (.OBJ)</div>
-              <div style="font-size:11.5px; color:#cbd5e1;">آماده Drag & Drop مستقیم داخل پوشه Assets در Unity Editor</div>
-            </div>
-            <button class="top-btn purple" id="btn-download-obj-2" style="padding:8px 14px;">
-              ⬇ دانلود مدل 3D (.OBJ)
+            <button class="top-btn purple" id="btn-download-obj" style="padding:7px 12px;">
+              ⬇ دانلود .OBJ
             </button>
-          </div>
-
-          <div class="catalog-row">
-            <div>
-              <div style="font-weight:700; color:#38bdf8; font-size:13.5px;">۴. تصویر پلان شماتیک مهندسی هر ۳ نقشه (PNG)</div>
-              <div style="font-size:11.5px; color:#cbd5e1;">نقشه شماتیک کامل با مختصات دقیق (X, Y, Z) در یونیتی</div>
-            </div>
-            <a href="./Maps_Schematic_Blueprint.png" download="Maps_Schematic_Blueprint.png" class="top-btn active" style="text-decoration:none; padding:8px 14px;">
-              ⬇ دانلود پلان شماتیک
-            </a>
           </div>
         </div>
       </div>
@@ -931,17 +820,16 @@
     import { OrbitControls } from './lib/OrbitControls.js';
     import { OBJExporter } from './lib/OBJExporter.js';
 
-    // Register PWA Service Worker for installable mobile experience
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').catch(() => {});
     }
 
     // =====================================================================
-    // SYNTHESIZED SOUND EFFECTS (WebAudio API - zero external audio lag)
+    // SYNTHESIZED SOUND EFFECTS
     // =====================================================================
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     let audioCtx = null;
-    function playTone(freq, duration = 0.14, type = 'sine', gainVal = 0.08) {
+    function playTone(freq, duration = 0.14, type = 'sine', gainVal = 0.07) {
       try {
         if (!audioCtx) audioCtx = new AudioCtx();
         if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -959,7 +847,7 @@
     }
 
     // =====================================================================
-    // CORE GAME STATE (Matching GDScript & Unity C# Architecture)
+    // GAME DATA & VILLAGE SHOPS DEFINITION
     // =====================================================================
     const ROLES = [
       { id: 0, title: 'جنگجو', color: 0x2563eb },
@@ -977,22 +865,91 @@
     ];
 
     const SHOP_CATALOG = [
-      { id: 'potion_hp', title: 'معجون سبز حیات', desc: '+۶۰ بازیابی سلامتی (HP)', price: 20, power: 60, type: 'hp' },
-      { id: 'potion_mana', title: 'معجون آبی مانا', desc: '+۵۰ بازیابی مانا (MANA)', price: 20, power: 50, type: 'mana' },
-      { id: 'sword_radiant', title: 'شمشیر درخشان شوالیه', desc: '+۸ قدرت حمله دائمی برای قهرمان', price: 55, power: 8, type: 'atk' },
-      { id: 'amulet_star', title: 'طلسم ستاره‌ای مانا', desc: '+۳۰ سقف مانا (MANA) دائمی', price: 65, power: 30, type: 'max_mana' }
+      { id: 'potion_hp', title: '🧪 معجون سبز حیات (عطاری حکیم)', desc: '+۶۰ بازیابی سلامتی (HP)', price: 20, power: 60, type: 'hp' },
+      { id: 'potion_mana', title: '🧪 معجون آبی مانا (عطاری حکیم)', desc: '+۵۰ بازیابی مانا (MANA)', price: 20, power: 50, type: 'mana' },
+      { id: 'sword_radiant', title: '⚒️ شمشیر کاویانی (آهنگری کاوه)', desc: '+۸ قدرت حمله دائمی برای قهرمان', price: 50, power: 8, type: 'atk' },
+      { id: 'armor_persian', title: '🛡️ زره پولادین پارسی (آهنگری کاوه)', desc: '+۴۰ سقف سلامتی (Max HP) دائمی', price: 55, power: 40, type: 'max_hp' },
+      { id: 'amulet_star', title: '🔮 طلسم ستاره‌ای (مکتب ستاره‌شناس)', desc: '+۳۰ سقف مانا (MANA) دائمی', price: 60, power: 30, type: 'max_mana' },
+      { id: 'tea_buff', title: '🍵 چای زعفرانی پهلوانان (چایخانه)', desc: 'پر کردن کامل HP و MANA فوری', price: 15, power: 999, type: 'full_restore' }
+    ];
+
+    // 6 Distinct Walkable Village Shops placed along the Alleys
+    const VILLAGE_SHOPS_3D = [
+      {
+        id: 'jeweler',
+        title: '💎 جواهر و کریستال‌فروشی جمشید',
+        alleyName: 'کوچه بازار شمالی (غربی)',
+        pos: { x: -16, z: -20 },
+        rotY: 0,
+        roofColor: 0x06b6d4,
+        carpetColor: 0x0e7490,
+        greeting: 'به حجره جواهرات جمشید خوش آمدید! کریستال‌های شکار را اینجا به سکه طلا تبدیل کنید.'
+      },
+      {
+        id: 'blacksmith',
+        title: '⚒️ آهنگری و زره‌سازی کاوه',
+        alleyName: 'راسته آهنگران (شمال‌غربی)',
+        pos: { x: -38, z: -18 },
+        rotY: Math.PI / 2,
+        roofColor: 0xea580c,
+        carpetColor: 0x9a3412,
+        greeting: 'به آهنگری کاوه خوش آمدید! بهترین شمشیرها و زره‌های پولادین پارسی اینجاست.'
+      },
+      {
+        id: 'apothecary',
+        title: '🧪 عطاری و معجون‌سازی حکیم',
+        alleyName: 'کوچه عطاران (شمال‌شرقی)',
+        pos: { x: 16, z: -20 },
+        rotY: 0,
+        roofColor: 0x16a34a,
+        carpetColor: 0x15803d,
+        greeting: 'به عطاری حکیم خوش آمدید! معجون‌های شفا و مانا با گیاهان کوهستان زاگرس.'
+      },
+      {
+        id: 'astrologer',
+        title: '🔮 مکتب جادو و ستاره‌شناس',
+        alleyName: 'گذر ستاره‌شناسان (شرقی)',
+        pos: { x: 38, z: -18 },
+        rotY: -Math.PI / 2,
+        roofColor: 0x9333ea,
+        carpetColor: 0x6b21a8,
+        greeting: 'به مکتب ستاره‌شناس خوش آمدید! طلسم‌های مانا و بازیابی سطح قهرمان.'
+      },
+      {
+        id: 'carpet_bazaar',
+        title: '🧶 سرای قالی و ابریشم پارس',
+        alleyName: 'کوچه قالی‌بافان (جنوب‌غربی)',
+        pos: { x: -28, z: 22 },
+        rotY: Math.PI,
+        roofColor: 0xdc2626,
+        carpetColor: 0x991b1b,
+        greeting: 'به سرای قالی و ابریشم خوش آمدید! فرش‌های دستباف اصیل ایرانی.'
+      },
+      {
+        id: 'teahouse',
+        title: '🍵 چایخانه و کاروانسرای پهلوانان',
+        alleyName: 'کوچه چایخانه (جنوب‌شرقی)',
+        pos: { x: 26, z: 22 },
+        rotY: Math.PI,
+        roofColor: 0xf59e0b,
+        carpetColor: 0xb45309,
+        greeting: 'به چایخانه پهلوانان خوش آمدید! یک استکان چای زعفرانی بنوشید و خستگی در کنید.'
+      }
     ];
 
     const state = {
-      currentZone: 'open_world', // 'village', 'open_world', 'dungeon'
+      currentZone: 'village', // Starts directly in the Village Map so the user can walk the alleys!
       dungeonTier: 1,
-      coins: 30,
+      coins: 50,
       lostLevelsRecoverable: 0,
-      crystals: [],
-      inventory: [ { ...SHOP_CATALOG[0] } ], // 1 starter potion
+      crystals: [
+        { type: 'small', title: 'خرده کریستال آبی (Lv.1)', level: 1, coinValue: 15 },
+        { type: 'medium', title: 'کریستال تابناک (Lv.2)', level: 2, coinValue: 25 }
+      ],
+      inventory: [ { ...SHOP_CATALOG[0] } ],
       skillCooldowns: [0, 0, 0, 0],
       basicAttackCd: 0,
-      freeCameraMode: false,
+      cameraMode: 0, // 0 = Street/Alley Close Follow, 1 = Top-Down High, 2 = Free Orbit
       party: [
         {
           slot: 0,
@@ -1014,7 +971,7 @@
     };
 
     // =====================================================================
-    // THREE.JS 3D SCENE SETUP
+    // THREE.JS 3D RENDERER SETUP
     // =====================================================================
     const canvas = document.getElementById('three-canvas');
     const stage = document.getElementById('game-stage');
@@ -1026,33 +983,36 @@
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.12;
+    renderer.toneMappingExposure = 1.15;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(46, 1, 0.5, 600);
-    camera.position.set(-68, 44, 36);
+    const camera = new THREE.PerspectiveCamera(50, 1, 0.5, 600);
+    camera.position.set(0, 22, 28);
 
     const orbitControls = new OrbitControls(camera, renderer.domElement);
     orbitControls.enableDamping = true;
     orbitControls.enabled = false;
 
-    const hemiLight = new THREE.HemisphereLight(0xe0f2fe, 0x1e293b, 0.9);
+    const hemiLight = new THREE.HemisphereLight(0xfffbeb, 0x334155, 0.95);
     scene.add(hemiLight);
 
-    const dirLight = new THREE.DirectionalLight(0xfff7ed, 1.45);
-    dirLight.position.set(-45, 95, 55);
+    const dirLight = new THREE.DirectionalLight(0xfff7ed, 1.5);
+    dirLight.position.set(-40, 85, 45);
     dirLight.castShadow = true;
-    dirLight.shadow.mapSize.set(2048, 2048);
-    dirLight.shadow.camera.left = -125;
-    dirLight.shadow.camera.right = 125;
-    dirLight.shadow.camera.top = 90;
-    dirLight.shadow.camera.bottom = -90;
+    dirLight.shadow.mapSize.set(1024, 1024);
+    dirLight.shadow.camera.left = -110;
+    dirLight.shadow.camera.right = 110;
+    dirLight.shadow.camera.top = 85;
+    dirLight.shadow.camera.bottom = -85;
     scene.add(dirLight);
 
     let mapRoot = new THREE.Group();
     scene.add(mapRoot);
 
     let portalsList = [];
+    let villageShopNodes = [];
+    let buildingColliders = []; // AABB boxes { minX, maxX, minZ, maxZ } for alley walls & houses
+    let villagersNPCs = [];
     let enemiesList = [];
     let crystals3DList = [];
     let projectilesList = [];
@@ -1060,21 +1020,26 @@
     let floatingLabels = [];
     let activePopups = [];
     let portalCooldown = 0;
+    let activeShopNear = null;
 
-    // Shared 3D Materials
+    // Materials
     const MATS = {
-      plainsGrass: new THREE.MeshStandardMaterial({ color: 0x2f7d44, roughness: 0.82 }),
-      highlandGrass: new THREE.MeshStandardMaterial({ color: 0x3f743d, roughness: 0.8 }),
+      plainsGrass: new THREE.MeshStandardMaterial({ color: 0x2f7d44, roughness: 0.85 }),
+      highlandGrass: new THREE.MeshStandardMaterial({ color: 0x3f743d, roughness: 0.82 }),
+      cobbleAlley: new THREE.MeshStandardMaterial({ color: 0x8c7f70, roughness: 0.88 }),
       dirtRoad: new THREE.MeshStandardMaterial({ color: 0xb08d5e, roughness: 0.88 }),
-      persianStone: new THREE.MeshStandardMaterial({ color: 0xd6c196, roughness: 0.65 }),
+      persianStone: new THREE.MeshStandardMaterial({ color: 0xd8c39a, roughness: 0.65 }),
+      adobeWall: new THREE.MeshStandardMaterial({ color: 0xd4a373, roughness: 0.82 }),
+      adobeBrick: new THREE.MeshStandardMaterial({ color: 0xbc8a5f, roughness: 0.85 }),
       turquoiseTile: new THREE.MeshStandardMaterial({ color: 0x1fc2c8, roughness: 0.25, metalness: 0.2, emissive: 0x08363b }),
       riverWater: new THREE.MeshStandardMaterial({ color: 0x1d8cf8, roughness: 0.15, metalness: 0.1, emissive: 0x0a2e52 }),
       woodBridge: new THREE.MeshStandardMaterial({ color: 0x8c5830, roughness: 0.75 }),
-      darkWood: new THREE.MeshStandardMaterial({ color: 0x523218, roughness: 0.8 }),
+      darkWood: new THREE.MeshStandardMaterial({ color: 0x4a2c11, roughness: 0.8 }),
       mountainRock: new THREE.MeshStandardMaterial({ color: 0x5a5868, roughness: 0.85 }),
       snowCap: new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.45 }),
       cypressFoliage: new THREE.MeshStandardMaterial({ color: 0x1b6336, roughness: 0.75 }),
       goldTrim: new THREE.MeshStandardMaterial({ color: 0xf5c542, roughness: 0.3, metalness: 0.7, emissive: 0x3b2a04 }),
+      lanternGlow: new THREE.MeshBasicMaterial({ color: 0xfde047 }),
       portalGreen: new THREE.MeshStandardMaterial({ color: 0x34f59b, emissive: 0x16a34a, roughness: 0.2 }),
       portalPurple: new THREE.MeshStandardMaterial({ color: 0xd8b4fe, emissive: 0x9333ea, roughness: 0.2 }),
       portalFire: new THREE.MeshStandardMaterial({ color: 0xfb923c, emissive: 0xea580c, roughness: 0.2 }),
@@ -1089,16 +1054,16 @@
     };
 
     // =====================================================================
-    // UI NOTIFICATIONS & FLOATING 3D POPUPS
+    // UI HELPERS
     // =====================================================================
     let toastTimeout = null;
-    function showToast(text, borderColor = '#38bdf8') {
+    function showToast(text, borderColor = '#4ade80') {
       const banner = document.getElementById('toast-banner');
       banner.textContent = text;
       banner.style.borderColor = borderColor;
       banner.classList.add('visible');
       if (toastTimeout) clearTimeout(toastTimeout);
-      toastTimeout = setTimeout(() => banner.classList.remove('visible'), 2800);
+      toastTimeout = setTimeout(() => banner.classList.remove('visible'), 3000);
     }
 
     function spawnFloatingPopup(text, worldPos, color = '#fde047') {
@@ -1111,7 +1076,7 @@
         el,
         pos: worldPos.clone().add(new THREE.Vector3(0, 4.5, 0)),
         age: 0,
-        maxAge: 0.75
+        maxAge: 0.8
       });
     }
 
@@ -1126,18 +1091,168 @@
     }
 
     // =====================================================================
-    // 3D OBJECT BUILDERS
+    // 3D ARCHITECTURAL BUILDERS (HOUSES, ALLEYS, SABAT ARCHES, SHOPS)
     // =====================================================================
+    function addColliderBox(cx, cz, halfW, halfD) {
+      buildingColliders.push({
+        minX: cx - halfW,
+        maxX: cx + halfW,
+        minZ: cz - halfD,
+        maxZ: cz + halfD
+      });
+    }
+
+    function buildPersianHouse3D(x, z, w, d, h = 8.5, hasWindcatcher = false) {
+      const g = new THREE.Group();
+      g.position.set(x, 0, z);
+
+      // Main Adobe Brick House Body
+      const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), MATS.adobeWall);
+      body.position.y = h / 2;
+      body.castShadow = true;
+      body.receiveShadow = true;
+      g.add(body);
+
+      // Roof Parapet Trim + Turquoise Tile Band
+      const parapet = new THREE.Mesh(new THREE.BoxGeometry(w + 0.4, 0.7, d + 0.4), MATS.adobeBrick);
+      parapet.position.y = h + 0.35;
+      g.add(parapet);
+
+      const tileBand = new THREE.Mesh(new THREE.BoxGeometry(w + 0.25, 0.45, d + 0.25), MATS.turquoiseTile);
+      tileBand.position.y = h - 0.6;
+      g.add(tileBand);
+
+      // Wooden Door & Arched Windows
+      const door = new THREE.Mesh(new THREE.BoxGeometry(2.2, 3.8, 0.3), MATS.darkWood);
+      door.position.set(0, 1.9, d / 2 + 0.05);
+      g.add(door);
+
+      // Optional Badgir (Traditional Persian Windcatcher Tower on Roof!)
+      if (hasWindcatcher) {
+        const tower = new THREE.Mesh(new THREE.BoxGeometry(3.4, 4.8, 3.4), MATS.adobeBrick);
+        tower.position.set(0, h + 2.4, 0);
+        tower.castShadow = true;
+        const towerCap = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.5, 3.8), MATS.turquoiseTile);
+        towerCap.position.set(0, h + 4.9, 0);
+        g.add(tower, towerCap);
+      }
+
+      addColliderBox(x, z, w / 2 + 0.8, d / 2 + 0.8);
+      return g;
+    }
+
+    // Sabat (Overhead Archway connecting two sides of an Alley!)
+    function buildAlleyArchSabat3D(x, z, spanW = 10, rotY = 0) {
+      const g = new THREE.Group();
+      g.position.set(x, 0, z);
+      g.rotation.y = rotY;
+
+      const beam = new THREE.Mesh(new THREE.BoxGeometry(spanW, 1.6, 3.2), MATS.adobeBrick);
+      beam.position.y = 7.6;
+      beam.castShadow = true;
+      g.add(beam);
+
+      const tile = new THREE.Mesh(new THREE.BoxGeometry(spanW + 0.2, 0.35, 3.4), MATS.turquoiseTile);
+      tile.position.y = 8.5;
+      g.add(tile);
+
+      // Hanging Warm Lantern under the Arch
+      const lantern = new THREE.Mesh(new THREE.SphereGeometry(0.55, 10, 10), MATS.lanternGlow);
+      lantern.position.set(0, 6.3, 0);
+      g.add(lantern);
+
+      return g;
+    }
+
+    // Detailed 3D Shop Building with Awning, Counter, Wares, and Shopkeeper NPC
+    function buildShopBuilding3D(shopDef) {
+      const g = new THREE.Group();
+      g.position.set(shopDef.pos.x, 0, shopDef.pos.z);
+      g.rotation.y = shopDef.rotY || 0;
+
+      // Back Store Building
+      const storeBody = new THREE.Mesh(new THREE.BoxGeometry(11, 7.2, 7), MATS.adobeWall);
+      storeBody.position.set(0, 3.6, -2.2);
+      storeBody.castShadow = true;
+      storeBody.receiveShadow = true;
+      g.add(storeBody);
+
+      // Colorful Awning Canopy extending into the Alley
+      const roofMat = new THREE.MeshStandardMaterial({ color: shopDef.roofColor, roughness: 0.4 });
+      const awning = new THREE.Mesh(new THREE.BoxGeometry(11.6, 0.65, 5.5), roofMat);
+      awning.position.set(0, 5.6, 2.2);
+      awning.rotation.x = 0.15;
+      awning.castShadow = true;
+      g.add(awning);
+
+      // Golden Front Pillars
+      const pL = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.38, 5.5, 10), MATS.goldTrim);
+      pL.position.set(-5.2, 2.75, 4.4);
+      const pR = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.38, 5.5, 10), MATS.goldTrim);
+      pR.position.set(5.2, 2.75, 4.4);
+      g.add(pL, pR);
+
+      // Persian Rug in front of the Shop
+      const carpetMat = new THREE.MeshStandardMaterial({ color: shopDef.carpetColor, roughness: 0.7 });
+      const rug = new THREE.Mesh(new THREE.BoxGeometry(8.5, 0.12, 4.2), carpetMat);
+      rug.position.set(0, 0.08, 3.8);
+      g.add(rug);
+
+      // Wooden Counter & Display Wares
+      const counter = new THREE.Mesh(new THREE.BoxGeometry(8.2, 2.1, 2.0), MATS.woodBridge);
+      counter.position.set(0, 1.05, 1.8);
+      counter.castShadow = true;
+      g.add(counter);
+
+      // Wares on the Counter (Gems, Potions, Swords, Teapots)
+      for (let i = -2.5; i <= 2.5; i += 2.5) {
+        const ware = new THREE.Mesh(new THREE.OctahedronGeometry(0.65, 0), roofMat);
+        ware.position.set(i, 2.65, 1.8);
+        g.add(ware);
+      }
+
+      // 3D Shopkeeper NPC standing behind the counter
+      const npc = new THREE.Group();
+      npc.position.set(0, 0, -0.1);
+      const npcBody = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.9, 2.0, 10), roofMat);
+      npcBody.position.y = 1.3;
+      const npcHead = new THREE.Mesh(new THREE.SphereGeometry(0.95, 12, 12), MATS.skinTone);
+      npcHead.position.y = 2.95;
+      const turban = new THREE.Mesh(new THREE.TorusGeometry(0.65, 0.28, 10, 18), MATS.goldTrim);
+      turban.rotation.x = Math.PI / 2;
+      turban.position.y = 3.45;
+      npc.add(npcBody, npcHead, turban);
+      g.add(npc);
+
+      // Collider for the back building (leaving the front rug & counter walkable!)
+      addColliderBox(shopDef.pos.x, shopDef.pos.z - 1.5, 5.2, 3.2);
+
+      // World Label above Shop
+      addWorldLabel(shopDef.title, new THREE.Vector3(shopDef.pos.x, 9.2, shopDef.pos.z), '#fde047');
+
+      // Compute interaction point in front of the shop
+      const frontOffset = new THREE.Vector3(0, 0, 5.2).applyAxisAngle(new THREE.Vector3(0, 1, 0), shopDef.rotY || 0);
+      const interactPos = new THREE.Vector3(shopDef.pos.x, 0, shopDef.pos.z).add(frontOffset);
+
+      villageShopNodes.push({
+        def: shopDef,
+        group: g,
+        interactPos
+      });
+
+      return g;
+    }
+
     function buildColumn3D(x, y, z) {
       const g = new THREE.Group();
       g.position.set(x, y, z);
-      const base = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.8, 2.3), MATS.persianStone);
+      const base = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.8, 2.2), MATS.persianStone);
       base.position.y = 0.4;
-      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1.0, 7.0, 12), MATS.persianStone);
-      shaft.position.y = 4.3;
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.95, 6.8, 12), MATS.persianStone);
+      shaft.position.y = 4.2;
       shaft.castShadow = true;
-      const cap = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.9, 2.5), MATS.goldTrim);
-      cap.position.y = 8.2;
+      const cap = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.9, 2.4), MATS.goldTrim);
+      cap.position.y = 8.0;
       g.add(base, shaft, cap);
       return g;
     }
@@ -1145,19 +1260,19 @@
     function buildPortal3D(x, y, z, matGlow, label, colorHex, targetZone, targetTier = 1) {
       const g = new THREE.Group();
       g.position.set(x, y, z);
-      const pad = new THREE.Mesh(new THREE.CylinderGeometry(6.0, 6.8, 0.7, 24), MATS.persianStone);
+      const pad = new THREE.Mesh(new THREE.CylinderGeometry(5.6, 6.4, 0.7, 24), MATS.persianStone);
       pad.position.y = 0.35;
-      g.add(pad, buildColumn3D(-4.0, 0.35, 0), buildColumn3D(4.0, 0.35, 0));
+      g.add(pad, buildColumn3D(-3.8, 0.35, 0), buildColumn3D(3.8, 0.35, 0));
 
-      const lintel = new THREE.Mesh(new THREE.BoxGeometry(10.8, 1.2, 2.4), MATS.persianStone);
-      lintel.position.y = 9.1;
+      const lintel = new THREE.Mesh(new THREE.BoxGeometry(10.2, 1.2, 2.2), MATS.persianStone);
+      lintel.position.y = 8.8;
       g.add(lintel);
 
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(3.0, 0.36, 14, 36), matGlow);
-      ring.position.y = 4.5;
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(2.8, 0.35, 14, 32), matGlow);
+      ring.position.y = 4.4;
       g.add(ring);
 
-      addWorldLabel(label, new THREE.Vector3(x, y + 11.2, z), colorHex);
+      addWorldLabel(label, new THREE.Vector3(x, y + 10.8, z), colorHex);
       portalsList.push({ group: g, ring, pos: new THREE.Vector3(x, y, z), targetZone, targetTier, label });
       return g;
     }
@@ -1168,11 +1283,11 @@
       g.scale.setScalar(sc);
       const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.65, 2.4, 8), MATS.darkWood);
       trunk.position.y = 1.2;
-      const c1 = new THREE.Mesh(new THREE.ConeGeometry(2.4, 6.0, 10), MATS.cypressFoliage);
-      c1.position.y = 4.8;
+      const c1 = new THREE.Mesh(new THREE.ConeGeometry(2.3, 5.8, 10), MATS.cypressFoliage);
+      c1.position.y = 4.6;
       c1.castShadow = true;
-      const c2 = new THREE.Mesh(new THREE.ConeGeometry(1.7, 4.6, 10), MATS.cypressFoliage);
-      c2.position.y = 7.9;
+      const c2 = new THREE.Mesh(new THREE.ConeGeometry(1.6, 4.4, 10), MATS.cypressFoliage);
+      c2.position.y = 7.6;
       g.add(trunk, c1, c2);
       return g;
     }
@@ -1183,44 +1298,62 @@
       const armorMat = new THREE.MeshStandardMaterial({ color: roleObj.color, roughness: 0.35, metalness: 0.25 });
 
       const aura = new THREE.Mesh(
-        new THREE.RingGeometry(1.5, 2.1, 24),
+        new THREE.RingGeometry(1.4, 2.0, 24),
         member.isLocal ? MATS.portalGreen : MATS.turquoiseTile
       );
       aura.rotation.x = -Math.PI / 2;
       aura.position.y = 0.12;
       g.add(aura);
 
-      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.1, 2.1, 12), armorMat);
-      torso.position.y = 1.45;
+      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 1.05, 2.0, 12), armorMat);
+      torso.position.y = 1.4;
       torso.castShadow = true;
       g.add(torso);
       g.userData.armorMesh = torso;
 
-      const cape = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.0, 0.24), MATS.capeRed);
-      cape.position.set(0, 1.45, -0.82);
+      const cape = new THREE.Mesh(new THREE.BoxGeometry(1.45, 1.9, 0.22), MATS.capeRed);
+      cape.position.set(0, 1.4, -0.78);
       cape.rotation.x = 0.16;
       g.add(cape);
 
-      const head = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), MATS.skinTone);
-      head.position.y = 3.4;
+      const head = new THREE.Mesh(new THREE.SphereGeometry(1.15, 16, 16), MATS.skinTone);
+      head.position.y = 3.25;
       head.castShadow = true;
       g.add(head);
 
-      const crown = new THREE.Mesh(new THREE.CylinderGeometry(1.23, 1.23, 0.42, 16), MATS.goldTrim);
-      crown.position.y = 3.95;
+      const crown = new THREE.Mesh(new THREE.CylinderGeometry(1.18, 1.18, 0.4, 16), MATS.goldTrim);
+      crown.position.y = 3.8;
       g.add(crown);
 
-      const weapon = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.22, 3.1), MATS.turquoiseTile);
-      weapon.position.set(1.3, 1.8, 1.0);
+      const weapon = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.2, 2.9), MATS.turquoiseTile);
+      weapon.position.set(1.2, 1.7, 0.95);
       g.add(weapon);
 
       const lbl = addWorldLabel(
         `${member.name} (${roleObj.title})`,
-        new THREE.Vector3(0, 5.8, 0),
+        new THREE.Vector3(0, 5.4, 0),
         member.isLocal ? '#4ade80' : '#38bdf8'
       );
       g.userData.labelRef = lbl;
       return g;
+    }
+
+    function spawnVillagerNPC(name, pathPoints, robeColor) {
+      const g = new THREE.Group();
+      const start = pathPoints[0];
+      g.position.set(start.x, 0, start.z);
+
+      const mat = new THREE.MeshStandardMaterial({ color: robeColor, roughness: 0.6 });
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.9, 2.0, 10), mat);
+      body.position.y = 1.2;
+      body.castShadow = true;
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.9, 12, 12), MATS.skinTone);
+      head.position.y = 2.8;
+      g.add(body, head);
+
+      const lbl = addWorldLabel(name, new THREE.Vector3(start.x, 4.4, start.z), '#cbd5e1');
+      mapRoot.add(g);
+      villagersNPCs.push({ group: g, points: pathPoints, targetIdx: 1, labelRef: lbl });
     }
 
     function spawnEnemyUnit3D(x, y, z, level, rank = 'normal', customTitle = '') {
@@ -1228,7 +1361,7 @@
       const isElite = rank === 'elite';
       const g = new THREE.Group();
       g.position.set(x, y, z);
-      const scale = isBoss ? 2.15 : (isElite ? 1.35 : 1.0);
+      const scale = isBoss ? 2.1 : (isElite ? 1.35 : 1.0);
       g.scale.setScalar(scale);
 
       const mat = isBoss ? MATS.bossMat : (isElite ? MATS.enemyElite : MATS.enemyNormal);
@@ -1241,14 +1374,6 @@
       head.position.y = 3.2;
       g.add(head);
 
-      const hornL = new THREE.Mesh(new THREE.ConeGeometry(0.28, 1.2, 8), MATS.goldTrim);
-      hornL.position.set(-0.78, 4.15, 0);
-      hornL.rotation.z = 0.38;
-      const hornR = new THREE.Mesh(new THREE.ConeGeometry(0.28, 1.2, 8), MATS.goldTrim);
-      hornR.position.set(0.78, 4.15, 0);
-      hornR.rotation.z = -0.38;
-      g.add(hornL, hornR);
-
       const hpMax = isBoss ? (260 + level * 90) : (isElite ? (110 + level * 35) : (65 + level * 22));
       const atk = isBoss ? (22 + level * 6) : (isElite ? (14 + level * 4) : (9 + level * 3));
       const xpReward = isBoss ? (120 * level) : (isElite ? (45 * level) : (25 * level));
@@ -1256,7 +1381,7 @@
 
       const lbl = addWorldLabel(`${title} [${hpMax}/${hpMax}]`, new THREE.Vector3(x, y + 4.8 * scale, z), isBoss ? '#f43f5e' : '#fb7185');
 
-      const enemyObj = {
+      enemiesList.push({
         group: g,
         homePos: new THREE.Vector3(x, y, z),
         level,
@@ -1272,9 +1397,8 @@
         dead: false,
         respawnTimer: 0,
         labelRef: lbl
-      };
+      });
       mapRoot.add(g);
-      enemiesList.push(enemyObj);
     }
 
     function spawnCrystal3D(posVec3, enemyLevel, rank) {
@@ -1306,17 +1430,12 @@
 
       crystals3DList.push({
         mesh: gem,
-        data: {
-          type: cType,
-          title: `${title} (Lv.${enemyLevel})`,
-          level: enemyLevel,
-          coinValue
-        }
+        data: { type: cType, title: `${title} (Lv.${enemyLevel})`, level: enemyLevel, coinValue }
       });
     }
 
     // =====================================================================
-    // ZONE BUILDERS (OpenWorld 3D, Village 3D, Dungeon 3D)
+    // ZONE BUILDERS (1. EXPANDED VILLAGE WITH ALLEYS & SHOPS, 2. OPEN WORLD, 3. DUNGEON)
     // =====================================================================
     function loadZone3D(zoneId, tier = 1) {
       state.currentZone = zoneId;
@@ -1328,6 +1447,9 @@
       scene.add(mapRoot);
 
       portalsList = [];
+      villageShopNodes = [];
+      buildingColliders = [];
+      villagersNPCs = [];
       enemiesList = [];
       crystals3DList = [];
       projectilesList = [];
@@ -1335,9 +1457,124 @@
       floatingLabels = [];
       labelsLayer.innerHTML = '';
 
+      document.getElementById('village-guide-bar').style.display = (zoneId === 'village') ? 'flex' : 'none';
+
       let spawnPoint = new THREE.Vector3(0, 0, 0);
 
-      if (zoneId === 'open_world') {
+      if (zoneId === 'village') {
+        // Warm Persian Golden Hour Sky
+        scene.background = new THREE.Color(0x1b2e3c);
+        scene.fog = new THREE.FogExp2(0x1b2e3c, 0.0018);
+
+        // 1. Village Ground (160 x 120)
+        const ground = new THREE.Mesh(new THREE.BoxGeometry(170, 3, 130), MATS.plainsGrass);
+        ground.position.set(0, -1.5, 0);
+        ground.receiveShadow = true;
+        mapRoot.add(ground);
+
+        // 2. Cobblestone Alleys Network (شبکه سنگفرش کوچه‌ها و خیابان‌های روستا)
+        // Main East-West Bazaar Street
+        const mainStreetEW = new THREE.Mesh(new THREE.BoxGeometry(135, 0.14, 13), MATS.cobbleAlley);
+        mainStreetEW.position.set(0, 0.07, 0);
+        mainStreetEW.receiveShadow = true;
+        // Main North-South Bazaar Street
+        const mainStreetNS = new THREE.Mesh(new THREE.BoxGeometry(14, 0.14, 96), MATS.cobbleAlley);
+        mainStreetNS.position.set(0, 0.07, 0);
+        mainStreetNS.receiveShadow = true;
+        // North Bazaar Alley (کوچه بازار شمالی)
+        const northAlley = new THREE.Mesh(new THREE.BoxGeometry(92, 0.15, 11), MATS.cobbleAlley);
+        northAlley.position.set(0, 0.08, -14);
+        // South Caravanserai Alley (کوچه کاروانسرا و قالی‌بافان)
+        const southAlley = new THREE.Mesh(new THREE.BoxGeometry(84, 0.15, 11), MATS.cobbleAlley);
+        southAlley.position.set(0, 0.08, 16);
+        // West Blacksmith Alley (راسته آهنگران)
+        const westAlley = new THREE.Mesh(new THREE.BoxGeometry(11, 0.15, 68), MATS.cobbleAlley);
+        westAlley.position.set(-28, 0.08, 0);
+        // East Apothecary Alley (کوچه عطاران و ستاره‌شناسان)
+        const eastAlley = new THREE.Mesh(new THREE.BoxGeometry(11, 0.15, 68), MATS.cobbleAlley);
+        eastAlley.position.set(28, 0.08, 0);
+
+        mapRoot.add(mainStreetEW, mainStreetNS, northAlley, southAlley, westAlley, eastAlley);
+
+        // 3. Central Octagonal Plaza & Healing Fountain (میدان مرکزی و چشمه شفا)
+        const plaza = new THREE.Mesh(new THREE.CylinderGeometry(13, 14, 0.25, 8), MATS.persianStone);
+        plaza.position.set(0, 0.12, 0);
+        plaza.receiveShadow = true;
+        mapRoot.add(plaza);
+
+        const fnt = new THREE.Group();
+        const fBase = new THREE.Mesh(new THREE.CylinderGeometry(4.8, 5.5, 1.1, 20), MATS.persianStone);
+        fBase.position.y = 0.6;
+        const fWater = new THREE.Mesh(new THREE.CylinderGeometry(4.1, 4.1, 0.85, 20), MATS.turquoiseTile);
+        fWater.position.y = 0.9;
+        const fOrb = new THREE.Mesh(new THREE.SphereGeometry(1.1, 16, 16), MATS.portalGreen);
+        fOrb.position.y = 3.8;
+        fnt.add(fBase, fWater, fOrb);
+        mapRoot.add(fnt);
+        addWorldLabel('💧 میدان چشمه شفا (مرکز روستا)', new THREE.Vector3(0, 6.2, 0), '#34d399');
+
+        // 4. Build All 6 Walkable 3D Village Shops along the Alleys!
+        VILLAGE_SHOPS_3D.forEach(shopDef => {
+          mapRoot.add(buildShopBuilding3D(shopDef));
+        });
+
+        // 5. Build Traditional Persian Adobe Houses & Badgirs (خانه‌های کاهگلی و بادگیرها برای شکل‌گیری کوچه‌ها)
+        const housesLayout = [
+          // North-West Block
+          [-46, -34, 14, 10, 9.0, true],
+          [-26, -34, 14, 10, 8.2, false],
+          [-8,  -34, 12, 10, 8.5, false],
+          // North-East Block
+          [8,   -34, 12, 10, 8.5, false],
+          [26,  -34, 14, 10, 8.8, true],
+          [46,  -34, 14, 10, 8.0, false],
+          // Far West Wall of Alleys
+          [-52, -4,  11, 14, 8.5, false],
+          [-52, 16,  11, 14, 9.2, true],
+          // South Block along Carpet & Teahouse Alleys
+          [-44, 36,  14, 10, 8.4, false],
+          [-14, 36,  13, 10, 9.0, true],
+          [14,  36,  13, 10, 8.2, false],
+          [44,  36,  14, 10, 8.8, true],
+          // Inner Courtyard Divider Houses (creating true walkable alleys!)
+          [-16, 6,   8,  6,  7.5, false],
+          [16,  6,   8,  6,  7.5, false]
+        ];
+        housesLayout.forEach(([hx, hz, hw, hd, hh, hasBadgir]) => {
+          mapRoot.add(buildPersianHouse3D(hx, hz, hw, hd, hh, hasBadgir));
+        });
+
+        // 6. Overhead Alley Arches (ساباط‌ها و طاق‌های سنتی بالای کوچه‌ها)
+        mapRoot.add(
+          buildAlleyArchSabat3D(0, -14, 12, 0),
+          buildAlleyArchSabat3D(-28, -6, 11, Math.PI / 2),
+          buildAlleyArchSabat3D(28, -6, 11, Math.PI / 2),
+          buildAlleyArchSabat3D(-14, 0, 12, Math.PI / 2),
+          buildAlleyArchSabat3D(14, 0, 12, Math.PI / 2)
+        );
+
+        // 7. Cypress Trees along the Courtyards
+        [[-38, 6], [38, 6], [-10, 24], [10, 24], [-42, -4], [42, -4]].forEach(([tx, tz]) => {
+          mapRoot.add(buildCypress3D(tx, 0, tz, 0.95));
+        });
+
+        // 8. Walking Villager NPCs inside the Alleys
+        spawnVillagerNPC('👳‍♂️ بازرگان پارسی', [
+          new THREE.Vector3(-24, 0, -14),
+          new THREE.Vector3(24, 0, -14)
+        ], 0x0284c7);
+        spawnVillagerNPC('🧕 بانوی روستا', [
+          new THREE.Vector3(-22, 0, 16),
+          new THREE.Vector3(22, 0, 16)
+        ], 0xdb2777);
+
+        // 9. East Gate Portal to OpenWorld
+        const pOut = buildPortal3D(62, 0, 0, MATS.turquoiseTile, '➡️ دروازه خروج به جهان باز (میدان شکار)', '#38bdf8', 'open_world', 1);
+        pOut.rotation.y = -Math.PI / 2;
+        mapRoot.add(pOut);
+
+        spawnPoint.set(0, 0, 10);
+      } else if (zoneId === 'open_world') {
         scene.background = new THREE.Color(0x132032);
         scene.fog = new THREE.FogExp2(0x132032, 0.0020);
 
@@ -1355,7 +1592,6 @@
         roadE.position.set(30, 1.25, 0);
         mapRoot.add(west, east, river, roadW, roadE);
 
-        // Wooden Bridge
         const bridge = new THREE.Group();
         bridge.position.set(0, 0.8, 0);
         const deck = new THREE.Mesh(new THREE.BoxGeometry(22, 0.9, 14), MATS.woodBridge);
@@ -1367,7 +1603,6 @@
         mapRoot.add(bridge);
         addWorldLabel('🌉 پل رودخانه خروشان', new THREE.Vector3(0, 4.8, 0), '#7dd3fc');
 
-        // Mountains along north
         [[-72, -56, 15, 24], [-42, -58, 17, 28], [-16, -55, 14, 22], [24, -55, 18, 30], [52, -57, 21, 35], [82, -54, 17, 27]].forEach(([px, pz, r, h]) => {
           const pk = new THREE.Group();
           pk.position.set(px, 0, pz);
@@ -1379,19 +1614,16 @@
           mapRoot.add(pk);
         });
 
-        // Trees
         [[-78, -28], [-70, 30], [-45, -34], [-32, 35], [36, -36], [72, -32], [68, -14]].forEach(([tx, tz]) => {
           mapRoot.add(buildCypress3D(tx, tx > 0 ? 1.2 : 0, tz, 1.05));
         });
 
-        // 3 Portals
-        const pVil = buildPortal3D(-88, 0, 0, MATS.portalGreen, '⬅️ ورود به روستای امن (فروشگاه)', '#4ade80', 'village', 1);
+        const pVil = buildPortal3D(-88, 0, 0, MATS.portalGreen, '⬅️ ورود به روستای امن (بازار و کوچه‌ها)', '#4ade80', 'village', 1);
         pVil.rotation.y = Math.PI / 2;
         const pFor = buildPortal3D(54, 1.2, -28, MATS.portalPurple, '🟣 دانجن ۱: جنگل باستانی (Lv.1)', '#d8b4fe', 'dungeon', 1);
         const pFir = buildPortal3D(78, 1.2, 30, MATS.portalFire, '🔥 دانجن ۲: کوهستان آتش (Lv.3)', '#fb923c', 'dungeon', 3);
         mapRoot.add(pVil, pFor, pFir);
 
-        // Enemies in OpenWorld
         spawnEnemyUnit3D(-36, 0, -2, 1, 'normal');
         spawnEnemyUnit3D(-28, 0, -22, 1, 'normal');
         spawnEnemyUnit3D(-30, 0, 22, 1, 'normal');
@@ -1399,51 +1631,6 @@
         spawnEnemyUnit3D(58, 1.2, 10, 3, 'elite');
 
         spawnPoint.set(-66, 0, 0);
-      } else if (zoneId === 'village') {
-        scene.background = new THREE.Color(0x112626);
-        scene.fog = new THREE.FogExp2(0x112626, 0.0022);
-
-        const ground = new THREE.Mesh(new THREE.BoxGeometry(140, 3, 95), MATS.plainsGrass);
-        ground.position.set(0, -1.5, 0);
-        ground.receiveShadow = true;
-        const plaza = new THREE.Mesh(new THREE.CylinderGeometry(36, 37, 0.5, 8), MATS.persianStone);
-        plaza.position.set(0, 0.25, 0);
-        plaza.receiveShadow = true;
-        mapRoot.add(ground, plaza);
-
-        // Healing Fountain at (0, 0, 0)
-        const fnt = new THREE.Group();
-        const fBase = new THREE.Mesh(new THREE.CylinderGeometry(8.2, 9.2, 1.2, 24), MATS.persianStone);
-        fBase.position.y = 0.8;
-        const fWater = new THREE.Mesh(new THREE.CylinderGeometry(7.3, 7.3, 0.9, 24), MATS.turquoiseTile);
-        fWater.position.y = 1.1;
-        const fOrb = new THREE.Mesh(new THREE.SphereGeometry(1.6, 20, 20), MATS.portalGreen);
-        fOrb.position.y = 5.4;
-        fnt.add(fBase, fWater, fOrb);
-        mapRoot.add(fnt);
-        addWorldLabel('💧 چشمه امن شفا و مانا (پر شدن خودکار HP/MANA)', new THREE.Vector3(0, 8.8, 0), '#34d399');
-
-        // Village Shop Stall at (-18, 0, -16)
-        const shop = new THREE.Group();
-        shop.position.set(-18, 0.5, -16);
-        const counter = new THREE.Mesh(new THREE.BoxGeometry(12, 2.6, 5.5), MATS.woodBridge);
-        counter.position.y = 1.3;
-        const canopy = new THREE.Mesh(new THREE.BoxGeometry(14, 1.0, 7.5), MATS.turquoiseTile);
-        canopy.position.y = 6.0;
-        shop.add(counter, canopy);
-        mapRoot.add(shop);
-        addWorldLabel('🏪 فروشگاه روستا (فروش کریستال -> سکه)', new THREE.Vector3(-18, 9.5, -16), '#facc15');
-
-        for (let i = 0; i < 6; i++) {
-          const ang = (i / 6) * Math.PI * 2;
-          mapRoot.add(buildColumn3D(Math.cos(ang) * 30, 0.5, Math.sin(ang) * 30));
-        }
-
-        const pOut = buildPortal3D(54, 0, 0, MATS.turquoiseTile, '➡️ دروازه خروج به جهان باز', '#38bdf8', 'open_world', 1);
-        pOut.rotation.y = -Math.PI / 2;
-        mapRoot.add(pOut);
-
-        spawnPoint.set(0, 0.5, 12);
       } else if (zoneId === 'dungeon') {
         scene.background = new THREE.Color(0x110b1d);
         scene.fog = new THREE.FogExp2(0x110b1d, 0.0026);
@@ -1472,26 +1659,24 @@
         spawnPoint.set(0, 0, 28);
       }
 
-      // Sync Online Party Heroes in 3D World
       syncPartyUnitsIn3D(spawnPoint);
       updateTopZoneBanner();
     }
 
     function syncPartyUnitsIn3D(basePos) {
       const leader = state.party[0];
-      const refPos = basePos || (leader.mesh ? leader.mesh.position.clone() : new THREE.Vector3(0, 0, 0));
+      const refPos = basePos || (leader.mesh ? leader.mesh.position.clone() : new THREE.Vector3(0, 0, 10));
 
       state.party.forEach((m, idx) => {
         if (m.mesh) {
           mapRoot.remove(m.mesh);
           m.mesh = null;
         }
-        // Strict rule: offline players are NOT replaced by bots and leave the field
         if (!m.isOnline) return;
 
         const mesh = buildHeroUnit3D(m);
         const angle = idx * 1.35;
-        const offsetR = idx === 0 ? 0 : 6.5;
+        const offsetR = idx === 0 ? 0 : 4.5;
         mesh.position.set(refPos.x + Math.cos(angle) * offsetR, refPos.y, refPos.z + Math.sin(angle) * offsetR);
         mapRoot.add(mesh);
         m.mesh = mesh;
@@ -1504,16 +1689,13 @@
       const pill = document.getElementById('top-zone-title');
       const mmTag = document.getElementById('minimap-zone-tag');
       if (state.currentZone === 'village') {
-        pill.textContent = '🏛️ روستای امن (فروشگاه و چشمه شفا)';
-        pill.className = 'zone-pill safe';
-        mmTag.textContent = 'Safe Village';
+        pill.textContent = '🏛️ روستای امن (کوچه‌ها و ۶ مغازه بازار)';
+        mmTag.textContent = 'Village Bazaar';
       } else if (state.currentZone === 'open_world') {
         pill.textContent = '🌍 جهان باز (دشت، رودخانه و کوهستان)';
-        pill.className = 'zone-pill';
         mmTag.textContent = 'OpenWorld';
       } else {
         pill.textContent = `⚔️ دانجن سطح ${state.dungeonTier} (باس و غنائم)`;
-        pill.className = 'zone-pill';
         mmTag.textContent = `Dungeon Lv.${state.dungeonTier}`;
       }
 
@@ -1525,8 +1707,30 @@
       showToast(`ورود به: ${pill.textContent}`, state.currentZone === 'village' ? '#4ade80' : '#38bdf8');
     }
 
+    // Quick Alley Teleport Chips inside Village
+    const ALLEY_TARGETS = {
+      plaza:        { x: 0,   z: 10,  msg: '💧 میدان مرکزی چشمه شفا' },
+      bazaar_north: { x: -16, z: -13, msg: '🏮 کوچه بازار شمالی — روبه‌روی جواهرفروشی جمشید' },
+      alley_smith:  { x: -30, z: -18, msg: '⚒️ راسته آهنگران — روبه‌روی آهنگری کاوه' },
+      alley_herbs:  { x: 16,  z: -13, msg: '🧪 کوچه عطاران — روبه‌روی عطاری حکیم و ستاره‌شناس' },
+      alley_carpet: { x: -28, z: 15,  msg: '🧶 کوچه قالی‌بافان — روبه‌روی سرای قالی و ابریشم' },
+      alley_tea:    { x: 26,  z: 15,  msg: '🍵 کوچه چایخانه — روبه‌روی چایخانه پهلوانان' }
+    };
+
+    document.querySelectorAll('[data-alley]').forEach(chip => {
+      chip.addEventListener('click', () => {
+        if (state.currentZone !== 'village') loadZone3D('village', 1);
+        const t = ALLEY_TARGETS[chip.dataset.alley];
+        if (t && state.party[0].mesh) {
+          state.party[0].mesh.position.set(t.x, 0, t.z);
+          playTone(540, 0.14, 'sine');
+          showToast(t.msg, '#fde047');
+        }
+      });
+    });
+
     // =====================================================================
-    // PARTY MANAGEMENT (1 TO 5 PLAYERS, FREE ROLES, ONLINE/OFFLINE)
+    // PARTY MANAGEMENT
     // =====================================================================
     function renderPartyHUD() {
       const container = document.getElementById('party-list-container');
@@ -1538,15 +1742,15 @@
       state.party.forEach((m, idx) => {
         const roleObj = ROLES[m.roleIndex] || ROLES[0];
         const row = document.createElement('div');
-        row.className = 'party-member-row' + (m.isOnline ? '' : ' offline');
+        row.className = 'catalog-row';
         row.innerHTML = `
           <div>
             <strong>${m.name}</strong>
             <span style="color:#7dd3fc;">(${roleObj.title} Lv.${m.level})</span>
           </div>
-          <div>
-            <button class="pm-btn" data-role-slot="${idx}">نقش</button>
-            ${idx > 0 ? `<button class="pm-btn" data-online-slot="${idx}">${m.isOnline ? '🟢 آنلاین' : '🔴 آفلاین'}</button>` : ''}
+          <div style="display:flex; gap:5px;">
+            <button class="top-btn" data-role-slot="${idx}">تغییر نقش</button>
+            ${idx > 0 ? `<button class="top-btn ${m.isOnline ? 'emerald' : 'gold'}" data-online-slot="${idx}">${m.isOnline ? '🟢 آنلاین' : '🔴 آفلاین'}</button>` : ''}
           </div>
         `;
         container.appendChild(row);
@@ -1578,7 +1782,7 @@
             showToast(`${member.name} آفلاین شد! (ربات جایگزین نشد)`, '#f59e0b');
           } else if (member.isOnline) {
             syncPartyUnitsIn3D();
-            showToast(`${member.name} دوباره آنلاین شد و به میدان بازگشت!`, '#4ade80');
+            showToast(`${member.name} دوباره آنلاین شد!`, '#4ade80');
           }
           renderPartyHUD();
         });
@@ -1588,7 +1792,7 @@
     document.getElementById('btn-add-ally').addEventListener('click', () => {
       if (state.party.length >= 5) return;
       const slot = state.party.length;
-      const newMember = {
+      state.party.push({
         slot,
         name: `بازیکن ${slot + 1}`,
         roleIndex: slot % ROLES.length,
@@ -1603,23 +1807,22 @@
         manaMax: 100,
         atk: 20,
         mesh: null
-      };
-      state.party.push(newMember);
+      });
       syncPartyUnitsIn3D();
       playTone(580, 0.16, 'triangle');
-      showToast(`${newMember.name} به تیم پیوست!`, '#4ade80');
+      showToast(`بازیکن ${slot + 1} به تیم پیوست!`, '#4ade80');
     });
 
     // =====================================================================
-    // COMBAT, 4 SKILLS, PROJECTILES & SHARED XP
+    // COMBAT & SKILLS
     // =====================================================================
     function spawnGlowRingVFX(centerPos, maxR, colorHex) {
-      const geo = new THREE.RingGeometry(1.0, 2.1, 32);
+      const geo = new THREE.RingGeometry(1.0, 2.0, 32);
       const mat = new THREE.MeshBasicMaterial({ color: colorHex, side: THREE.DoubleSide, transparent: true, opacity: 0.92 });
       const mesh = new THREE.Mesh(geo, mat);
       mesh.rotation.x = -Math.PI / 2;
       mesh.position.copy(centerPos);
-      mesh.position.y += 0.55;
+      mesh.position.y += 0.5;
       mapRoot.add(mesh);
       vfxRingsList.push({ mesh, scale: 1, maxScale: maxR });
     }
@@ -1630,7 +1833,6 @@
       enemy.hp = Math.max(0, enemy.hp - dmg);
       enemy.group.position.y += 0.8;
       spawnFloatingPopup(`-${dmg}`, enemy.group.position, '#fde047');
-
       enemy.labelRef.el.textContent = `${enemy.title} [${enemy.hp}/${enemy.hpMax}]`;
 
       if (enemy.hp <= 0) {
@@ -1638,8 +1840,6 @@
         enemy.respawnTimer = enemy.rank === 'boss' ? 14 : 7;
         enemy.group.visible = false;
         enemy.labelRef.el.style.display = 'none';
-
-        // Spawn magnetic 3D crystal & grant Shared XP
         spawnCrystal3D(enemy.group.position, enemy.level, enemy.rank);
         grantSharedTeamXP(enemy.xpReward);
         playTone(660, 0.22, 'triangle');
@@ -1656,12 +1856,12 @@
           m.xpToNext = Math.round(m.xpToNext * 1.35);
           m.hpMax += 25;
           m.hp = m.hpMax;
-          m.manaMax += 25; // +25 Mana per level up rule
+          m.manaMax += 25;
           m.mana = m.manaMax;
           m.atk += 5;
           if (m.isLocal && m.mesh) {
-            spawnFloatingPopup(`🎉 ارتقای سطح! Lv.${m.level} (+۲۵ مانا)`, m.mesh.position, '#4ade80');
-            showToast(`ارتقای سطح! اکنون سطح ${m.level} هستید (+۲۵ سقف مانا و قدرت)`, '#fde047');
+            spawnFloatingPopup(`🎉 ارتقای سطح! Lv.${m.level}`, m.mesh.position, '#4ade80');
+            showToast(`ارتقای سطح! اکنون سطح ${m.level} هستید (+۲۵ سقف مانا)`, '#fde047');
             playTone(880, 0.3, 'sine');
           }
         }
@@ -1673,30 +1873,23 @@
     function performBasicAttack() {
       const leader = state.party[0];
       if (!leader.mesh || state.basicAttackCd > 0) return;
-      if (state.currentZone === 'village') {
-        showToast('در روستای امن مبارزه غیرفعال است!', '#4ade80');
-        return;
-      }
-
-      state.basicAttackCd = 0.45;
+      state.basicAttackCd = 0.42;
       playTone(320, 0.1, 'sawtooth');
-      spawnGlowRingVFX(leader.mesh.position, 6.5, 0x38bdf8);
+      spawnGlowRingVFX(leader.mesh.position, 5.5, 0x38bdf8);
 
-      enemiesList.forEach(en => {
-        if (!en.dead && en.group.position.distanceTo(leader.mesh.position) <= 13.5) {
-          dealDamageToEnemy(en, leader.atk);
-        }
-      });
+      if (state.currentZone !== 'village') {
+        enemiesList.forEach(en => {
+          if (!en.dead && en.group.position.distanceTo(leader.mesh.position) <= 13.5) {
+            dealDamageToEnemy(en, leader.atk);
+          }
+        });
+      }
     }
 
     function useHeroSkill(skillIdx) {
       const leader = state.party[0];
       const sk = SKILLS[skillIdx];
       if (!leader.mesh || !sk) return;
-      if (state.currentZone === 'village') {
-        showToast('در روستای امن استفاده از مهارت رزمی غیرفعال است!', '#4ade80');
-        return;
-      }
       if (state.skillCooldowns[skillIdx] > 0) return;
       if (leader.mana < sk.manaCost) {
         showToast('مانا کافی نیست! (نوار آبی MANA)', '#38bdf8');
@@ -1711,15 +1904,13 @@
       playTone(440 + skillIdx * 110, 0.2, 'triangle');
 
       if (sk.mode === 'projectile') {
-        // Spawn homing 3D energy orb projectile
         const orb = new THREE.Mesh(
-          new THREE.SphereGeometry(1.1, 14, 14),
+          new THREE.SphereGeometry(1.0, 12, 12),
           new THREE.MeshBasicMaterial({ color: sk.color })
         );
-        orb.position.copy(leader.mesh.position).add(new THREE.Vector3(0, 2.2, 0));
+        orb.position.copy(leader.mesh.position).add(new THREE.Vector3(0, 2.0, 0));
         mapRoot.add(orb);
 
-        // Aim at nearest alive enemy or forward
         let dir = new THREE.Vector3(Math.sin(leader.mesh.rotation.y), 0, Math.cos(leader.mesh.rotation.y));
         let nearest = null;
         let minD = 999;
@@ -1729,22 +1920,22 @@
             if (d < minD) { minD = d; nearest = en; }
           }
         });
-        if (nearest) {
-          dir.subVectors(nearest.group.position, leader.mesh.position).setY(0).normalize();
-        }
-        projectilesList.push({ mesh: orb, dir, dmg: totalDmg, life: 2.2 });
+        if (nearest) dir.subVectors(nearest.group.position, leader.mesh.position).setY(0).normalize();
+        projectilesList.push({ mesh: orb, dir, dmg: totalDmg, life: 2.0 });
       } else {
-        const radius = sk.mode === 'ultimate' ? 22 : (sk.mode === 'aoe' ? 16 : 11);
+        const radius = sk.mode === 'ultimate' ? 20 : (sk.mode === 'aoe' ? 14 : 10);
         if (sk.mode === 'ultimate') {
           leader.hp = Math.min(leader.hpMax, leader.hp + leader.hpMax * 0.20);
           spawnFloatingPopup(`+${Math.round(leader.hpMax * 0.20)} HP`, leader.mesh.position, '#4ade80');
         }
         spawnGlowRingVFX(leader.mesh.position, radius, sk.color);
-        enemiesList.forEach(en => {
-          if (!en.dead && en.group.position.distanceTo(leader.mesh.position) <= radius * 1.25) {
-            dealDamageToEnemy(en, totalDmg);
-          }
-        });
+        if (state.currentZone !== 'village') {
+          enemiesList.forEach(en => {
+            if (!en.dead && en.group.position.distanceTo(leader.mesh.position) <= radius * 1.25) {
+              dealDamageToEnemy(en, totalDmg);
+            }
+          });
+        }
       }
     }
 
@@ -1754,7 +1945,7 @@
     });
 
     // =====================================================================
-    // HUD, SHOP & INVENTORY UI UPDATES
+    // HUD, SHOPS & INVENTORY MODALS
     // =====================================================================
     function updateHeroStatsHUD() {
       const leader = state.party[0];
@@ -1777,23 +1968,14 @@
       document.getElementById('badge-inv-count').textContent = state.inventory.length;
     }
 
-    function refreshShopModal() {
+    function openShopModal(shopDef = null) {
       const inVillage = state.currentZone === 'village';
-      const banner = document.getElementById('shop-zone-banner');
-      const msg = document.getElementById('shop-status-msg');
-      const goBtn = document.getElementById('btn-shop-go-village');
-
+      document.getElementById('shop-modal-title').textContent = shopDef ? shopDef.title : '🏪 بازار بزرگ روستای امن (مغازه‌ها و حجره‌ها)';
+      document.getElementById('shop-status-msg').textContent = shopDef
+        ? shopDef.greeting
+        : (inVillage ? 'به بازار روستا خوش آمدید! کریستال‌های شکار را به سکه تبدیل کنید.' : 'توجه: خرید و فروش فقط داخل «روستای امن» فعال است!');
+      document.getElementById('btn-shop-go-village').style.display = inVillage ? 'none' : 'inline-flex';
       document.getElementById('shop-coins-val').textContent = state.coins;
-
-      if (inVillage) {
-        banner.className = 'shop-banner';
-        msg.textContent = 'خوش آمدید به فروشگاه روستای امن! کریستال‌های شکار را به سکه تبدیل کنید.';
-        goBtn.style.display = 'none';
-      } else {
-        banner.className = 'shop-banner warn';
-        msg.textContent = 'توجه: معامله در فروشگاه فقط داخل «روستای امن» فعال است!';
-        goBtn.style.display = 'inline-flex';
-      }
 
       const totalVal = state.crystals.reduce((s, c) => s + c.coinValue, 0);
       const sellBtn = document.getElementById('btn-sell-crystals');
@@ -1802,7 +1984,7 @@
 
       const recCost = 45 * Math.max(1, state.party[0].level);
       const recBtn = document.getElementById('btn-recover-level');
-      recBtn.textContent = `🔄 جبران جریمه مرگ (${state.lostLevelsRecoverable} سطح | هزینه: ${recCost} سکه)`;
+      recBtn.textContent = `🔮 بازیابی سطح ازدست‌رفته (${state.lostLevelsRecoverable} سطح | ${recCost} سکه)`;
       recBtn.disabled = !inVillage || state.lostLevelsRecoverable <= 0 || state.coins < recCost;
 
       const catList = document.getElementById('shop-catalog-list');
@@ -1812,8 +1994,8 @@
         row.className = 'catalog-row';
         row.innerHTML = `
           <div>
-            <div style="font-weight:700; color:#f8fafc;">${item.title}</div>
-            <div style="font-size:11.5px; color:#94a3b8;">${item.desc}</div>
+            <div style="font-weight:700; color:#f8fafc; font-size:12px;">${item.title}</div>
+            <div style="font-size:10.5px; color:#94a3b8;">${item.desc}</div>
           </div>
           <button class="top-btn gold" ${(!inVillage || state.coins < item.price || state.inventory.length >= 16) ? 'disabled' : ''}>
             خرید (${item.price} سکه)
@@ -1826,11 +2008,13 @@
             playTone(720, 0.14, 'sine');
             showToast(`خریداری شد و به کیف اضافه گردید: ${item.title}`, '#fde047');
             updateHeroStatsHUD();
-            refreshShopModal();
+            openShopModal(shopDef);
           }
         });
         catList.appendChild(row);
       });
+
+      document.getElementById('modal-shop').classList.add('open');
     }
 
     document.getElementById('btn-sell-crystals').addEventListener('click', () => {
@@ -1841,7 +2025,7 @@
       playTone(820, 0.2, 'triangle');
       showToast(`فروش کریستال‌ها انجام شد! +${gained} سکه طلا`, '#fde047');
       updateHeroStatsHUD();
-      refreshShopModal();
+      openShopModal(activeShopNear);
     });
 
     document.getElementById('btn-recover-level').addEventListener('click', () => {
@@ -1859,18 +2043,18 @@
       playTone(880, 0.25, 'sine');
       showToast(`سطح ازدست‌رفته بازیابی شد! اکنون سطح ${leader.level} هستید.`, '#4ade80');
       updateHeroStatsHUD();
-      refreshShopModal();
+      openShopModal(activeShopNear);
     });
 
     document.getElementById('btn-shop-go-village').addEventListener('click', () => {
       loadZone3D('village', 1);
-      refreshShopModal();
+      openShopModal();
     });
 
     function refreshInventoryModal() {
       const totalVal = state.crystals.reduce((s, c) => s + c.coinValue, 0);
       document.getElementById('inv-crystals-summary').textContent =
-        `کریستال‌های همراه تیم: ${state.crystals.length} عدد (ارزش فروش در روستا: ${totalVal} سکه)`;
+        `کریستال‌های همراه تیم: ${state.crystals.length} عدد (ارزش فروش در جواهرفروشی روستا: ${totalVal} سکه)`;
 
       const grid = document.getElementById('inv-slots-grid');
       grid.innerHTML = '';
@@ -1879,13 +2063,15 @@
         const item = state.inventory[i];
         if (item) {
           slot.className = 'inv-slot filled';
-          slot.innerHTML = `<span>${item.title}</span><span style="font-size:10px; color:#7dd3fc;">(لمس برای مصرف)</span>`;
+          slot.innerHTML = `<span>${item.title}</span><span style="font-size:9.5px; color:#7dd3fc;">(لمس برای مصرف)</span>`;
           slot.addEventListener('click', () => {
             const leader = state.party[0];
             if (item.type === 'hp') leader.hp = Math.min(leader.hpMax, leader.hp + item.power);
             if (item.type === 'mana') leader.mana = Math.min(leader.manaMax, leader.mana + item.power);
             if (item.type === 'atk') leader.atk += item.power;
+            if (item.type === 'max_hp') { leader.hpMax += item.power; leader.hp += item.power; }
             if (item.type === 'max_mana') { leader.manaMax += item.power; leader.mana += item.power; }
+            if (item.type === 'full_restore') { leader.hp = leader.hpMax; leader.mana = leader.manaMax; }
             state.inventory.splice(i, 1);
             playTone(640, 0.14, 'sine');
             showToast(`استفاده شد: ${item.title}`, '#4ade80');
@@ -1901,21 +2087,18 @@
       }
     }
 
-    // Modal Open/Close Handlers
-    document.getElementById('btn-open-shop').addEventListener('click', () => {
-      refreshShopModal();
-      document.getElementById('modal-shop').classList.add('open');
-    });
-    document.getElementById('context-action-btn').addEventListener('click', () => {
-      refreshShopModal();
-      document.getElementById('modal-shop').classList.add('open');
-    });
+    document.getElementById('btn-open-shop').addEventListener('click', () => openShopModal(activeShopNear));
+    document.getElementById('context-action-btn').addEventListener('click', () => openShopModal(activeShopNear));
     document.getElementById('btn-open-inventory').addEventListener('click', () => {
       refreshInventoryModal();
       document.getElementById('modal-inventory').classList.add('open');
     });
-    document.getElementById('btn-open-schematic').addEventListener('click', () => {
-      document.getElementById('modal-schematic').classList.add('open');
+    document.getElementById('btn-open-party').addEventListener('click', () => {
+      renderPartyHUD();
+      document.getElementById('modal-party').classList.add('open');
+    });
+    document.getElementById('btn-open-downloads').addEventListener('click', () => {
+      document.getElementById('modal-downloads').classList.add('open');
     });
     document.querySelectorAll('[data-close]').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -1923,23 +2106,25 @@
       });
     });
 
-    // Quick Travel Buttons
     document.querySelectorAll('[data-travel]').forEach(btn => {
       btn.addEventListener('click', () => {
         loadZone3D(btn.dataset.travel, Number(btn.dataset.tier));
       });
     });
 
-    // Camera Mode Toggle & Export OBJ
+    // Camera Mode Cycle: 0 = Alley Close View, 1 = Top-Down High View, 2 = Free Orbit
     document.getElementById('btn-cam-mode').addEventListener('click', (e) => {
-      state.freeCameraMode = !state.freeCameraMode;
-      orbitControls.enabled = state.freeCameraMode;
-      e.currentTarget.textContent = state.freeCameraMode
-        ? '🎥 دوربین: چرخش آزاد Unity (کلیک برای قفل روی قهرمان)'
-        : '🎥 دوربین: تعقیب قهرمان (کلیک برای چرخش آزاد)';
+      state.cameraMode = (state.cameraMode + 1) % 3;
+      orbitControls.enabled = (state.cameraMode === 2);
+      const labels = [
+        '🎥 دوربین: نمای کوچه‌گردی (نزدیک)',
+        '🎥 دوربین: نمای بالا (Top-Down)',
+        '🎥 دوربین: چرخش آزاد ۳ بعدی'
+      ];
+      e.currentTarget.textContent = labels[state.cameraMode];
     });
 
-    function exportCurrentMapObj() {
+    document.getElementById('btn-download-obj').addEventListener('click', () => {
       const exporter = new OBJExporter();
       const objStr = exporter.parse(mapRoot);
       const blob = new Blob([objStr], { type: 'text/plain' });
@@ -1949,17 +2134,10 @@
       a.download = `WarriorsOfPersia_${state.currentZone}_3D.obj`;
       a.click();
       URL.revokeObjectURL(url);
-    }
-
-    document.getElementById('btn-download-obj').addEventListener('click', exportCurrentMapObj);
-    document.getElementById('btn-download-obj-2').addEventListener('click', exportCurrentMapObj);
-
-    document.getElementById('btn-open-downloads').addEventListener('click', () => {
-      document.getElementById('modal-downloads').classList.add('open');
     });
 
     // =====================================================================
-    // VIRTUAL JOYSTICK & KEYBOARD INPUT
+    // VIRTUAL JOYSTICK & KEYBOARD
     // =====================================================================
     const keys = {};
     window.addEventListener('keydown', e => {
@@ -1983,7 +2161,7 @@
       const cy = rect.top + rect.height / 2;
       let dx = cxClient - cx;
       let dy = cyClient - cy;
-      const maxR = 44;
+      const maxR = 36;
       const dist = Math.hypot(dx, dy);
       if (dist > maxR) {
         dx = (dx / dist) * maxR;
@@ -2012,7 +2190,7 @@
     joyZone.addEventListener('pointercancel', endJoy);
 
     // =====================================================================
-    // LIVE MINIMAP RADAR RENDERER
+    // LIVE MINIMAP RADAR (SHOWING VILLAGE ALLEYS, SHOPS, HERO)
     // =====================================================================
     const mmCanvas = document.getElementById('minimap-canvas');
     const mmCtx = mmCanvas.getContext('2d');
@@ -2023,33 +2201,40 @@
       mmCtx.fillStyle = state.currentZone === 'dungeon' ? '#1a122b' : '#143322';
       mmCtx.fillRect(0, 0, w, h);
 
-      if (state.currentZone === 'open_world') {
+      const toMM = (pos) => ({
+        x: ((pos.x + 85) / 170) * w,
+        y: ((pos.z + 55) / 110) * h
+      });
+
+      if (state.currentZone === 'village') {
+        // Draw Alleys on Minimap
+        mmCtx.fillStyle = '#78716c';
+        mmCtx.fillRect(w * 0.1, h * 0.45, w * 0.8, h * 0.1);
+        mmCtx.fillRect(w * 0.46, h * 0.1, w * 0.08, h * 0.8);
+        mmCtx.fillRect(w * 0.22, h * 0.32, w * 0.56, h * 0.08);
+        mmCtx.fillRect(w * 0.22, h * 0.60, w * 0.56, h * 0.08);
+
+        // Draw 6 Shops as gold squares
+        villageShopNodes.forEach(sn => {
+          const pt = toMM(sn.def.pos);
+          mmCtx.fillStyle = '#fde047';
+          mmCtx.fillRect(pt.x - 3, pt.y - 3, 6, 6);
+        });
+      } else if (state.currentZone === 'open_world') {
         mmCtx.fillStyle = '#1d4ed8';
         mmCtx.fillRect(w * 0.47, 0, w * 0.06, h);
         mmCtx.fillStyle = '#92400e';
         mmCtx.fillRect(w * 0.45, h * 0.44, w * 0.10, h * 0.12);
       }
 
-      const toMM = (pos) => ({
-        x: ((pos.x + 105) / 210) * w,
-        y: ((pos.z + 65) / 130) * h
-      });
-
       // Portals
       portalsList.forEach(p => {
         const pt = toMM(p.pos);
-        mmCtx.strokeStyle = '#c084fc';
+        mmCtx.strokeStyle = '#38bdf8';
         mmCtx.lineWidth = 2;
         mmCtx.beginPath();
-        mmCtx.arc(pt.x, pt.y, 4.5, 0, Math.PI * 2);
+        mmCtx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
         mmCtx.stroke();
-      });
-
-      // Crystals
-      crystals3DList.forEach(c => {
-        const pt = toMM(c.mesh.position);
-        mmCtx.fillStyle = '#fde047';
-        mmCtx.fillRect(pt.x - 2, pt.y - 2, 4, 4);
       });
 
       // Enemies
@@ -2058,23 +2243,35 @@
         const pt = toMM(en.group.position);
         mmCtx.fillStyle = en.rank === 'boss' ? '#f43f5e' : '#fb7185';
         mmCtx.beginPath();
-        mmCtx.arc(pt.x, pt.y, en.rank === 'boss' ? 5 : 3, 0, Math.PI * 2);
+        mmCtx.arc(pt.x, pt.y, 3.5, 0, Math.PI * 2);
         mmCtx.fill();
       });
 
-      // Online Party Heroes
+      // Party Heroes
       state.party.forEach(m => {
         if (!m.isOnline || !m.mesh) return;
         const pt = toMM(m.mesh.position);
         mmCtx.fillStyle = m.isLocal ? '#4ade80' : '#38bdf8';
         mmCtx.beginPath();
-        mmCtx.arc(pt.x, pt.y, m.isLocal ? 4.2 : 3.2, 0, Math.PI * 2);
+        mmCtx.arc(pt.x, pt.y, m.isLocal ? 4 : 3, 0, Math.PI * 2);
         mmCtx.fill();
       });
     }
 
     // =====================================================================
-    // MAIN GAME LOOP (PHYSICS, AI, PORTALS, FOUNTAIN, COOLDOWNS)
+    // COLLISION CHECK FOR ALLEY WALLS & HOUSES
+    // =====================================================================
+    function isBlockedByBuilding(x, z) {
+      for (const b of buildingColliders) {
+        if (x >= b.minX && x <= b.maxX && z >= b.minZ && z <= b.maxZ) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    // =====================================================================
+    // MAIN GAME LOOP
     // =====================================================================
     function onResize() {
       camera.aspect = stage.clientWidth / stage.clientHeight;
@@ -2094,7 +2291,6 @@
       if (portalCooldown > 0) portalCooldown -= dt;
       if (state.basicAttackCd > 0) state.basicAttackCd -= dt;
 
-      // Update Skill Cooldowns & Passive Mana Regen
       for (let i = 0; i < 4; i++) {
         const btn = document.querySelector(`[data-skill="${i}"]`);
         const cdEl = document.getElementById(`cd-${i}`);
@@ -2107,18 +2303,13 @@
         }
       }
 
-      // Passive Mana Resonance (+3x in Safe Village + Fountain Healing)
       const isSafe = state.currentZone === 'village';
       const manaRegen = (4.0 + (leader.level - 1) * 0.8) * (isSafe ? 3.0 : 1.0);
-      if (leader.mana < leader.manaMax) {
-        leader.mana = Math.min(leader.manaMax, leader.mana + manaRegen * dt);
-      }
-      if (isSafe && leader.hp < leader.hpMax) {
-        leader.hp = Math.min(leader.hpMax, leader.hp + 25.0 * dt);
-      }
+      if (leader.mana < leader.manaMax) leader.mana = Math.min(leader.manaMax, leader.mana + manaRegen * dt);
+      if (isSafe && leader.hp < leader.hpMax) leader.hp = Math.min(leader.hpMax, leader.hp + 25.0 * dt);
       updateHeroStatsHUD();
 
-      // 1. Local Leader Movement
+      // 1. Local Hero Movement with Alley Wall Sliding Collision
       if (leader.mesh) {
         let mx = joyVec.x;
         let mz = joyVec.y;
@@ -2131,41 +2322,55 @@
         if (len > 0.05) {
           mx /= Math.max(1, len);
           mz /= Math.max(1, len);
-          const speed = 28;
-          let nx = THREE.MathUtils.clamp(leader.mesh.position.x + mx * speed * dt, -94, 94);
-          let nz = THREE.MathUtils.clamp(leader.mesh.position.z + mz * speed * dt, -48, 48);
+          const speed = 24;
+          const tryX = THREE.MathUtils.clamp(leader.mesh.position.x + mx * speed * dt, -88, 88);
+          const tryZ = THREE.MathUtils.clamp(leader.mesh.position.z + mz * speed * dt, -46, 46);
 
-          // River collider in OpenWorld (must cross via central wooden bridge at |z| <= 7.5)
-          if (state.currentZone === 'open_world' && Math.abs(nx) < 7.2 && Math.abs(nz) > 7.2) {
-            nx = leader.mesh.position.x;
+          // Slide along X and Z independently against village house/shop colliders
+          if (!isBlockedByBuilding(tryX, leader.mesh.position.z)) {
+            if (!(state.currentZone === 'open_world' && Math.abs(tryX) < 7.2 && Math.abs(leader.mesh.position.z) > 7.2)) {
+              leader.mesh.position.x = tryX;
+            }
+          }
+          if (!isBlockedByBuilding(leader.mesh.position.x, tryZ)) {
+            leader.mesh.position.z = tryZ;
           }
 
-          leader.mesh.position.x = nx;
-          leader.mesh.position.z = nz;
-          leader.mesh.position.y = (state.currentZone === 'open_world' && nx > 7) ? 1.2 : 0;
+          leader.mesh.position.y = (state.currentZone === 'open_world' && leader.mesh.position.x > 7) ? 1.2 : 0;
           leader.mesh.rotation.y = Math.atan2(mx, mz);
         }
 
-        // Update Leader Label
         leader.mesh.userData.labelRef.pos.set(
           leader.mesh.position.x,
-          leader.mesh.position.y + 5.8,
+          leader.mesh.position.y + 5.4,
           leader.mesh.position.z
         );
 
-        // Check Village Shop Proximity
+        // Check Proximity to any of the 6 Village Shops!
         const ctxBtn = document.getElementById('context-action-btn');
-        if (state.currentZone === 'village' && leader.mesh.position.distanceTo(new THREE.Vector3(-18, 0.5, -16)) < 16) {
+        activeShopNear = null;
+        if (state.currentZone === 'village') {
+          let bestDist = 11.5;
+          villageShopNodes.forEach(sn => {
+            const d = leader.mesh.position.distanceTo(sn.interactPos);
+            if (d < bestDist) {
+              bestDist = d;
+              activeShopNear = sn.def;
+            }
+          });
+        }
+        if (activeShopNear) {
           ctxBtn.style.display = 'block';
+          ctxBtn.textContent = `🏪 ورود به ${activeShopNear.title}`;
         } else {
           ctxBtn.style.display = 'none';
         }
 
-        // Check Physical Portal Entry
+        // Check Portals
         if (portalCooldown <= 0) {
           for (const p of portalsList) {
             p.ring.rotation.z = elapsed * 1.6;
-            if (leader.mesh.position.distanceTo(p.pos) < 6.2) {
+            if (leader.mesh.position.distanceTo(p.pos) < 6.0) {
               playTone(520, 0.22, 'sine');
               loadZone3D(p.targetZone, p.targetTier);
               break;
@@ -2173,9 +2378,15 @@
           }
         }
 
-        // Smooth Top-Down 3D Camera Follow
-        if (!state.freeCameraMode) {
-          const targetCam = new THREE.Vector3(leader.mesh.position.x, leader.mesh.position.y + 42, leader.mesh.position.z + 34);
+        // Camera Follow Modes
+        if (state.cameraMode === 0) {
+          // Close Street/Alley Walk Perspective (great for seeing inside the alleys & shops!)
+          const targetCam = new THREE.Vector3(leader.mesh.position.x, leader.mesh.position.y + 20, leader.mesh.position.z + 22);
+          camera.position.lerp(targetCam, 0.14);
+          camera.lookAt(leader.mesh.position.x, leader.mesh.position.y + 2.2, leader.mesh.position.z - 2);
+        } else if (state.cameraMode === 1) {
+          // High Top-Down View
+          const targetCam = new THREE.Vector3(leader.mesh.position.x, leader.mesh.position.y + 44, leader.mesh.position.z + 32);
           camera.position.lerp(targetCam, 0.12);
           camera.lookAt(leader.mesh.position.x, leader.mesh.position.y + 1.5, leader.mesh.position.z);
         } else {
@@ -2183,24 +2394,38 @@
         }
       }
 
-      // 2. Connected Online Teammates (Slots 1..4) Follow & Co-op Combat
+      // 2. Villager NPCs walking in the alleys
+      villagersNPCs.forEach(v => {
+        const target = v.points[v.targetIdx];
+        const dist = v.group.position.distanceTo(target);
+        if (dist < 1.0) {
+          v.targetIdx = (v.targetIdx + 1) % v.points.length;
+        } else {
+          const dir = target.clone().sub(v.group.position).normalize();
+          v.group.position.addScaledVector(dir, 5.5 * dt);
+          v.group.rotation.y = Math.atan2(dir.x, dir.z);
+        }
+        v.labelRef.pos.set(v.group.position.x, 4.4, v.group.position.z);
+      });
+
+      // 3. Connected Online Teammates Follow
       state.party.forEach((ally, idx) => {
         if (idx === 0 || !ally.isOnline || !ally.mesh || !leader.mesh) return;
         const formAngle = idx * 1.45;
         const desiredPos = new THREE.Vector3(
-          leader.mesh.position.x + Math.cos(formAngle) * 7.5,
+          leader.mesh.position.x + Math.cos(formAngle) * 5.0,
           leader.mesh.position.y,
-          leader.mesh.position.z + Math.sin(formAngle) * 6.5
+          leader.mesh.position.z + Math.sin(formAngle) * 5.0
         );
-        if (ally.mesh.position.distanceTo(desiredPos) > 1.5) {
+        if (ally.mesh.position.distanceTo(desiredPos) > 1.2) {
           const dir = desiredPos.clone().sub(ally.mesh.position).normalize();
-          ally.mesh.position.addScaledVector(dir, 24 * dt);
+          ally.mesh.position.addScaledVector(dir, 22 * dt);
           ally.mesh.rotation.y = Math.atan2(dir.x, dir.z);
         }
-        ally.mesh.userData.labelRef.pos.set(ally.mesh.position.x, ally.mesh.position.y + 5.8, ally.mesh.position.z);
+        ally.mesh.userData.labelRef.pos.set(ally.mesh.position.x, ally.mesh.position.y + 5.4, ally.mesh.position.z);
       });
 
-      // 3. Enemies AI, Boss Shockwaves & Respawn
+      // 4. Enemies AI
       enemiesList.forEach((en, idx) => {
         if (en.dead) {
           en.respawnTimer -= dt;
@@ -2214,8 +2439,6 @@
           }
           return;
         }
-
-        // Idle bounce
         en.group.position.y = THREE.MathUtils.lerp(
           en.group.position.y,
           en.homePos.y + Math.abs(Math.sin(elapsed * 3.2 + idx)) * 0.3,
@@ -2224,55 +2447,32 @@
 
         if (leader.mesh) {
           const dist = en.group.position.distanceTo(leader.mesh.position);
-          if (dist < 26 && dist > 3.8) {
+          if (dist < 25 && dist > 3.8) {
             const dir = leader.mesh.position.clone().sub(en.group.position).setY(0).normalize();
             en.group.position.addScaledVector(dir, (en.rank === 'boss' ? 9 : 11) * dt);
             en.group.rotation.y = Math.atan2(dir.x, dir.z);
           }
-
-          // Melee attack against Hero
           en.atkTimer -= dt;
-          if (dist <= 5.2 && en.atkTimer <= 0) {
+          if (dist <= 5.0 && en.atkTimer <= 0) {
             en.atkTimer = 1.4;
             leader.hp = Math.max(0, leader.hp - en.atk);
             spawnFloatingPopup(`-${en.atk}`, leader.mesh.position, '#fb7185');
             if (leader.hp <= 0) {
-              // Apply Death Penalty (-1 Level, recoverable in Village Shop)
               if (leader.level > 1) {
                 leader.level -= 1;
-                leader.hpMax = Math.max(100, leader.hpMax - 25);
-                leader.manaMax = Math.max(80, leader.manaMax - 25);
-                leader.atk = Math.max(15, leader.atk - 4);
                 state.lostLevelsRecoverable += 1;
-                showToast('جریمه مرگ: -۱ سطح! (قابل بازیابی با سکه در فروشگاه روستا)', '#f43f5e');
-              } else {
-                showToast('قهرمان شکست خورد! باززایی در روستای امن...', '#f43f5e');
+                showToast('جریمه مرگ: -۱ سطح! بازگشت به روستای امن...', '#f43f5e');
               }
               leader.hp = leader.hpMax;
               leader.mana = leader.manaMax;
               loadZone3D('village', 1);
             }
           }
-
-          // Boss Special AoE Shockwave
-          if (en.rank === 'boss' && dist < 24) {
-            en.shockwaveTimer -= dt;
-            if (en.shockwaveTimer <= 0) {
-              en.shockwaveTimer = 5.0;
-              spawnGlowRingVFX(en.group.position, 15, 0xf43f5e);
-              if (dist <= 15) {
-                const shockDmg = Math.round(en.atk * 1.35);
-                leader.hp = Math.max(1, leader.hp - shockDmg);
-                spawnFloatingPopup(`موج باس -${shockDmg}`, leader.mesh.position, '#f43f5e');
-              }
-            }
-          }
         }
-
         en.labelRef.pos.set(en.group.position.x, en.group.position.y + 4.8 * en.scale, en.group.position.z);
       });
 
-      // 4. Magnetic 3D Crystals Collection
+      // 5. Magnetic Crystals
       for (let i = crystals3DList.length - 1; i >= 0; i--) {
         const c = crystals3DList[i];
         c.mesh.rotation.y += dt * 3.0;
@@ -2293,11 +2493,11 @@
         }
       }
 
-      // 5. Projectiles Update
+      // 6. Projectiles & VFX Rings
       for (let i = projectilesList.length - 1; i >= 0; i--) {
         const p = projectilesList[i];
         p.life -= dt;
-        p.mesh.position.addScaledVector(p.dir, 46 * dt);
+        p.mesh.position.addScaledVector(p.dir, 44 * dt);
         let hit = false;
         for (const en of enemiesList) {
           if (!en.dead && en.group.position.distanceTo(p.mesh.position) < 4.2) {
@@ -2312,7 +2512,6 @@
         }
       }
 
-      // 6. VFX Rings Update
       for (let i = vfxRingsList.length - 1; i >= 0; i--) {
         const v = vfxRingsList[i];
         v.scale += dt * 22;
@@ -2327,7 +2526,7 @@
       renderer.render(scene, camera);
       drawMinimap();
 
-      // Project 3D Labels & Damage Popups to 2D Screen
+      // 2D Projection of 3D Labels
       const sw = stage.clientWidth;
       const sh = stage.clientHeight;
       floatingLabels.forEach(item => {
@@ -2358,7 +2557,8 @@
     }
 
     onResize();
-    loadZone3D('open_world', 1);
+    // Start directly inside the 3D Persian Village with Alleys & Shops!
+    loadZone3D('village', 1);
     animate();
   </script>
 </body>

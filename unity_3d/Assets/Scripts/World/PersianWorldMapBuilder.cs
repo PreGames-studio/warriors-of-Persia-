@@ -112,6 +112,9 @@ namespace WarriorsOfPersia.World
             CreateMat("DungeonFloor", std, new Color(0.15f, 0.12f, 0.24f), 0.3f);
             CreateMat("DungeonCarpet", std, new Color(0.34f, 0.14f, 0.44f), 0.25f);
             CreateMat("GoldTrim", std, new Color(0.95f, 0.78f, 0.26f), 0.8f, new Color(0.25f, 0.18f, 0.02f));
+            CreateMat("CobbleAlley", std, new Color(0.55f, 0.50f, 0.44f), 0.15f);
+            CreateMat("AdobeWall", std, new Color(0.83f, 0.64f, 0.45f), 0.2f);
+            CreateMat("AdobeBrick", std, new Color(0.74f, 0.54f, 0.37f), 0.2f);
         }
 
         private void CreateMat(string key, Shader shader, Color color, float smoothness, Color? emission = null)
@@ -194,42 +197,78 @@ namespace WarriorsOfPersia.World
         }
 
         // =====================================================================
-        // 2. SAFE VILLAGE 3D (روستای امن پارسی + چشمه شفا + فروشگاه)
+        // 2. SAFE VILLAGE 3D (روستای امن پارسی با کوچه‌ها، خانه‌ها، بادگیرها و ۶ مغازه بازار)
         // =====================================================================
         private void BuildVillage3D(Transform root)
         {
-            CreateBox("Village_Ground", root, new Vector3(0f, -0.5f, 0f), new Vector3(140f, 1f, 90f), "PlainsGrass");
-            CreateCylinder("PersianStonePlaza", root, new Vector3(0f, 0.05f, 0f), new Vector3(64f, 0.1f, 64f), "PersianStone");
+            CreateBox("Village_Ground", root, new Vector3(0f, -0.5f, 0f), new Vector3(170f, 1f, 130f), "PlainsGrass");
 
-            // چشمه شفا و مانا در مرکز میدان
+            // شبکه سنگفرش کوچه‌ها و خیابان‌های روستا (Alleys Network)
+            Transform alleys = new GameObject("CobblestoneAlleys_Network").transform;
+            alleys.SetParent(root, false);
+            CreateBox("MainStreet_EW", alleys, new Vector3(0f, 0.05f, 0f), new Vector3(135f, 0.1f, 13f), "CobbleAlley", false);
+            CreateBox("MainStreet_NS", alleys, new Vector3(0f, 0.05f, 0f), new Vector3(14f, 0.1f, 96f), "CobbleAlley", false);
+            CreateBox("NorthBazaar_Alley", alleys, new Vector3(0f, 0.06f, 14f), new Vector3(92f, 0.1f, 11f), "CobbleAlley", false);
+            CreateBox("SouthCaravanserai_Alley", alleys, new Vector3(0f, 0.06f, -16f), new Vector3(84f, 0.1f, 11f), "CobbleAlley", false);
+            CreateBox("WestBlacksmith_Alley", alleys, new Vector3(-28f, 0.06f, 0f), new Vector3(11f, 0.1f, 68f), "CobbleAlley", false);
+            CreateBox("EastApothecary_Alley", alleys, new Vector3(28f, 0.06f, 0f), new Vector3(11f, 0.1f, 68f), "CobbleAlley", false);
+
+            CreateCylinder("PersianStonePlaza", root, new Vector3(0f, 0.08f, 0f), new Vector3(26f, 0.1f, 26f), "PersianStone");
+
+            // چشمه شفا و مانا در مرکز میدان روستا
             Transform fountain = new GameObject("HealingFountain_3D").transform;
             fountain.SetParent(root, false);
             fountain.localPosition = Vector3.zero;
-            CreateCylinder("Fountain_Base", fountain, new Vector3(0f, 0.4f, 0f), new Vector3(12f, 0.4f, 12f), "PersianStone");
-            CreateCylinder("Fountain_WaterPool", fountain, new Vector3(0f, 0.65f, 0f), new Vector3(10f, 0.2f, 10f), "TurquoiseTile", false);
-            CreateCylinder("Fountain_CenterPillar", fountain, new Vector3(0f, 1.8f, 0f), new Vector3(2.2f, 1.8f, 2.2f), "PersianStone");
-            CreateSphere("Fountain_Orb", fountain, new Vector3(0f, 4.0f, 0f), 1.4f, "VillagePortalGlow");
+            CreateCylinder("Fountain_Base", fountain, new Vector3(0f, 0.4f, 0f), new Vector3(9.6f, 0.4f, 9.6f), "PersianStone");
+            CreateCylinder("Fountain_WaterPool", fountain, new Vector3(0f, 0.65f, 0f), new Vector3(8.2f, 0.2f, 8.2f), "TurquoiseTile", false);
+            CreateSphere("Fountain_Orb", fountain, new Vector3(0f, 3.6f, 0f), 1.1f, "VillagePortalGlow");
 
-            // غرفه فروشگاه روستا (Shop Stall)
-            Transform shop = new GameObject("VillageShop_Bazaar3D").transform;
-            shop.SetParent(root, false);
-            shop.localPosition = new Vector3(-18f, 0f, 16f);
-            CreateBox("Shop_Counter", shop, new Vector3(0f, 1.2f, 0f), new Vector3(10f, 2.4f, 5f), "WoodBridge");
-            CreateBox("Shop_Roof", shop, new Vector3(0f, 5.2f, 0f), new Vector3(12f, 0.6f, 7f), "TurquoiseTile");
-            CreateCylinder("Shop_PillarL", shop, new Vector3(-5f, 2.6f, 2.5f), new Vector3(0.6f, 2.6f, 0.6f), "GoldTrim");
-            CreateCylinder("Shop_PillarR", shop, new Vector3(5f, 2.6f, 2.5f), new Vector3(0.6f, 2.6f, 0.6f), "GoldTrim");
+            // ۶ مغازه و حجره سه‌بعدی در کوچه‌های روستا
+            Transform shopsGroup = new GameObject("VillageBazaar_6_Shops").transform;
+            shopsGroup.SetParent(root, false);
+            BuildShopBuilding(shopsGroup, "Shop_1_Jeweler_Jamshid", new Vector3(-16f, 0f, 20f), "TurquoiseTile");
+            BuildShopBuilding(shopsGroup, "Shop_2_Blacksmith_Kaveh", new Vector3(-38f, 0f, 18f), "FirePortalGlow");
+            BuildShopBuilding(shopsGroup, "Shop_3_Apothecary_Hakim", new Vector3(16f, 0f, 20f), "VillagePortalGlow");
+            BuildShopBuilding(shopsGroup, "Shop_4_Astrologer_Mage", new Vector3(38f, 0f, 18f), "ForestPortalGlow");
+            BuildShopBuilding(shopsGroup, "Shop_5_Carpet_Bazaar", new Vector3(-28f, 0f, -22f), "FirePortalGlow");
+            BuildShopBuilding(shopsGroup, "Shop_6_Teahouse_Caravanserai", new Vector3(26f, 0f, -22f), "GoldTrim");
 
-            // ستون‌های باستانی دور میدان روستا
-            for (int i = 0; i < 6; i++)
-            {
-                float angle = i * Mathf.PI * 2f / 6f;
-                Vector3 pos = new Vector3(Mathf.Cos(angle) * 28f, 0f, Mathf.Sin(angle) * 28f);
-                BuildPersianColumn(root, pos, $"PlazaColumn_{i + 1}");
-            }
+            // خانه‌های کاهگلی و بادگیرهای سنتی در کوچه‌ها
+            Transform housesGroup = new GameObject("VillageHouses_And_Alleys").transform;
+            housesGroup.SetParent(root, false);
+            BuildAdobeHouse(housesGroup, "House_NW_1", new Vector3(-46f, 0f, 34f), new Vector3(14f, 9f, 10f), true);
+            BuildAdobeHouse(housesGroup, "House_NW_2", new Vector3(-26f, 0f, 34f), new Vector3(14f, 8.2f, 10f), false);
+            BuildAdobeHouse(housesGroup, "House_NE_1", new Vector3(26f, 0f, 34f), new Vector3(14f, 8.8f, 10f), true);
+            BuildAdobeHouse(housesGroup, "House_NE_2", new Vector3(46f, 0f, 34f), new Vector3(14f, 8f, 10f), false);
+            BuildAdobeHouse(housesGroup, "House_SW_1", new Vector3(-44f, 0f, -36f), new Vector3(14f, 8.4f, 10f), false);
+            BuildAdobeHouse(housesGroup, "House_SE_1", new Vector3(44f, 0f, -36f), new Vector3(14f, 8.8f, 10f), true);
 
-            // پورتال خروج به جهان باز
-            BuildPersianPortal3D(root, "Portal_To_OpenWorld", new Vector3(54f, 0f, 0f), "TurquoiseTile", "دروازه خروج به جهان باز");
+            // پورتال خروج به جهان باز در انتهای خیابان شرقی
+            BuildPersianPortal3D(root, "Portal_To_OpenWorld", new Vector3(62f, 0f, 0f), "TurquoiseTile", "دروازه خروج به جهان باز");
             CreateSpawnMarker(root, "HeroSpawnPoint", new Vector3(0f, 0.5f, -10f), true);
+        }
+
+        private void BuildShopBuilding(Transform parent, string name, Vector3 pos, string awningMatKey)
+        {
+            Transform shop = new GameObject(name).transform;
+            shop.SetParent(parent, false);
+            shop.localPosition = pos;
+            CreateBox("StoreBuilding", shop, new Vector3(0f, 3.6f, 2.2f), new Vector3(11f, 7.2f, 7f), "AdobeWall");
+            CreateBox("AwningCanopy", shop, new Vector3(0f, 5.6f, -2.2f), new Vector3(11.6f, 0.65f, 5.5f), awningMatKey);
+            CreateBox("ShopCounter", shop, new Vector3(0f, 1.05f, -1.8f), new Vector3(8.2f, 2.1f, 2f), "WoodBridge");
+        }
+
+        private void BuildAdobeHouse(Transform parent, string name, Vector3 pos, Vector3 size, bool hasWindcatcher)
+        {
+            Transform house = new GameObject(name).transform;
+            house.SetParent(parent, false);
+            house.localPosition = pos;
+            CreateBox("AdobeBody", house, new Vector3(0f, size.y * 0.5f, 0f), size, "AdobeWall");
+            CreateBox("RoofParapet", house, new Vector3(0f, size.y + 0.35f, 0f), new Vector3(size.x + 0.4f, 0.7f, size.z + 0.4f), "AdobeBrick");
+            if (hasWindcatcher)
+            {
+                CreateBox("Badgir_Windcatcher", house, new Vector3(0f, size.y + 2.4f, 0f), new Vector3(3.4f, 4.8f, 3.4f), "AdobeBrick");
+            }
         }
 
         // =====================================================================
