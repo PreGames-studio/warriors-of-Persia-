@@ -7,4 +7,4 @@ extends Node2D
 
 func _ready() -> void:
 	if GameManager != null:
-		GameManager.start_game_with_container(world_container, "open_world")
+		GameManager.start_game_with_container(world_container, "village")

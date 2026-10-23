@@ -1,0 +1,72 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scripts/units/TrainingDummy3D.gd" id="1_dummy"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_dummy"]
+radius = 0.36
+height = 1.38
+
+[sub_resource type="StandardMaterial3D" id="Material_wood"]
+albedo_color = Color(0.48, 0.27, 0.15, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="Material_target"]
+albedo_color = Color(0.8, 0.65, 0.41, 1)
+roughness = 0.85
+
+[sub_resource type="StandardMaterial3D" id="Material_pole"]
+albedo_color = Color(0.28, 0.18, 0.12, 1)
+roughness = 0.95
+
+[node name="TrainingDummy3D" type="StaticBody3D"]
+script = ExtResource("1_dummy")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+position = Vector3(0, 1.02, 0)
+shape = SubResource("CapsuleShape3D_dummy")
+
+[node name="Visual" type="Node3D" parent="."]
+
+[node name="Body" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 1, 0)
+material_override = SubResource("Material_wood")
+mesh = CapsuleMesh {
+radius = 0.34
+height = 1.28
+radial_segments = 16
+rings = 6
+}
+
+[node name="TargetMark" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 1.12, -0.315)
+material_override = SubResource("Material_target")
+mesh = SphereMesh {
+radius = 0.14
+height = 0.28
+radial_segments = 16
+rings = 8
+}
+
+[node name="Crossbar" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 1.15, 0)
+material_override = SubResource("Material_wood")
+mesh = BoxMesh {
+size = Vector3(1.15, 0.11, 0.12)
+}
+
+[node name="Stand" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 0.2, 0)
+material_override = SubResource("Material_pole")
+mesh = CylinderMesh {
+top_radius = 0.12
+bottom_radius = 0.2
+height = 0.4
+radial_segments = 12
+}
+
+[node name="Label3D" type="Label3D" parent="Visual"]
+position = Vector3(0, 2.1, 0)
+text = "هدف تمرینی"
+font_size = 48
+outline_size = 8
+billboard = 1

@@ -1,0 +1,27 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/units/Hero3D.gd" id="1_hero3d"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_hero"]
+radius = 0.34
+height = 1.85
+
+[node name="Hero3D" type="CharacterBody3D"]
+script = ExtResource("1_hero3d")
+floor_snap_length = 0.3
+floor_max_angle = 0.785398
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.94, 0)
+shape = SubResource("CapsuleShape3D_hero")
+
+[node name="HeroVisual" type="Node3D" parent="."]
+
+[node name="CameraRig" type="Node3D" parent="."]
+top_level = true
+
+[node name="Camera3D" type="Camera3D" parent="CameraRig"]
+position = Vector3(0, 0, 4.8)
+current = true
+fov = 62.0
+near = 0.05
