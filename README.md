@@ -1,68 +1,42 @@
-# بازی موبایل اکشن-ماجرایی کوآپ (Godot 4.3+)
+# Warriors of Persia — Unity mobile prototype
 
-پروژه بازی **اکشن-ماجرایی کوآپ Top-Down (۱ تا ۵ نفره)** با سبک بصری **چیبی/کارتونی درخشان**، ساخته‌شده با **Godot 4.3+ (GDScript)** و رندر **Compatibility** مخصوص موبایل است. این نسخه کاملاً لمسی و افقی است.
+پروژه از این مرحله به بعد با **Unity 2022.3 LTS** توسعه داده می‌شود و طراحی آن فقط موبایل‌محور است. پوشه‌ی `MD/قانون ۱.md` قانون رسمی طراحی موبایل را نگه می‌دارد. فایل‌ها و صحنه‌های Godot فعلاً به‌عنوان نسخه‌ی قدیمی برای مرجع حفظ شده‌اند؛ پروژه‌ی فعال Unity در همین ریشه‌ی مخزن قرار دارد.
 
----
+## صحنه‌ی فعلی
 
-## نصب و اجرا روی موبایل
+با Unity Hub همین پوشه‌ی پروژه را باز کنید. صحنه‌ی شروع `Assets/Scenes/OpenField.unity` است و محیط در زمان اجرا ساخته می‌شود:
 
-1. فایل `project.godot` را در **Godot Engine 4.3** یا جدیدتر باز کنید.
-2. ابزارهای خروجی موبایل و **Export Templates** متناسب با نسخه Godot را نصب کنید.
-3. از بخش **Project > Export** خروجی Android یا iOS بسازید و آن را روی دستگاه نصب کنید.
-4. صحنه اصلی بازی `res://scenes/main/Main.tscn` است و همه کنترل‌ها روی صفحه نمایش داده می‌شوند.
+- دشت سه‌بعدی سرسبز کنار دروازه‌ی روستا، مسیرهای قابل‌گسترش برای مناطق آینده، چمن‌های کم‌هزینه و بوته‌های برخوردپذیر.
+- قهرمان شمشیرزن سه‌بعدی پارسی با مدل اولیه، حرکت، دویدن، دوربین سوم‌شخص و کمبو شمشیر.
+- دو هدف تمرینی برای آزمایش آسیب شمشیر.
+- کنترل‌های لمسی: جوی‌استیک مجازی سمت چپ، دکمه‌ی دویدن و حمله سمت راست، و کشیدن انگشت برای چرخاندن دوربین.
+- جهت افقی و محدوده‌ی امن صفحه برای موبایل تنظیم شده‌اند. مدل‌سازی چمن و بوته‌ها با GPU instancing برای کارایی بهتر انجام می‌شود.
 
----
+## اجرا و خروجی Android
 
-## کنترل‌های لمسی
+1. Unity **2022.3.62f1** را با ماژول **Android Build Support**، Android SDK & NDK و OpenJDK نصب کنید.
+2. پروژه را در Unity Hub از همین پوشه باز کنید و صحنه‌ی `Assets/Scenes/OpenField.unity` را اجرا کنید.
+3. برای APK، از **File → Build Settings → Android → Switch Platform** استفاده کنید؛ صحنه‌ی OpenField باید در فهرست Build Scenes فعال باشد.
+4. در **Player Settings** شناسه‌ی برنامه و تنظیمات امضا را بررسی کنید؛ جهت صفحه روی Landscape و معماری هدف روی ARM64 تنظیم شده است.
+5. **Build** یا برای ساخت و نصب مستقیم **Build And Run** را انتخاب کنید.
 
-| عملکرد | کنترل موبایل |
-|---|---|
-| حرکت قهرمان | جوی‌استیک مجازی پایین-چپ |
-| حمله پایه | دکمه بزرگ **حمله پایه** پایین-راست |
-| مهارت‌های ۱ تا ۴ | ۴ دکمه مهارت درخشان پایین-راست |
-| باز/بستن کیف آیتم‌ها | دکمه **کیف آیتم** بالای صفحه |
-| باز/بستن فروشگاه روستا | دکمه **فروشگاه** بالای صفحه یا نزدیک شدن به غرفه در روستا |
-| جابجایی بین نقشه‌ها | نوار دکمه‌های سریع بالای صفحه یا پورتال‌های نورانی |
-| مدیریت تیم ۱ تا ۵ نفره | دکمه‌های `+ افزودن هم‌تیمی`، `نقش` و `قطع/وصل` در پنل تیم |
-
----
-
-## ساختار پوشه‌ها
+## ساختار Unity
 
 ```text
-res://
-├── project.godot
-├── autoload/
-│   ├── EventBus.gd               # باس رویداد سراسری بین سیستم‌ها و UI
-│   └── GameManager.gd            # سینگلتون Autoload اصلی بازی
-├── scenes/
-│   ├── main/Main.tscn            # صحنه ریشه بازی
-│   ├── world/
-│   │   ├── Village.tscn          # روستای امن + فروشگاه + چشمه شفا
-│   │   ├── OpenWorld.tscn        # دشت، رودخانه، پل چوبی، کوهستان و ورودی دانجن‌ها
-│   │   └── Dungeon.tscn          # سیاه‌چال هیولاها + باس اصلی
-│   ├── units/
-│   │   ├── Hero.tscn             # صحنه قهرمان با انیمیشن ۵ حالته
-│   │   ├── Enemy.tscn            # صحنه دشمن معمولی/الیت
-│   │   └── Boss.tscn             # صحنه باس دانجن
-│   ├── items/
-│   │   ├── Crystal.tscn          # کریستال قابل جمع‌آوری
-│   │   └── Projectile.tscn       # پرتابه انرژی
-│   └── ui/
-│       ├── HUD.tscn              # نوار سبز MP، آبی MANA، زرد XP، مینی‌مپ، جوی‌استیک و اسکیل‌ها
-│       ├── PartyHUD.tscn         # وضعیت ۱ تا ۵ عضو تیم
-│       ├── Inventory.tscn        # کیف آیتم‌ها و کریستال‌ها
-│       └── Shop.tscn             # فروشگاه روستا (فروش کریستال -> سکه + بازیابی لول)
-├── scripts/
-│   ├── managers/ (GameManager.gd, PartyManager.gd, MatchManager.gd, WorldManager.gd, MainController.gd)
-│   ├── units/    (UnitBase.gd, Hero.gd, Enemy.gd, Boss.gd)
-│   ├── systems/  (CombatSystem.gd, LootSystem.gd, ProgressionSystem.gd, SpawnSystem.gd)
-│   ├── items/    (Crystal.gd, Item.gd, Projectile.gd)
-│   ├── world/    (PortalZone.gd, ShopZone.gd)
-│   └── ui/       (HUD.gd, PartyHUD.gd, InventoryUI.gd, ShopUI.gd, VirtualJoystick.gd, MinimapWidget.gd)
-└── assets/
-    ├── sprites/                  # اسپرایت‌های Placeholder چیبی/کارتونی با Outline
-    ├── animations/               # کتابخانه انیمیشن مشترک (idle, walk, attack, cast, die)
-    ├── audio/                    # افکت‌های صوتی سبک Placeholder
-    └── fonts/                    # فونت فارسی Vazirmatn
+Assets/
+├── Editor/MobileProjectSettings.cs     # پیش‌فرض‌های موبایل و Landscape
+├── Scenes/OpenField.unity              # صحنه‌ی شروع Unity
+├── Scripts/
+│   ├── UnityOpenFieldGame.cs           # ساخت دشت، دروازه، چمن، بوته‌ها و HUD لمسی
+│   ├── SwordsmanController.cs          # حرکت، دویدن، دوربین و مبارزه‌ی شمشیر
+│   ├── TrainingDummy.cs                # هدف تمرینی
+│   ├── FoliageBatch.cs                 # رندر دسته‌ای پوشش گیاهی برای موبایل
+│   └── Mobile*.cs                      # جوی‌استیک، دکمه‌ها، چرخش دوربین و Safe Area
+└── Resources/Fonts/Vazirmatn-Regular.ttf
+
+ProjectSettings/                       # نسخه‌ی Unity و صحنه‌ی شروع
+Packages/manifest.json                  # وابستگی UGUI
+MD/قانون ۱.md                           # قانون طراحی فقط برای موبایل
 ```
+
+فایل‌های قدیمی Godot مانند `project.godot` و `scenes/` بیرون از پوشه‌ی `Assets/` باقی مانده‌اند و وارد بیلد Unity نمی‌شوند.
