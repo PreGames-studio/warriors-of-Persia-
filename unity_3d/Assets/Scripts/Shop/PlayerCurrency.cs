@@ -83,7 +83,10 @@ namespace WarriorsOfPersia.Shop
             if (gameController != null)
             {
                 gameController.coins = currentGold;
+                gameController.SaveGameProgress();
             }
+            PlayerPrefs.SetInt("WarriorsOfPersia_Gold", currentGold);
+            PlayerPrefs.Save();
         }
     }
 }

@@ -1199,6 +1199,7 @@
       <button class="top-btn emerald" id="btn-open-inventory">🎒 کیف (<span id="badge-inv-count">1</span>)</button>
       <button class="top-btn gold" id="btn-open-blacksmith" style="background:linear-gradient(135deg,#b45309,#78350f);border-color:#fde047;color:#fef08a;">⚒️ آهنگری کاوه</button>
       <button class="top-btn gold" id="btn-open-shop">🏪 بازار روستا</button>
+      <button class="top-btn emerald" id="btn-manual-save" title="ذخیره فوری لول، سکه و تجهیزات">💾 ذخیره</button>
       <button class="top-btn active" id="btn-open-downloads" style="background:#15803d;border-color:#86efac;">⬇ دانلود APK</button>
     </div>
   </div>
@@ -1615,6 +1616,7 @@
       coins: 12450, // Matches 12,450 Gold in reference image so all blacksmith items can be tested & bought!
       lostLevelsRecoverable: 0,
       ownedBlacksmithIds: new Set(),
+      savedHeroPos: null,
       crystals: [
         { type: 'small', title: 'خرده کریستال آبی (Lv.1)', level: 1, coinValue: 150 },
         { type: 'medium', title: 'کریستال تابناک (Lv.2)', level: 2, coinValue: 250 }
@@ -1642,6 +1644,152 @@
         }
       ]
     };
+
+    // =====================================================================
+    // MULTI-LAYER PERSISTENT SAVE & LOAD SYSTEM (localStorage + IndexedDB + window.name)
+    // =====================================================================
+    const SAVE_STORAGE_KEY = 'warriors_of_persia_save_v3';
+
+    function buildSavePayload() {
+      const leader = state.party[0];
+      const heroPos = (leader && leader.mesh)
+        ? { x: Number(leader.mesh.position.x.toFixed(2)), y: Number(leader.mesh.position.y.toFixed(2)), z: Number(leader.mesh.position.z.toFixed(2)) }
+        : state.savedHeroPos;
+
+      return {
+        version: 3,
+        timestamp: Date.now(),
+        currentZone: state.currentZone || 'village',
+        dungeonTier: state.dungeonTier || 1,
+        coins: Number(state.coins) || 0,
+        lostLevelsRecoverable: Number(state.lostLevelsRecoverable) || 0,
+        ownedBlacksmithIds: Array.from(state.ownedBlacksmithIds || []),
+        crystals: Array.isArray(state.crystals) ? state.crystals : [],
+        inventory: Array.isArray(state.inventory) ? state.inventory : [],
+        cameraMode: Number(state.cameraMode) || 0,
+        heroPos,
+        party: state.party.map(m => ({
+          slot: m.slot,
+          name: m.name,
+          roleIndex: m.roleIndex,
+          isLocal: m.isLocal,
+          isOnline: m.isOnline,
+          level: Math.max(1, Number(m.level) || 1),
+          xp: Math.max(0, Number(m.xp) || 0),
+          xpToNext: Math.max(50, Number(m.xpToNext) || 100),
+          hp: Math.max(1, Number(m.hp) || 160),
+          hpMax: Math.max(100, Number(m.hpMax) || 160),
+          mana: Math.max(0, Number(m.mana) || 100),
+          manaMax: Math.max(50, Number(m.manaMax) || 100),
+          atk: Math.max(10, Number(m.atk) || 24)
+        }))
+      };
+    }
+
+    function saveToIndexedDB(payload) {
+      try {
+        if (!window.indexedDB) return;
+        const req = window.indexedDB.open('WarriorsOfPersiaSaveDB', 1);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('saves')) {
+            db.createObjectStore('saves');
+          }
+        };
+        req.onsuccess = (e) => {
+          const db = e.target.result;
+          const tx = db.transaction('saves', 'readwrite');
+          tx.objectStore('saves').put(payload, SAVE_STORAGE_KEY);
+        };
+      } catch (e) {}
+    }
+
+    function saveGameProgress() {
+      try {
+        const payload = buildSavePayload();
+        const jsonStr = JSON.stringify(payload);
+        try { localStorage.setItem(SAVE_STORAGE_KEY, jsonStr); } catch (e) {}
+        try { window.name = 'WOP_SAVE:' + jsonStr; } catch (e) {}
+        saveToIndexedDB(payload);
+      } catch (err) {}
+    }
+
+    function applySavePayload(data, rebuild3D = false) {
+      if (!data || !Array.isArray(data.party) || data.party.length === 0) return false;
+      state.currentZone = data.currentZone || 'village';
+      state.dungeonTier = Number(data.dungeonTier) || 1;
+      state.coins = (typeof data.coins === 'number') ? data.coins : 12450;
+      state.lostLevelsRecoverable = Number(data.lostLevelsRecoverable) || 0;
+      state.ownedBlacksmithIds = new Set(Array.isArray(data.ownedBlacksmithIds) ? data.ownedBlacksmithIds : []);
+      state.crystals = Array.isArray(data.crystals) ? data.crystals : [];
+      state.inventory = Array.isArray(data.inventory) ? data.inventory : [];
+      state.cameraMode = Number(data.cameraMode) || 0;
+      state.savedHeroPos = data.heroPos || null;
+
+      state.party = data.party.map((m, idx) => ({
+        slot: idx,
+        name: m.name || (idx === 0 ? 'قهرمان ۱ (شما)' : `بازیکن ${idx + 1}`),
+        roleIndex: Number(m.roleIndex) || 0,
+        isLocal: idx === 0,
+        isOnline: m.isOnline !== false,
+        level: Math.max(1, Number(m.level) || 1),
+        xp: Math.max(0, Number(m.xp) || 0),
+        xpToNext: Math.max(50, Number(m.xpToNext) || 100),
+        hp: Math.max(1, Number(m.hp) || Number(m.hpMax) || 160),
+        hpMax: Math.max(100, Number(m.hpMax) || 160),
+        mana: Math.max(0, Number(m.mana) || Number(m.manaMax) || 100),
+        manaMax: Math.max(50, Number(m.manaMax) || 100),
+        atk: Math.max(10, Number(m.atk) || 24),
+        mesh: null
+      }));
+
+      if (rebuild3D) {
+        loadZone3D(state.currentZone, state.dungeonTier, state.savedHeroPos);
+      }
+      return true;
+    }
+
+    function loadGameProgress() {
+      let loaded = false;
+      try {
+        let raw = null;
+        try { raw = localStorage.getItem(SAVE_STORAGE_KEY); } catch (e) {}
+        if (!raw && typeof window.name === 'string' && window.name.startsWith('WOP_SAVE:')) {
+          raw = window.name.slice('WOP_SAVE:'.length);
+        }
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          loaded = applySavePayload(parsed, false);
+        }
+      } catch (e) {}
+
+      // Also check IndexedDB asynchronously in case WebView cleared localStorage on restart
+      try {
+        if (window.indexedDB) {
+          const req = window.indexedDB.open('WarriorsOfPersiaSaveDB', 1);
+          req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains('saves')) {
+              db.createObjectStore('saves');
+            }
+          };
+          req.onsuccess = (e) => {
+            const db = e.target.result;
+            const tx = db.transaction('saves', 'readonly');
+            const getReq = tx.objectStore('saves').get(SAVE_STORAGE_KEY);
+            getReq.onsuccess = () => {
+              const idbData = getReq.result;
+              if (idbData && (!loaded || (idbData.party && idbData.party[0] && idbData.party[0].level > state.party[0].level))) {
+                applySavePayload(idbData, true);
+                showToast(`💾 پیشرفت ذخیره شما بازیابی شد (سطح ${state.party[0].level})`, '#4ade80');
+              }
+            };
+          };
+        }
+      } catch (e) {}
+
+      return loaded;
+    }
 
     // =====================================================================
     // THREE.JS 3D RENDERER SETUP
@@ -2127,7 +2275,7 @@
     // =====================================================================
     // ZONE BUILDERS (1. EXPANDED VILLAGE WITH ALLEYS & SHOPS, 2. OPEN WORLD, 3. DUNGEON)
     // =====================================================================
-    function loadZone3D(zoneId, tier = 1) {
+    function loadZone3D(zoneId, tier = 1, overrideHeroPos = null) {
       state.currentZone = zoneId;
       state.dungeonTier = tier;
       portalCooldown = 2.2;
@@ -2349,8 +2497,13 @@
         spawnPoint.set(0, 0, 28);
       }
 
+      if (overrideHeroPos && typeof overrideHeroPos.x === 'number' && typeof overrideHeroPos.z === 'number') {
+        spawnPoint.set(overrideHeroPos.x, overrideHeroPos.y || 0, overrideHeroPos.z);
+      }
+
       syncPartyUnitsIn3D(spawnPoint);
       updateTopZoneBanner();
+      saveGameProgress();
     }
 
     function syncPartyUnitsIn3D(basePos) {
@@ -2561,6 +2714,7 @@
       });
       updateHeroStatsHUD();
       renderPartyHUD();
+      saveGameProgress();
     }
 
     function performBasicAttack() {
@@ -2706,6 +2860,7 @@
             playTone(720, 0.14, 'sine');
             showToast(`خریداری شد و به کیف اضافه گردید: ${item.title}`, '#fde047');
             updateHeroStatsHUD();
+            saveGameProgress();
             openShopModal(shopDef);
           }
         });
@@ -2723,6 +2878,7 @@
       playTone(820, 0.2, 'triangle');
       showToast(`فروش کریستال‌ها انجام شد! +${gained} سکه طلا`, '#fde047');
       updateHeroStatsHUD();
+      saveGameProgress();
       openShopModal(activeShopNear);
     });
 
@@ -2741,6 +2897,7 @@
       playTone(880, 0.25, 'sine');
       showToast(`سطح ازدست‌رفته بازیابی شد! اکنون سطح ${leader.level} هستید.`, '#4ade80');
       updateHeroStatsHUD();
+      saveGameProgress();
       openShopModal(activeShopNear);
     });
 
@@ -2774,6 +2931,7 @@
             playTone(640, 0.14, 'sine');
             showToast(`استفاده شد: ${item.title}`, '#4ade80');
             updateHeroStatsHUD();
+            saveGameProgress();
             refreshInventoryModal();
           });
         } else {
@@ -2785,6 +2943,12 @@
       }
     }
 
+    document.getElementById('btn-manual-save').addEventListener('click', () => {
+      saveGameProgress();
+      playTone(780, 0.16, 'sine');
+      const leader = state.party[0];
+      showToast(`💾 بازی با موفقیت ذخیره شد! (سطح ${leader.level} | ${formatCommaGold(state.coins)} سکه طلا)`, '#4ade80');
+    });
     document.getElementById('btn-open-blacksmith').addEventListener('click', () => openBlacksmithShop());
     document.getElementById('btn-open-shop').addEventListener('click', () => openShopModal(activeShopNear));
     document.getElementById('context-action-btn').addEventListener('click', () => {
@@ -2989,7 +3153,9 @@
       sword_radiant: './assets/blacksmith/sword_radiant.jpg',
       armor_persian: './assets/blacksmith/armor_persian.jpg',
       bow_arash: './assets/blacksmith/bow_arash.jpg',
-      chest_plate_royal: './assets/blacksmith/chest_plate_royal.jpg'
+      chest_plate_royal: './assets/blacksmith/chest_plate_royal.jpg',
+      battle_axe_double: './assets/blacksmith/battle_axe_double.jpg',
+      immortal_spear: './assets/blacksmith/immortal_spear.jpg'
     };
 
     const bsArtCache = {};
@@ -3494,6 +3660,7 @@
 
       updateHeroStatsHUD();
       renderBlacksmithGrid();
+      saveGameProgress();
     }
 
     function openBlacksmithShop() {
@@ -3519,6 +3686,7 @@
       playTone(820, 0.2, 'triangle');
       setBlacksmithDialogue(`کریستال‌هایت را به <strong>+${formatCommaGold(gained)} سکه طلا</strong> تبدیل کردم!`);
       updateHeroStatsHUD();
+      saveGameProgress();
       updateBlacksmithCurrencyHeader();
       updateBlacksmithDetailsPanel();
     });
@@ -4024,8 +4192,23 @@
     }
 
     onResize();
-    // Start directly inside the 3D Persian Village with Alleys & Shops!
-    loadZone3D('village', 1);
+    // Load any saved progress (Level, XP, Gold, Inventory, Blacksmith Owned Items & Hero Position) before building the 3D zone!
+    const hadSave = loadGameProgress();
+    loadZone3D(state.currentZone || 'village', state.dungeonTier || 1, state.savedHeroPos);
+    if (hadSave) {
+      setTimeout(() => {
+        showToast(`💾 ادامه از آخرین ذخیره: سطح ${state.party[0].level} | ${formatCommaGold(state.coins)} سکه`, '#4ade80');
+      }, 450);
+    }
+
+    // Periodic & Lifecycle Auto-Save so exiting/reopening the app never loses level-ups or items!
+    setInterval(saveGameProgress, 2500);
+    window.addEventListener('beforeunload', saveGameProgress);
+    window.addEventListener('pagehide', saveGameProgress);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') saveGameProgress();
+    });
+
     animate();
   </script>
 </body>

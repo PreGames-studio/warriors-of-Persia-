@@ -61,9 +61,20 @@ namespace WarriorsOfPersia.Gameplay
         public const int MAX_PARTY_SIZE = 5;
         public const bool REPLACE_OFFLINE_WITH_BOT = false;
         public const int MAX_INVENTORY_SLOTS = 16;
+        private const string SAVE_KEY = "WarriorsOfPersia_SaveData_v2";
+
+        [Serializable]
+        private class SavePayload3D
+        {
+            public int coins;
+            public int lostLevelsRecoverable;
+            public List<PartyMemberData3D> party;
+            public List<CrystalDropData3D> collectedCrystals;
+            public List<ShopItemData3D> inventoryItems;
+        }
 
         [Header("اقتصاد و پیشرفت تیم (Progression & Economy)")]
-        public int coins = 30;
+        public int coins = 12450;
         public int lostLevelsRecoverable = 0;
         public int levelRecoveryCostPerLevel = 45;
 
@@ -79,6 +90,49 @@ namespace WarriorsOfPersia.Gameplay
         {
             InitializeDefaultParty();
             InitializeShopCatalog();
+            LoadGameProgress();
+        }
+
+        private void OnApplicationPause(bool pauseStatus)
+        {
+            if (pauseStatus) SaveGameProgress();
+        }
+
+        private void OnApplicationQuit()
+        {
+            SaveGameProgress();
+        }
+
+        public void SaveGameProgress()
+        {
+            var payload = new SavePayload3D
+            {
+                coins = coins,
+                lostLevelsRecoverable = lostLevelsRecoverable,
+                party = party,
+                collectedCrystals = collectedCrystals,
+                inventoryItems = inventoryItems
+            };
+            string json = JsonUtility.ToJson(payload);
+            PlayerPrefs.SetString(SAVE_KEY, json);
+            PlayerPrefs.Save();
+        }
+
+        public void LoadGameProgress()
+        {
+            if (!PlayerPrefs.HasKey(SAVE_KEY)) return;
+            string json = PlayerPrefs.GetString(SAVE_KEY, "");
+            if (string.IsNullOrEmpty(json)) return;
+
+            var payload = JsonUtility.FromJson<SavePayload3D>(json);
+            if (payload != null && payload.party != null && payload.party.Count > 0)
+            {
+                coins = payload.coins;
+                lostLevelsRecoverable = payload.lostLevelsRecoverable;
+                party = payload.party;
+                collectedCrystals = payload.collectedCrystals ?? new List<CrystalDropData3D>();
+                inventoryItems = payload.inventoryItems ?? new List<ShopItemData3D>();
+            }
         }
 
         public void InitializeDefaultParty()
