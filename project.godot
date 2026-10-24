@@ -12,7 +12,7 @@ config_version=5
 
 config/name="Co-op Chibi Action Adventure"
 config/description="بازی اکشن-ماجرایی کوآپ موبایل (۱ تا ۵ نفر) با کنترل کاملاً لمسی و سبک چیبی/کارتونی"
-run/main_scene="res://scenes/world/OpenField3D.tscn"
+run/main_scene="res://scenes/main/Main.tscn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
 config/icon="res://icon.png"
 

@@ -11,26 +11,6 @@ export_presets.cfg
 data_*/
 mono_crash.*.json
 
-# Unity generated files
-[Ll]ibrary/
-[Tt]emp/
-[Oo]bj/
-[Bb]uild/
-[Bb]uilds/
-[Ll]ogs/
-UserSettings/
-MemoryCaptures/
-*.csproj
-*.sln
-*.unityproj
-*.pidb
-*.booproj
-*.svclog
-*.pdb
-*.mdb
-*.opendb
-*.VC.db
-
 # OS / Editor files
 .DS_Store
 Thumbs.db
