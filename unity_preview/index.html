@@ -8,6 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" href="./icon.png" />
+  <link rel="stylesheet" href="./potion-shop.css" />
   <title>Warriors of Persia 3D — روستای پارسی و کوچه‌های بازار</title>
   <style>
     @font-face {
@@ -1177,6 +1178,7 @@
       min-width: clamp(54px, 5.5vw, 78px);
     }
   </style>
+  <link rel="stylesheet" href="./village-theme.css" />
 </head>
 <body>
 
@@ -1197,10 +1199,11 @@
     <div class="nav-group">
       <button class="top-btn" id="btn-open-party">👥 تیم (<span id="party-online-count">1</span>/5)</button>
       <button class="top-btn emerald" id="btn-open-inventory">🎒 کیف (<span id="badge-inv-count">1</span>)</button>
-      <button class="top-btn gold" id="btn-open-blacksmith" style="background:linear-gradient(135deg,#b45309,#78350f);border-color:#fde047;color:#fef08a;">⚒️ آهنگری کاوه</button>
+      <button class="top-btn gold" id="btn-open-blacksmith">⚒️ آهنگری کاوه</button>
+      <button class="top-btn emerald" id="btn-open-apothecary" title="ورود به فروشگاه معجون‌های حکیم">🧪 عطاری حکیم</button>
       <button class="top-btn gold" id="btn-open-shop">🏪 بازار روستا</button>
       <button class="top-btn emerald" id="btn-manual-save" title="ذخیره فوری لول، سکه و تجهیزات">💾 ذخیره</button>
-      <button class="top-btn active" id="btn-open-downloads" style="background:#15803d;border-color:#86efac;">⬇ دانلود APK</button>
+      <button class="top-btn active" id="btn-open-downloads">⬇ دانلود APK</button>
     </div>
   </div>
 
@@ -1492,6 +1495,8 @@
     import * as THREE from './lib/three.module.js';
     import { OrbitControls } from './lib/OrbitControls.js';
     import { OBJExporter } from './lib/OBJExporter.js';
+    import { createPotionShop } from './potion-shop.js';
+    import { createPersianVillageKit } from './village-theme.js';
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').catch(() => {});
@@ -1644,6 +1649,19 @@
         }
       ]
     };
+
+    // Cinematic potion shop, sharing the same gold, inventory and persistent save state.
+    const potionShop = createPotionShop({
+      state,
+      onSave: saveGameProgress,
+      onInventoryChange: updateHeroStatsHUD,
+      onToast: showToast,
+      onSound: playTone,
+      formatGold: value => Number(value).toLocaleString('en-US')
+    });
+    function openApothecaryShop() {
+      potionShop.open();
+    }
 
     // =====================================================================
     // MULTI-LAYER PERSISTENT SAVE & LOAD SYSTEM (localStorage + IndexedDB + window.name)
@@ -1799,10 +1817,12 @@
     const labelsLayer = document.getElementById('labels-layer');
     const popupsLayer = document.getElementById('popups-layer');
 
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.autoUpdate = false;
+    renderer.shadowMap.needsUpdate = true;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.15;
 
@@ -1842,6 +1862,8 @@
     let activePopups = [];
     let portalCooldown = 0;
     let activeShopNear = null;
+
+    const villageKit = createPersianVillageKit(THREE);
 
     // Materials
     const MATS = {
@@ -1933,126 +1955,19 @@
     }
 
     function buildPersianHouse3D(x, z, w, d, h = 8.5, hasWindcatcher = false) {
-      const g = new THREE.Group();
-      g.position.set(x, 0, z);
-
-      // Main Adobe Brick House Body
-      const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), MATS.adobeWall);
-      body.position.y = h / 2;
-      body.castShadow = true;
-      body.receiveShadow = true;
-      g.add(body);
-
-      // Roof Parapet Trim + Turquoise Tile Band
-      const parapet = new THREE.Mesh(new THREE.BoxGeometry(w + 0.4, 0.7, d + 0.4), MATS.adobeBrick);
-      parapet.position.y = h + 0.35;
-      g.add(parapet);
-
-      const tileBand = new THREE.Mesh(new THREE.BoxGeometry(w + 0.25, 0.45, d + 0.25), MATS.turquoiseTile);
-      tileBand.position.y = h - 0.6;
-      g.add(tileBand);
-
-      // Wooden Door & Arched Windows
-      const door = new THREE.Mesh(new THREE.BoxGeometry(2.2, 3.8, 0.3), MATS.darkWood);
-      door.position.set(0, 1.9, d / 2 + 0.05);
-      g.add(door);
-
-      // Optional Badgir (Traditional Persian Windcatcher Tower on Roof!)
-      if (hasWindcatcher) {
-        const tower = new THREE.Mesh(new THREE.BoxGeometry(3.4, 4.8, 3.4), MATS.adobeBrick);
-        tower.position.set(0, h + 2.4, 0);
-        tower.castShadow = true;
-        const towerCap = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.5, 3.8), MATS.turquoiseTile);
-        towerCap.position.set(0, h + 4.9, 0);
-        g.add(tower, towerCap);
-      }
-
+      const g = villageKit.buildHouse({ x, z, w, d, h, hasWindcatcher });
       addColliderBox(x, z, w / 2 + 0.8, d / 2 + 0.8);
       return g;
     }
 
     // Sabat (Overhead Archway connecting two sides of an Alley!)
     function buildAlleyArchSabat3D(x, z, spanW = 10, rotY = 0) {
-      const g = new THREE.Group();
-      g.position.set(x, 0, z);
-      g.rotation.y = rotY;
-
-      const beam = new THREE.Mesh(new THREE.BoxGeometry(spanW, 1.6, 3.2), MATS.adobeBrick);
-      beam.position.y = 7.6;
-      beam.castShadow = true;
-      g.add(beam);
-
-      const tile = new THREE.Mesh(new THREE.BoxGeometry(spanW + 0.2, 0.35, 3.4), MATS.turquoiseTile);
-      tile.position.y = 8.5;
-      g.add(tile);
-
-      // Hanging Warm Lantern under the Arch
-      const lantern = new THREE.Mesh(new THREE.SphereGeometry(0.55, 10, 10), MATS.lanternGlow);
-      lantern.position.set(0, 6.3, 0);
-      g.add(lantern);
-
-      return g;
+      return villageKit.buildArch({ x, z, spanW, rotY });
     }
 
     // Detailed 3D Shop Building with Awning, Counter, Wares, and Shopkeeper NPC
     function buildShopBuilding3D(shopDef) {
-      const g = new THREE.Group();
-      g.position.set(shopDef.pos.x, 0, shopDef.pos.z);
-      g.rotation.y = shopDef.rotY || 0;
-
-      // Back Store Building
-      const storeBody = new THREE.Mesh(new THREE.BoxGeometry(11, 7.2, 7), MATS.adobeWall);
-      storeBody.position.set(0, 3.6, -2.2);
-      storeBody.castShadow = true;
-      storeBody.receiveShadow = true;
-      g.add(storeBody);
-
-      // Colorful Awning Canopy extending into the Alley
-      const roofMat = new THREE.MeshStandardMaterial({ color: shopDef.roofColor, roughness: 0.4 });
-      const awning = new THREE.Mesh(new THREE.BoxGeometry(11.6, 0.65, 5.5), roofMat);
-      awning.position.set(0, 5.6, 2.2);
-      awning.rotation.x = 0.15;
-      awning.castShadow = true;
-      g.add(awning);
-
-      // Golden Front Pillars
-      const pL = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.38, 5.5, 10), MATS.goldTrim);
-      pL.position.set(-5.2, 2.75, 4.4);
-      const pR = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.38, 5.5, 10), MATS.goldTrim);
-      pR.position.set(5.2, 2.75, 4.4);
-      g.add(pL, pR);
-
-      // Persian Rug in front of the Shop
-      const carpetMat = new THREE.MeshStandardMaterial({ color: shopDef.carpetColor, roughness: 0.7 });
-      const rug = new THREE.Mesh(new THREE.BoxGeometry(8.5, 0.12, 4.2), carpetMat);
-      rug.position.set(0, 0.08, 3.8);
-      g.add(rug);
-
-      // Wooden Counter & Display Wares
-      const counter = new THREE.Mesh(new THREE.BoxGeometry(8.2, 2.1, 2.0), MATS.woodBridge);
-      counter.position.set(0, 1.05, 1.8);
-      counter.castShadow = true;
-      g.add(counter);
-
-      // Wares on the Counter (Gems, Potions, Swords, Teapots)
-      for (let i = -2.5; i <= 2.5; i += 2.5) {
-        const ware = new THREE.Mesh(new THREE.OctahedronGeometry(0.65, 0), roofMat);
-        ware.position.set(i, 2.65, 1.8);
-        g.add(ware);
-      }
-
-      // 3D Shopkeeper NPC standing behind the counter
-      const npc = new THREE.Group();
-      npc.position.set(0, 0, -0.1);
-      const npcBody = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.9, 2.0, 10), roofMat);
-      npcBody.position.y = 1.3;
-      const npcHead = new THREE.Mesh(new THREE.SphereGeometry(0.95, 12, 12), MATS.skinTone);
-      npcHead.position.y = 2.95;
-      const turban = new THREE.Mesh(new THREE.TorusGeometry(0.65, 0.28, 10, 18), MATS.goldTrim);
-      turban.rotation.x = Math.PI / 2;
-      turban.position.y = 3.45;
-      npc.add(npcBody, npcHead, turban);
-      g.add(npc);
+      const g = villageKit.buildShop(shopDef);
 
       // Collider for the back building (leaving the front rug & counter walkable!)
       addColliderBox(shopDef.pos.x, shopDef.pos.z - 1.5, 5.2, 3.2);
@@ -2061,25 +1976,20 @@
       addWorldLabel(
         shopDef.title,
         new THREE.Vector3(shopDef.pos.x, 9.2, shopDef.pos.z),
-        '#fde047',
+        '#d8b66a',
         () => {
           if (shopDef.id === 'blacksmith') openBlacksmithShop();
+          else if (shopDef.id === 'apothecary') openApothecaryShop();
           else openShopModal(shopDef);
         }
       );
 
-      // Compute interaction point in front of the shop
       const frontOffset = new THREE.Vector3(0, 0, 5.2).applyAxisAngle(new THREE.Vector3(0, 1, 0), shopDef.rotY || 0);
       const interactPos = new THREE.Vector3(shopDef.pos.x, 0, shopDef.pos.z).add(frontOffset);
-
-      villageShopNodes.push({
-        def: shopDef,
-        group: g,
-        interactPos
-      });
-
+      villageShopNodes.push({ def: shopDef, group: g, interactPos });
       return g;
     }
+
 
     function buildColumn3D(x, y, z) {
       const g = new THREE.Group();
@@ -2116,83 +2026,34 @@
     }
 
     function buildCypress3D(x, y, z, sc = 1) {
-      const g = new THREE.Group();
-      g.position.set(x, y, z);
-      g.scale.setScalar(sc);
-      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.65, 2.4, 8), MATS.darkWood);
-      trunk.position.y = 1.2;
-      const c1 = new THREE.Mesh(new THREE.ConeGeometry(2.3, 5.8, 10), MATS.cypressFoliage);
-      c1.position.y = 4.6;
-      c1.castShadow = true;
-      const c2 = new THREE.Mesh(new THREE.ConeGeometry(1.6, 4.4, 10), MATS.cypressFoliage);
-      c2.position.y = 7.6;
-      g.add(trunk, c1, c2);
-      return g;
+      return villageKit.buildCypress(x, y, z, sc);
     }
 
+
     function buildHeroUnit3D(member) {
-      const g = new THREE.Group();
       const roleObj = ROLES[member.roleIndex] || ROLES[0];
-      const armorMat = new THREE.MeshStandardMaterial({ color: roleObj.color, roughness: 0.35, metalness: 0.25 });
-
-      const aura = new THREE.Mesh(
-        new THREE.RingGeometry(1.4, 2.0, 24),
-        member.isLocal ? MATS.portalGreen : MATS.turquoiseTile
-      );
-      aura.rotation.x = -Math.PI / 2;
-      aura.position.y = 0.12;
-      g.add(aura);
-
-      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 1.05, 2.0, 12), armorMat);
-      torso.position.y = 1.4;
-      torso.castShadow = true;
-      g.add(torso);
-      g.userData.armorMesh = torso;
-
-      const cape = new THREE.Mesh(new THREE.BoxGeometry(1.45, 1.9, 0.22), MATS.capeRed);
-      cape.position.set(0, 1.4, -0.78);
-      cape.rotation.x = 0.16;
-      g.add(cape);
-
-      const head = new THREE.Mesh(new THREE.SphereGeometry(1.15, 16, 16), MATS.skinTone);
-      head.position.y = 3.25;
-      head.castShadow = true;
-      g.add(head);
-
-      const crown = new THREE.Mesh(new THREE.CylinderGeometry(1.18, 1.18, 0.4, 16), MATS.goldTrim);
-      crown.position.y = 3.8;
-      g.add(crown);
-
-      const weapon = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.2, 2.9), MATS.turquoiseTile);
-      weapon.position.set(1.2, 1.7, 0.95);
-      g.add(weapon);
-
+      const built = villageKit.buildHero(member, roleObj);
+      const g = built.group;
+      g.userData.armorMesh = built.armorMesh;
       const lbl = addWorldLabel(
         `${member.name} (${roleObj.title})`,
         new THREE.Vector3(0, 5.4, 0),
-        member.isLocal ? '#4ade80' : '#38bdf8'
+        member.isLocal ? '#8fd0a8' : '#7db9bd'
       );
       g.userData.labelRef = lbl;
       return g;
     }
 
+
     function spawnVillagerNPC(name, pathPoints, robeColor) {
-      const g = new THREE.Group();
       const start = pathPoints[0];
+      const g = villageKit.buildVillager(robeColor);
       g.position.set(start.x, 0, start.z);
-
-      const mat = new THREE.MeshStandardMaterial({ color: robeColor, roughness: 0.6 });
-      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.9, 2.0, 10), mat);
-      body.position.y = 1.2;
-      body.castShadow = true;
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.9, 12, 12), MATS.skinTone);
-      head.position.y = 2.8;
-      g.add(body, head);
-
-      const lbl = addWorldLabel(name, new THREE.Vector3(start.x, 4.4, start.z), '#cbd5e1');
+      const lbl = addWorldLabel(name, new THREE.Vector3(start.x, 4.4, start.z), '#b7aa87');
       mapRoot.add(g);
       villagersNPCs.push({ group: g, points: pathPoints, targetIdx: 1, labelRef: lbl });
     }
+
 
     function spawnEnemyUnit3D(x, y, z, level, rank = 'normal', customTitle = '') {
       const isBoss = rank === 'boss';
@@ -2279,10 +2140,14 @@
       state.currentZone = zoneId;
       state.dungeonTier = tier;
       portalCooldown = 2.2;
+      stage.dataset.zone = zoneId;
+      villageKit.reset();
+      villageKit.applyLighting(zoneId, scene, hemiLight, dirLight, renderer);
 
       scene.remove(mapRoot);
       mapRoot = new THREE.Group();
       scene.add(mapRoot);
+      renderer.shadowMap.needsUpdate = true;
 
       portalsList = [];
       villageShopNodes = [];
@@ -2300,54 +2165,44 @@
       let spawnPoint = new THREE.Vector3(0, 0, 0);
 
       if (zoneId === 'village') {
-        // Warm Persian Golden Hour Sky
-        scene.background = new THREE.Color(0x1b2e3c);
-        scene.fog = new THREE.FogExp2(0x1b2e3c, 0.0018);
-
+        // Cinematic blue-hour lighting is applied by the Persian village art kit.
         // 1. Village Ground (160 x 120)
-        const ground = new THREE.Mesh(new THREE.BoxGeometry(170, 3, 130), MATS.plainsGrass);
+        const ground = new THREE.Mesh(new THREE.BoxGeometry(170, 3, 130), villageKit.materials.ground);
         ground.position.set(0, -1.5, 0);
         ground.receiveShadow = true;
         mapRoot.add(ground);
 
         // 2. Cobblestone Alleys Network (شبکه سنگفرش کوچه‌ها و خیابان‌های روستا)
         // Main East-West Bazaar Street
-        const mainStreetEW = new THREE.Mesh(new THREE.BoxGeometry(135, 0.14, 13), MATS.cobbleAlley);
+        const mainStreetEW = new THREE.Mesh(new THREE.BoxGeometry(135, 0.14, 13), villageKit.materials.road);
         mainStreetEW.position.set(0, 0.07, 0);
         mainStreetEW.receiveShadow = true;
         // Main North-South Bazaar Street
-        const mainStreetNS = new THREE.Mesh(new THREE.BoxGeometry(14, 0.14, 96), MATS.cobbleAlley);
+        const mainStreetNS = new THREE.Mesh(new THREE.BoxGeometry(14, 0.14, 96), villageKit.materials.road);
         mainStreetNS.position.set(0, 0.07, 0);
         mainStreetNS.receiveShadow = true;
         // North Bazaar Alley (کوچه بازار شمالی)
-        const northAlley = new THREE.Mesh(new THREE.BoxGeometry(92, 0.15, 11), MATS.cobbleAlley);
+        const northAlley = new THREE.Mesh(new THREE.BoxGeometry(92, 0.15, 11), villageKit.materials.road);
         northAlley.position.set(0, 0.08, -14);
         // South Caravanserai Alley (کوچه کاروانسرا و قالی‌بافان)
-        const southAlley = new THREE.Mesh(new THREE.BoxGeometry(84, 0.15, 11), MATS.cobbleAlley);
+        const southAlley = new THREE.Mesh(new THREE.BoxGeometry(84, 0.15, 11), villageKit.materials.road);
         southAlley.position.set(0, 0.08, 16);
         // West Blacksmith Alley (راسته آهنگران)
-        const westAlley = new THREE.Mesh(new THREE.BoxGeometry(11, 0.15, 68), MATS.cobbleAlley);
+        const westAlley = new THREE.Mesh(new THREE.BoxGeometry(11, 0.15, 68), villageKit.materials.road);
         westAlley.position.set(-28, 0.08, 0);
         // East Apothecary Alley (کوچه عطاران و ستاره‌شناسان)
-        const eastAlley = new THREE.Mesh(new THREE.BoxGeometry(11, 0.15, 68), MATS.cobbleAlley);
+        const eastAlley = new THREE.Mesh(new THREE.BoxGeometry(11, 0.15, 68), villageKit.materials.road);
         eastAlley.position.set(28, 0.08, 0);
 
         mapRoot.add(mainStreetEW, mainStreetNS, northAlley, southAlley, westAlley, eastAlley);
 
         // 3. Central Octagonal Plaza & Healing Fountain (میدان مرکزی و چشمه شفا)
-        const plaza = new THREE.Mesh(new THREE.CylinderGeometry(13, 14, 0.25, 8), MATS.persianStone);
+        const plaza = new THREE.Mesh(new THREE.CylinderGeometry(13, 14, 0.25, 8), villageKit.materials.plaza);
         plaza.position.set(0, 0.12, 0);
         plaza.receiveShadow = true;
         mapRoot.add(plaza);
 
-        const fnt = new THREE.Group();
-        const fBase = new THREE.Mesh(new THREE.CylinderGeometry(4.8, 5.5, 1.1, 20), MATS.persianStone);
-        fBase.position.y = 0.6;
-        const fWater = new THREE.Mesh(new THREE.CylinderGeometry(4.1, 4.1, 0.85, 20), MATS.turquoiseTile);
-        fWater.position.y = 0.9;
-        const fOrb = new THREE.Mesh(new THREE.SphereGeometry(1.1, 16, 16), MATS.portalGreen);
-        fOrb.position.y = 3.8;
-        fnt.add(fBase, fWater, fOrb);
+        const fnt = villageKit.buildFountain();
         mapRoot.add(fnt);
         addWorldLabel('💧 میدان چشمه شفا (مرکز روستا)', new THREE.Vector3(0, 6.2, 0), '#34d399');
 
@@ -2411,6 +2266,8 @@
         pOut.rotation.y = -Math.PI / 2;
         mapRoot.add(pOut);
 
+        // Sky, distant mountains, street lanterns, hanging lights and market props.
+        villageKit.populate(mapRoot, VILLAGE_SHOPS_3D);
         spawnPoint.set(0, 0, 10);
       } else if (zoneId === 'open_world') {
         scene.background = new THREE.Color(0x132032);
@@ -2570,6 +2427,8 @@
           showToast(t.msg, '#fde047');
           if (chip.dataset.alley === 'alley_smith') {
             openBlacksmithShop();
+          } else if (chip.dataset.alley === 'alley_herbs') {
+            openApothecaryShop();
           }
         }
       });
@@ -2821,6 +2680,10 @@
         openBlacksmithShop();
         return;
       }
+      if (shopDef && shopDef.id === 'apothecary') {
+        openApothecaryShop();
+        return;
+      }
       const inVillage = state.currentZone === 'village';
       document.getElementById('shop-modal-title').textContent = shopDef ? shopDef.title : '🏪 بازار بزرگ روستای امن (مغازه‌ها و حجره‌ها)';
       document.getElementById('shop-status-msg').textContent = shopDef
@@ -2950,10 +2813,13 @@
       showToast(`💾 بازی با موفقیت ذخیره شد! (سطح ${leader.level} | ${formatCommaGold(state.coins)} سکه طلا)`, '#4ade80');
     });
     document.getElementById('btn-open-blacksmith').addEventListener('click', () => openBlacksmithShop());
+    document.getElementById('btn-open-apothecary').addEventListener('click', () => openApothecaryShop());
     document.getElementById('btn-open-shop').addEventListener('click', () => openShopModal(activeShopNear));
     document.getElementById('context-action-btn').addEventListener('click', () => {
       if (activeShopNear && activeShopNear.id === 'blacksmith') {
         openBlacksmithShop();
+      } else if (activeShopNear && activeShopNear.id === 'apothecary') {
+        openApothecaryShop();
       } else {
         openShopModal(activeShopNear);
       }
@@ -2972,6 +2838,7 @@
         const hits = clickRaycaster.intersectObjects(sn.group.children, true);
         if (hits.length > 0) {
           if (sn.def.id === 'blacksmith') openBlacksmithShop();
+          else if (sn.def.id === 'apothecary') openApothecaryShop();
           else openShopModal(sn.def);
           break;
         }
@@ -3915,11 +3782,17 @@
     window.addEventListener('resize', onResize);
 
     const clock = new THREE.Clock();
+    let shadowRefreshTimer = 0;
 
     function animate() {
       requestAnimationFrame(animate);
       const dt = Math.min(clock.getDelta(), 0.1);
       const elapsed = clock.getElapsedTime();
+      shadowRefreshTimer -= dt;
+      if (shadowRefreshTimer <= 0) {
+        renderer.shadowMap.needsUpdate = true;
+        shadowRefreshTimer = .18;
+      }
 
       const leader = state.party[0];
       if (portalCooldown > 0) portalCooldown -= dt;
@@ -4014,10 +3887,10 @@
 
         // Camera Follow Modes
         if (state.cameraMode === 0) {
-          // Close Street/Alley Walk Perspective (great for seeing inside the alleys & shops!)
-          const targetCam = new THREE.Vector3(leader.mesh.position.x, leader.mesh.position.y + 20, leader.mesh.position.z + 22);
+          // Cinematic street-level follow: facades, lanterns and shop interiors stay visible.
+          const targetCam = new THREE.Vector3(leader.mesh.position.x, leader.mesh.position.y + 17, leader.mesh.position.z + 24);
           camera.position.lerp(targetCam, 0.14);
-          camera.lookAt(leader.mesh.position.x, leader.mesh.position.y + 2.2, leader.mesh.position.z - 2);
+          camera.lookAt(leader.mesh.position.x, leader.mesh.position.y + 3, leader.mesh.position.z - 3);
         } else if (state.cameraMode === 1) {
           // High Top-Down View
           const targetCam = new THREE.Vector3(leader.mesh.position.x, leader.mesh.position.y + 44, leader.mesh.position.z + 32);
@@ -4157,6 +4030,7 @@
         }
       }
 
+      if (state.currentZone === 'village') villageKit.update(elapsed, dt);
       renderer.render(scene, camera);
       updateBlacksmith3DScene(dt, elapsed);
       drawMinimap();
@@ -4199,6 +4073,12 @@
       setTimeout(() => {
         showToast(`💾 ادامه از آخرین ذخیره: سطح ${state.party[0].level} | ${formatCommaGold(state.coins)} سکه`, '#4ade80');
       }, 450);
+    }
+
+    // The village is the default view; the apothecary remains directly deep-linkable.
+    const shopPreviewParam = new URLSearchParams(window.location.search).get('shop');
+    if (shopPreviewParam === 'apothecary') {
+      setTimeout(() => openApothecaryShop(), 500);
     }
 
     // Periodic & Lifecycle Auto-Save so exiting/reopening the app never loses level-ups or items!

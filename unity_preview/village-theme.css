@@ -1,0 +1,224 @@
+/* ================================================================
+   PERSIAN VILLAGE — dark-fantasy UI treatment matching the shops
+   ================================================================ */
+:root {
+  --village-gold: #d1ae67;
+  --village-gold-soft: #9d814b;
+  --village-emerald: #72c49c;
+  --village-ink: #080e0c;
+  --village-panel: rgba(11, 19, 15, .91);
+}
+
+body { background: #050a08; }
+
+.app-topbar {
+  min-height: 44px;
+  padding: 5px 12px;
+  background:
+    linear-gradient(90deg, rgba(42, 70, 52, .16), transparent 28%, transparent 72%, rgba(118, 85, 34, .1)),
+    linear-gradient(180deg, rgba(18, 27, 21, .98), rgba(7, 13, 10, .98));
+  border-bottom: 1px solid #8d7444;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, .55), inset 0 -2px rgba(38, 50, 35, .5);
+  scrollbar-width: none;
+}
+.app-topbar::-webkit-scrollbar { display: none; }
+.brand-badge {
+  padding: 4px 11px;
+  color: #f0dfb4;
+  border: 1px solid #a38446;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #4a3a20, #241f14);
+  box-shadow: inset 0 0 0 2px rgba(204, 164, 82, .08), 0 0 14px rgba(195, 147, 59, .09);
+  text-shadow: 0 1px 3px #000;
+}
+.zone-pill {
+  padding: 4px 11px;
+  color: #b9d9c5;
+  border: 1px solid #517b61;
+  border-radius: 4px;
+  background: rgba(18, 51, 34, .62);
+  box-shadow: inset 0 0 10px rgba(75, 147, 101, .08);
+}
+.top-btn {
+  min-height: 30px;
+  padding: 4px 10px;
+  color: #c8c5b8;
+  border: 1px solid #4b5547;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #1b251e, #101712);
+  box-shadow: inset 0 1px rgba(255, 255, 255, .025);
+  transition: color .15s, border-color .15s, filter .15s, transform .15s;
+}
+.top-btn:hover { color: #f2e5c4; border-color: #a88b50; filter: brightness(1.12); transform: translateY(-1px); }
+.top-btn:active { transform: translateY(1px); }
+.top-btn.active {
+  color: #e5d6ab;
+  border-color: #a88b50;
+  background: linear-gradient(180deg, #38452d, #1d291e);
+  box-shadow: inset 0 0 10px rgba(184, 153, 80, .08);
+}
+.top-btn.gold { color: #ead5a4; border-color: #a27c3f; background: linear-gradient(180deg, #513a20, #2d2417); }
+.top-btn.emerald { color: #c3e6cf; border-color: #548568; background: linear-gradient(180deg, #214c36, #122b20); }
+.top-btn.purple { color: #e0d1e9; border-color: #806590; background: linear-gradient(180deg, #3f2e4b, #251c2e); }
+
+#game-stage { background: #07120f; }
+#game-stage[data-zone='village'] #three-canvas { filter: saturate(.94) contrast(1.045); }
+#game-stage[data-zone='village']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 45%, transparent 44%, rgba(2, 7, 5, .12) 72%, rgba(2, 6, 4, .32) 110%),
+    linear-gradient(180deg, rgba(3, 9, 7, .14), transparent 18%, transparent 78%, rgba(2, 7, 5, .19));
+  box-shadow: inset 0 0 70px rgba(0, 0, 0, .18);
+}
+
+.hero-hud-card, .minimap-card {
+  border: 1px solid #9b814e;
+  border-radius: 5px;
+  background:
+    linear-gradient(120deg, rgba(42, 65, 47, .13), transparent 50%),
+    var(--village-panel);
+  box-shadow: inset 0 0 0 3px rgba(115, 94, 51, .13), 0 8px 25px rgba(0, 0, 0, .48);
+  backdrop-filter: blur(10px);
+}
+.hero-hud-card { top: 12px; right: 12px; width: 226px; padding: 9px 11px; }
+.hero-hud-card::before, .minimap-card::before {
+  content: '◆';
+  position: absolute;
+  top: 3px;
+  left: 5px;
+  color: #c8a55f;
+  font-size: 7px;
+}
+.hero-name-txt { color: #e8d5a5; font-size: 11px; }
+.hero-lvl-badge { color: #e7d6aa; border: 1px solid #76663e; background: #313a28; }
+.stat-bar-track { height: 12px; border: 1px solid #35473b; border-radius: 3px; background: #070d0a; box-shadow: inset 0 1px 4px #000; }
+.fill-hp { background: linear-gradient(90deg, #245d3b, #67b883); }
+.fill-mana { background: linear-gradient(90deg, #1d4e59, #5ca9ae); }
+.fill-xp { background: linear-gradient(90deg, #806127, #d2ae58); }
+.stat-bar-text { font-size: 8px; letter-spacing: .02em; }
+.economy-row { border-top-color: rgba(190, 159, 91, .2); }
+
+.minimap-card { top: 12px; left: 12px; width: 154px; padding: 7px; }
+.minimap-title { color: #c2b28e; }
+#minimap-canvas { border: 1px solid #5d6348; border-radius: 3px; background: #0a120e; }
+.cam-switch-btn {
+  min-height: 29px;
+  margin-top: 6px;
+  color: #c3d8c7;
+  border: 1px solid #55745d;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #263b2b, #15241a);
+}
+
+#village-guide-bar {
+  top: 12px;
+  max-width: calc(100% - 420px);
+  padding: 4px 6px;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border: 1px solid rgba(186, 153, 84, .46);
+  border-radius: 5px;
+  background: rgba(8, 16, 12, .82);
+  box-shadow: 0 7px 22px rgba(0, 0, 0, .35), inset 0 0 12px rgba(156, 128, 67, .05);
+  backdrop-filter: blur(9px);
+}
+#village-guide-bar::-webkit-scrollbar { display: none; }
+.alley-chip {
+  min-height: 26px;
+  padding: 3px 9px;
+  color: #d4c7a4;
+  border: 1px solid #625638;
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(40, 47, 34, .95), rgba(20, 28, 21, .95));
+  font-size: 9px;
+}
+.alley-chip:hover { color: #f3e4b9; border-color: #c0a15d; background: #3d422c; }
+
+.world-label-3d {
+  padding: 4px 9px;
+  color: #eee5cf;
+  border: 1px solid rgba(200, 169, 98, .7) !important;
+  border-radius: 3px;
+  background: rgba(7, 15, 11, .88);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .55), inset 0 0 8px rgba(167, 137, 71, .06);
+  backdrop-filter: blur(6px);
+  text-shadow: 0 1px 3px #000;
+}
+#toast-banner {
+  top: 54px;
+  padding: 7px 17px;
+  color: #e9e2ce;
+  border: 1px solid #8ca76f;
+  border-radius: 4px;
+  background: rgba(11, 25, 17, .94);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, .45);
+  backdrop-filter: blur(8px);
+}
+
+.joystick-zone {
+  width: 116px;
+  height: 116px;
+  border: 1px solid rgba(137, 180, 145, .62);
+  background:
+    radial-gradient(circle, rgba(72, 125, 88, .18) 0 38%, transparent 39%),
+    radial-gradient(circle, rgba(19, 45, 30, .68), rgba(6, 15, 10, .8));
+  box-shadow: inset 0 0 0 5px rgba(123, 101, 54, .11), 0 7px 24px rgba(0, 0, 0, .42);
+  backdrop-filter: blur(5px);
+}
+.joystick-knob {
+  width: 46px;
+  height: 46px;
+  border: 1px solid #d8c687;
+  background: radial-gradient(circle at 34% 28%, #b5c8a1, #57785d 45%, #273f30 80%);
+  box-shadow: 0 4px 13px rgba(0, 0, 0, .55), inset 0 0 0 3px rgba(231, 213, 150, .11);
+}
+
+.skill-btn {
+  border: 1px solid rgba(218, 195, 132, .72);
+  box-shadow: inset 0 0 0 3px rgba(5, 10, 7, .22), 0 4px 14px rgba(0, 0, 0, .48);
+  text-shadow: 0 1px 3px #000;
+}
+.sk-pos-1 { background: radial-gradient(circle at 35% 28%, #527f73, #203f37 72%); }
+.sk-pos-2 { background: radial-gradient(circle at 35% 28%, #4e6f80, #233845 72%); }
+.sk-pos-3 { background: radial-gradient(circle at 35% 28%, #796181, #3b2d44 72%); }
+.sk-pos-4 { background: radial-gradient(circle at 35% 28%, #b79b4f, #574625 72%); }
+.btn-basic-attack {
+  border: 2px solid #d8ba6d;
+  background: radial-gradient(circle at 35% 28%, #b97c39, #633a20 70%);
+  box-shadow: inset 0 0 0 4px rgba(39, 20, 10, .24), 0 0 18px rgba(181, 113, 47, .24), 0 5px 16px rgba(0, 0, 0, .5);
+}
+#context-action-btn {
+  color: #17251a;
+  border: 1px solid #e2ce89;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #d5c47e, #999452);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .42), inset 0 1px rgba(255, 255, 255, .35);
+  font-weight: 800;
+}
+
+@media (max-width: 1000px) {
+  #village-guide-bar { max-width: calc(100% - 390px); }
+  .hero-hud-card { width: 204px; }
+  .minimap-card { width: 142px; }
+}
+@media (max-height: 560px) {
+  .app-topbar { min-height: 38px; padding-top: 3px; padding-bottom: 3px; }
+  .top-btn { min-height: 27px; padding-top: 3px; padding-bottom: 3px; }
+  .hero-hud-card { top: 7px; right: 7px; padding: 6px 8px; }
+  .minimap-card { top: 7px; left: 7px; padding: 5px; }
+  #village-guide-bar { top: 7px; }
+  .joystick-zone { width: 100px; height: 100px; bottom: 10px; }
+}
+@media (max-width: 720px) {
+  #village-guide-bar { display: none !important; }
+  .minimap-card { width: 128px; }
+  #minimap-canvas { width: 116px; height: 70px; }
+  .hero-hud-card { width: 188px; }
+  .hero-name-txt { font-size: 9px; }
+  .economy-row { font-size: 8px; }
+}
