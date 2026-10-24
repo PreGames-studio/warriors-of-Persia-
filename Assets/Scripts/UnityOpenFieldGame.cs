@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using WarriorsOfPersia.Blacksmith;
 
 /// <summary>Builds the Unity mobile prototype: Persian swordsman, open field and touch HUD.</summary>
 public sealed class UnityOpenFieldGame : MonoBehaviour
@@ -17,13 +18,16 @@ public sealed class UnityOpenFieldGame : MonoBehaviour
         Application.targetFrameRate = 60;
         Screen.sleepTimeout = SleepTimeout.NeverSleep;
         QualitySettings.antiAliasing = 2;
+        QualitySettings.pixelLightCount = Mathf.Max(QualitySettings.pixelLightCount, 4); // Moonlight + two lanterns + forge.
 
         BuildLighting();
         BuildGroundAndPaths();
         BuildDistantHills();
         BuildFoliage();
         BuildVillageGate();
+        BuildBlacksmithDistrict();
         BuildHero();
+        hero.SetCameraYaw(24f); // Three-quarter opening view of the forge, while keeping free touch look.
         BuildTrainingTargets();
         BuildTouchInterface();
     }
@@ -31,33 +35,58 @@ public sealed class UnityOpenFieldGame : MonoBehaviour
     private void BuildLighting()
     {
         RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-        RenderSettings.ambientLight = new Color(0.68f, 0.73f, 0.62f);
-        RenderSettings.ambientIntensity = 0.8f;
+        RenderSettings.ambientLight = new Color(.25f, .32f, .43f);
+        RenderSettings.ambientIntensity = .72f;
         RenderSettings.fog = true;
-        RenderSettings.fogColor = new Color(0.66f, 0.79f, 0.82f);
+        RenderSettings.fogColor = new Color(.085f, .125f, .19f);
         RenderSettings.fogMode = FogMode.Linear;
-        RenderSettings.fogStartDistance = 72f;
-        RenderSettings.fogEndDistance = 150f;
+        RenderSettings.fogStartDistance = 58f;
+        RenderSettings.fogEndDistance = 155f;
+        BuildReflectionEnvironment();
 
-        GameObject sunObject = new GameObject("Warm afternoon sunlight");
+        GameObject sunObject = new GameObject("Blue hour moonlight");
         Light sun = sunObject.AddComponent<Light>();
         sun.type = LightType.Directional;
-        sun.color = new Color(1f, 0.91f, 0.73f);
-        sun.intensity = 1.05f;
+        sun.color = new Color(.57f, .67f, .86f);
+        sun.intensity = .64f;
         sun.shadows = LightShadows.Hard;
-        sunObject.transform.rotation = Quaternion.Euler(48f, -32f, 0f);
+        sunObject.transform.rotation = Quaternion.Euler(34f, -28f, 0f);
 
         GameObject cameraObject = new GameObject("Mobile third-person camera");
         Camera camera = cameraObject.AddComponent<Camera>();
         camera.clearFlags = CameraClearFlags.SolidColor;
         camera.backgroundColor = RenderSettings.fogColor;
         camera.fieldOfView = 62f;
-        camera.nearClipPlane = 0.08f;
+        camera.nearClipPlane = .08f;
         camera.farClipPlane = 180f;
         camera.allowHDR = false;
         camera.allowMSAA = true;
         cameraObject.AddComponent<AudioListener>();
         _camera = camera;
+    }
+
+    private void BuildReflectionEnvironment()
+    {
+        Cubemap reflection = new Cubemap(32, TextureFormat.RGBA32, true);
+        Color sky = new Color(.11f, .17f, .27f);
+        Color horizon = new Color(.31f, .29f, .27f);
+        Color ground = new Color(.055f, .06f, .07f);
+        for (int faceIndex = 0; faceIndex < 6; faceIndex++)
+        {
+            CubemapFace face = (CubemapFace)faceIndex;
+            Color[] pixels = new Color[32 * 32];
+            for (int y = 0; y < 32; y++)
+            {
+                float vertical = face == CubemapFace.PositiveY ? 1f : face == CubemapFace.NegativeY ? 0f : 1f - y / 31f;
+                Color value = vertical > .52f ? Color.Lerp(horizon, sky, (vertical - .52f) / .48f) : Color.Lerp(ground, horizon, vertical / .52f);
+                for (int x = 0; x < 32; x++) pixels[y * 32 + x] = value;
+            }
+            reflection.SetPixels(pixels, face);
+        }
+        reflection.Apply(true);
+        RenderSettings.customReflection = reflection;
+        RenderSettings.defaultReflectionMode = UnityEngine.Rendering.DefaultReflectionMode.Custom;
+        RenderSettings.reflectionIntensity = .68f;
     }
 
     private Camera _camera;
@@ -251,6 +280,26 @@ public sealed class UnityOpenFieldGame : MonoBehaviour
         textMesh.fontSize = 48;
         textMesh.characterSize = 0.09f;
         textMesh.color = new Color(1f, 0.92f, 0.72f);
+    }
+
+    private void BuildBlacksmithDistrict()
+    {
+        MedievalBlacksmithBuilder builder = GetComponentInChildren<MedievalBlacksmithBuilder>();
+        if (builder == null)
+        {
+            GameObject district = new GameObject("Kaveh's medieval blacksmith district");
+            district.transform.SetParent(transform, false);
+            builder = district.AddComponent<MedievalBlacksmithBuilder>();
+        }
+        // The open doorway faces the initial approach; the central village trail remains unobstructed.
+        builder.Build(new Vector3(12f, 0f, -30f), 180f);
+        if (builder.Door != null)
+        {
+            builder.Door.StatusChanged += message =>
+            {
+                if (statusText != null) statusText.text = message;
+            };
+        }
     }
 
     private void BuildHero()

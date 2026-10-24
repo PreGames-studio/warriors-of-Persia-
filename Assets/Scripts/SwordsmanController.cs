@@ -84,6 +84,11 @@ public sealed class SwordsmanController : MonoBehaviour
         runHeld = held;
     }
 
+    public void SetCameraYaw(float yaw)
+    {
+        cameraYaw = yaw;
+    }
+
     public void Look(Vector2 dragDelta)
     {
         cameraYaw += dragDelta.x * lookSensitivity;
