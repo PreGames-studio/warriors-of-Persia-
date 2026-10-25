@@ -1499,7 +1499,7 @@
         id: 'jeweler',
         title: '💎 جواهر و کریستال‌فروشی جمشید',
         alleyName: 'کوچه بازار شمالی (غربی)',
-        pos: { x: -16, z: -20 },
+        pos: { x: -8.5, z: -30.5 },
         rotY: 0,
         roofColor: 0x06b6d4,
         carpetColor: 0x0e7490,
@@ -1509,8 +1509,8 @@
         id: 'blacksmith',
         title: '⚒️ آهنگری و زره‌سازی کاوه',
         alleyName: 'راسته آهنگران (شمال‌غربی)',
-        pos: { x: -38, z: -18 },
-        rotY: Math.PI / 2,
+        pos: { x: -30.5, z: -30.5 },
+        rotY: 0,
         roofColor: 0xea580c,
         carpetColor: 0x9a3412,
         greeting: 'به آهنگری کاوه خوش آمدید! بهترین شمشیرها و زره‌های پولادین پارسی اینجاست.'
@@ -1519,7 +1519,7 @@
         id: 'apothecary',
         title: '🧪 عطاری و معجون‌سازی حکیم',
         alleyName: 'کوچه عطاران (شمال‌شرقی)',
-        pos: { x: 16, z: -20 },
+        pos: { x: 8.5, z: -30.5 },
         rotY: 0,
         roofColor: 0x16a34a,
         carpetColor: 0x15803d,
@@ -1529,8 +1529,8 @@
         id: 'astrologer',
         title: '🔮 مکتب جادو و ستاره‌شناس',
         alleyName: 'گذر ستاره‌شناسان (شرقی)',
-        pos: { x: 38, z: -18 },
-        rotY: -Math.PI / 2,
+        pos: { x: 19.5, z: -30.5 },
+        rotY: 0,
         roofColor: 0x9333ea,
         carpetColor: 0x6b21a8,
         greeting: 'به مکتب ستاره‌شناس خوش آمدید! طلسم‌های مانا و بازیابی سطح قهرمان.'
@@ -1539,7 +1539,7 @@
         id: 'carpet_bazaar',
         title: '🧶 سرای قالی و ابریشم پارس',
         alleyName: 'کوچه قالی‌بافان (جنوب‌غربی)',
-        pos: { x: -28, z: 22 },
+        pos: { x: -19.5, z: 30.5 },
         rotY: Math.PI,
         roofColor: 0xdc2626,
         carpetColor: 0x991b1b,
@@ -1549,7 +1549,7 @@
         id: 'teahouse',
         title: '🍵 چایخانه و کاروانسرای پهلوانان',
         alleyName: 'کوچه چایخانه (جنوب‌شرقی)',
-        pos: { x: 26, z: 22 },
+        pos: { x: 19.5, z: 30.5 },
         rotY: Math.PI,
         roofColor: 0xf59e0b,
         carpetColor: 0xb45309,
@@ -1569,58 +1569,72 @@
     ];
     const DISTRICT_SHOP_COLORS = [0x06b6d4, 0xea580c, 0x16a34a, 0x9333ea, 0xdc2626, 0xf59e0b, 0x0f766e];
 
-    function faceVillageCenter(x, z) {
-      if (Math.abs(x) > Math.abs(z)) return x > 0 ? -Math.PI / 2 : Math.PI / 2;
-      return z > 0 ? Math.PI : 0;
-    }
-
     function createExpandedVillagePlan() {
-      const candidates = [];
-      for (let col = 0; col < 14; col++) {
-        for (let row = 0; row < 14; row++) {
-          const x = -117 + col * 18;
-          const z = -117 + row * 18;
-          // Keep the fountain, its four approaches and the existing market
-          // fronts clear. The six original shops are inserted separately.
-          if (Math.abs(x) < 25 && Math.abs(z) < 25) continue;
-          if (CENTRAL_VILLAGE_SHOPS_3D.some(shop => Math.hypot(shop.pos.x - x, shop.pos.z - z) < 18)) continue;
-          candidates.push({ x, z, distance: Math.hypot(x, z) });
-        }
-      }
-      candidates.sort((a, b) => a.distance - b.distance || a.x - b.x || a.z - b.z);
-      const selected = candidates.slice(0, 94);
-      const shopIndices = new Set(Array.from({ length: 14 }, (_, i) => Math.floor((i + 1) * 95 / 15) - 1));
       const houses = [];
-      const shops = [];
-      selected.forEach((plot, index) => {
-        const rotY = faceVillageCenter(plot.x, plot.z);
-        if (shopIndices.has(index)) {
-          const shopIndex = shops.length;
-          const title = DISTRICT_SHOP_NAMES[shopIndex];
-          shops.push({
-            id: `district_shop_${String(shopIndex + 1).padStart(2, '0')}`,
-            title,
-            alleyName: 'محله‌ی بازار بزرگ پارس',
-            pos: { x: plot.x, z: plot.z },
-            rotY,
-            roofColor: DISTRICT_SHOP_COLORS[shopIndex % DISTRICT_SHOP_COLORS.length],
-            carpetColor: 0x7c2d12,
-            greeting: `به ${title} خوش آمدید! کالاها و پیشنهادهای این حجره به‌زودی کامل‌تر می‌شوند.`,
-            kind: 'shop',
-            district: true
-          });
-        } else {
+      const alleys = [
+        { x: 0, z: 0, w: 3.2, d: 100 },
+        { x: 0, z: 0, w: 100, d: 3.2 }
+      ];
+      // Eight dense neighbourhoods, each made from two attached five-home terraces.
+      // Their long sides face one narrow lane; no plot-by-plot street grid remains.
+      const blockCenters = [
+        [-86, -86], [0, -86], [86, -86],
+        [-86, 0], [86, 0],
+        [-86, 86], [0, 86], [86, 86]
+      ];
+      blockCenters.forEach(([cx, cz], block) => {
+        alleys.push({ x: cx, z: cz, w: 62, d: 3.1 });
+        for (let i = 0; i < 10; i++) {
+          const terrace = Math.floor(i / 5);
+          const plotIndex = houses.length;
           houses.push({
-            id: `residence_${String(houses.length + 1).padStart(3, '0')}`,
-            kind: 'house', x: plot.x, z: plot.z, rotY,
-            scale: [.94, 1.02, .98, 1.08][index % 4]
+            id: `residence_${String(plotIndex + 1).padStart(3, '0')}`,
+            kind: 'house',
+            x: cx + (i % 5 - 2) * 11,
+            z: cz + (terrace === 0 ? -6.5 : 6.5),
+            rotY: terrace === 0 ? 0 : Math.PI,
+            scale: 1,
+            floors: 1 + ((i + block) % 3),
+            block
           });
         }
+      });
+      const marketPlots = [
+        { x: 30.5, z: -30.5, rotY: 0, interactPos: { x: 24.8, z: -24 } },
+        { x: -30.5, z: 30.5, rotY: Math.PI, interactPos: { x: -24.8, z: 24 } },
+        { x: -8.5, z: 30.5, rotY: Math.PI },
+        { x: 8.5, z: 30.5, rotY: Math.PI },
+        { x: 30.5, z: 30.5, rotY: Math.PI, interactPos: { x: 24.8, z: 24 } },
+        { x: -30.5, z: -8.5, rotY: Math.PI / 2 },
+        { x: -30.5, z: 8.5, rotY: Math.PI / 2 },
+        { x: -30.5, z: 19.5, rotY: Math.PI / 2 },
+        { x: 30.5, z: -19.5, rotY: -Math.PI / 2 },
+        { x: 30.5, z: -8.5, rotY: -Math.PI / 2 },
+        { x: 30.5, z: 8.5, rotY: -Math.PI / 2 },
+        { x: 30.5, z: 19.5, rotY: -Math.PI / 2 },
+        { x: 0, z: -56, rotY: 0 },
+        { x: 0, z: 56, rotY: Math.PI }
+      ];
+      const shops = marketPlots.map((plot, shopIndex) => {
+        const title = DISTRICT_SHOP_NAMES[shopIndex];
+        return {
+          id: `district_shop_${String(shopIndex + 1).padStart(2, '0')}`,
+          title,
+          alleyName: 'محله‌ی بازار بزرگ پارس',
+          pos: { x: plot.x, z: plot.z },
+          rotY: plot.rotY,
+          roofColor: DISTRICT_SHOP_COLORS[shopIndex % DISTRICT_SHOP_COLORS.length],
+          carpetColor: 0x7c2d12,
+          interactPos: plot.interactPos || null,
+          greeting: `به ${title} خوش آمدید! کالاها و پیشنهادهای این حجره به‌زودی کامل‌تر می‌شوند.`,
+          kind: 'shop',
+          district: true
+        };
       });
       if (houses.length !== 80 || shops.length !== 14) {
         throw new Error(`Village plot invariant failed: ${houses.length} houses / ${shops.length} new shops`);
       }
-      return { houses, shops, buildingCount: 100, shopCount: 20, npcCount: 20 };
+      return { houses, shops, alleys, mainRoadOffset: 44, buildingCount: 100, shopCount: 20, npcCount: 20 };
     }
 
     const VILLAGE_DISTRICT_PLAN = createExpandedVillagePlan();
@@ -2073,7 +2087,9 @@
 
       const frontDistance = 5.2 * (shopDef.id === 'blacksmith' ? 1 : villageKit.districtBuildingScale);
       const frontOffset = new THREE.Vector3(0, 0, frontDistance).applyAxisAngle(new THREE.Vector3(0, 1, 0), shopDef.rotY || 0);
-      const interactPos = new THREE.Vector3(shopDef.pos.x, 0, shopDef.pos.z).add(frontOffset);
+      const interactPos = shopDef.interactPos
+        ? new THREE.Vector3(shopDef.interactPos.x, 0, shopDef.interactPos.z)
+        : new THREE.Vector3(shopDef.pos.x, 0, shopDef.pos.z).add(frontOffset);
       villageShopNodes.push({ def: shopDef, group: g, interactPos });
       return g;
     }
@@ -2255,6 +2271,8 @@
       state.currentZone = zoneId;
       state.dungeonTier = tier;
       portalCooldown = 2.2;
+      heroMoveSpeed = 0;
+      heroMoveDirection.set(0, 0, 0);
       stage.dataset.zone = zoneId;
       villageKit.reset();
       villageKit.applyLighting(zoneId, scene, hemiLight, dirLight, renderer);
@@ -2287,39 +2305,29 @@
         ground.receiveShadow = true;
         mapRoot.add(ground);
 
-        // 2. Cobblestone Alleys Network (شبکه سنگفرش کوچه‌ها و خیابان‌های روستا)
-        // Main East-West Bazaar Street
-        const mainStreetEW = new THREE.Mesh(new THREE.BoxGeometry(252, 0.14, 6), villageKit.materials.road);
-        mainStreetEW.position.set(0, 0.07, 0);
-        mainStreetEW.receiveShadow = true;
-        // Main North-South Bazaar Street
-        const mainStreetNS = new THREE.Mesh(new THREE.BoxGeometry(6, 0.14, 252), villageKit.materials.road);
-        mainStreetNS.position.set(0, 0.07, 0);
-        mainStreetNS.receiveShadow = true;
-        // The central lanes line up with the expanded plot grid.
-        const northAlley = new THREE.Mesh(new THREE.BoxGeometry(220, 0.15, 4.2), villageKit.materials.road);
-        northAlley.position.set(0, 0.08, -18);
-        const southAlley = new THREE.Mesh(new THREE.BoxGeometry(220, 0.15, 4.2), villageKit.materials.road);
-        southAlley.position.set(0, 0.08, 18);
-        const westAlley = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.15, 220), villageKit.materials.road);
-        westAlley.position.set(-18, 0.08, 0);
-        const eastAlley = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.15, 220), villageKit.materials.road);
-        eastAlley.position.set(18, 0.08, 0);
-
-        mapRoot.add(mainStreetEW, mainStreetNS, northAlley, southAlley, westAlley, eastAlley);
-
-        // Cobblestone roads run between every row and column of plots. They
-        // are simple shared-material meshes; the detailed houses are instanced.
+        // 2. Exactly four broad boulevards form a readable ring around the bazaar.
+        // The only other paved routes are the intentionally narrow residential alleys.
         const districtRoads = new THREE.Group();
-        districtRoads.name = '100-plot cobblestone road network';
-        for (let i = 0; i <= 14; i++) {
-          const offset = -126 + i * 18;
-          const vertical = new THREE.Mesh(new THREE.BoxGeometry(4.2, .1, 252), villageKit.materials.road);
-          vertical.position.set(offset, .055, 0);
-          const horizontal = new THREE.Mesh(new THREE.BoxGeometry(252, .1, 4.2), villageKit.materials.road);
-          horizontal.position.set(0, .056, offset);
+        districtRoads.name = 'Four main boulevards and narrow residential alleys';
+        const roadOffset = VILLAGE_DISTRICT_PLAN.mainRoadOffset;
+        [-roadOffset, roadOffset].forEach(offset => {
+          const vertical = new THREE.Mesh(new THREE.BoxGeometry(7.4, .14, 252), villageKit.materials.road);
+          vertical.position.set(offset, .07, 0);
+          vertical.receiveShadow = true;
+          vertical.userData.roadKind = 'main';
+          const horizontal = new THREE.Mesh(new THREE.BoxGeometry(252, .14, 7.4), villageKit.materials.road);
+          horizontal.position.set(0, .075, offset);
+          horizontal.receiveShadow = true;
+          horizontal.userData.roadKind = 'main';
           districtRoads.add(vertical, horizontal);
-        }
+        });
+        VILLAGE_DISTRICT_PLAN.alleys.forEach(alley => {
+          const lane = new THREE.Mesh(new THREE.BoxGeometry(alley.w, .11, alley.d), villageKit.materials.road);
+          lane.position.set(alley.x, .06, alley.z);
+          lane.receiveShadow = true;
+          lane.userData.roadKind = 'alley';
+          districtRoads.add(lane);
+        });
         mapRoot.add(districtRoads);
 
         // 3. Central Octagonal Plaza & Healing Fountain (میدان مرکزی و چشمه شفا)
@@ -2346,17 +2354,16 @@
           addOrientedCollider(plot.x, plot.z, 4.7 * plot.scale * buildingScale, 3.75 * plot.scale * buildingScale, plot.rotY);
         });
 
-        // 6. Overhead Alley Arches (ساباط‌ها و طاق‌های سنتی بالای کوچه‌ها)
+        // 6. One sabat marks each boulevard; narrow lanes stay open and passable.
         mapRoot.add(
-          buildAlleyArchSabat3D(0, -18, 12, 0),
-          buildAlleyArchSabat3D(-18, -6, 11, Math.PI / 2),
-          buildAlleyArchSabat3D(18, -6, 11, Math.PI / 2),
-          buildAlleyArchSabat3D(-18, 0, 12, Math.PI / 2),
-          buildAlleyArchSabat3D(18, 0, 12, Math.PI / 2)
+          buildAlleyArchSabat3D(-44, 0, 12, 0),
+          buildAlleyArchSabat3D(44, -22, 12, 0),
+          buildAlleyArchSabat3D(-20, -44, 12, Math.PI / 2),
+          buildAlleyArchSabat3D(20, 44, 12, Math.PI / 2)
         );
 
-        // 7. Cypress Trees along the Courtyards
-        [[-38, 6], [38, 6], [-10, 24], [10, 24], [-42, -4], [42, -4]].forEach(([tx, tz]) => {
+        // 7. Cypress Trees in the small market courts, never inside the narrow lanes.
+        [[-19.5, -19.5], [19.5, -19.5], [-19.5, 19.5], [19.5, 19.5], [-54, 5], [54, -5]].forEach(([tx, tz]) => {
           mapRoot.add(buildCypress3D(tx, 0, tz, 0.95));
         });
 
@@ -2364,7 +2371,7 @@
         VILLAGE_QUEST_NPCS.forEach(spawnQuestNPC);
 
         // 9. East Gate Portal to OpenWorld
-        const pOut = buildPortal3D(62, 0, 0, MATS.turquoiseTile, '➡️ دروازه خروج به جهان باز (میدان شکار)', '#38bdf8', 'open_world', 1);
+        const pOut = buildPortal3D(44, 0, 0, MATS.turquoiseTile, '➡️ دروازه خروج به جهان باز (میدان شکار)', '#38bdf8', 'open_world', 1);
         pOut.rotation.y = -Math.PI / 2;
         mapRoot.add(pOut);
 
@@ -2559,7 +2566,7 @@
           state.party[s].roleIndex = (state.party[s].roleIndex + 1) % ROLES.length;
           const newRole = ROLES[state.party[s].roleIndex];
           if (state.party[s].mesh && state.party[s].mesh.userData.armorMesh) {
-            state.party[s].mesh.userData.armorMesh.material.color.setHex(newRole.color);
+            state.party[s].mesh.userData.armorMesh.material.color.setHex(newRole.color).lerp(new THREE.Color(0x9a9b96), .68);
             state.party[s].mesh.userData.labelRef.el.textContent = `${state.party[s].name} (${newRole.title})`;
           }
           renderPartyHUD();
@@ -3746,6 +3753,8 @@
     const joyKnob = document.getElementById('joystick-knob');
     let joyVec = { x: 0, y: 0 };
     let joyActive = false;
+    let heroMoveSpeed = 0;
+    const heroMoveDirection = new THREE.Vector3();
 
     function updateJoystick(cxClient, cyClient) {
       const rect = joyZone.getBoundingClientRect();
@@ -3798,19 +3807,21 @@
         : { x: ((pos.x + 85) / 170) * w, y: ((pos.z + 55) / 110) * h };
 
       if (state.currentZone === 'village') {
-        // Expanded plot grid and the two main streets.
-        mmCtx.fillStyle = '#78716c';
-        for (let i = 0; i <= 14; i++) {
-          const offset = -126 + i * 18;
-          const v = toMM({ x: offset, z: 0 });
-          const hzl = toMM({ x: 0, z: offset });
-          mmCtx.fillRect(v.x - 1, 0, 2, h);
-          mmCtx.fillRect(0, hzl.y - 1, w, 2);
-        }
-        mmCtx.fillStyle = '#a29a8a';
-        const center = toMM({ x: 0, z: 0 });
-        mmCtx.fillRect(center.x - 2, 0, 4, h);
-        mmCtx.fillRect(0, center.y - 2, w, 4);
+        // Four boulevards are bright; the ten narrow lanes remain subtle.
+        const roadOffset = VILLAGE_DISTRICT_PLAN.mainRoadOffset;
+        mmCtx.fillStyle = '#aaa18e';
+        [-roadOffset, roadOffset].forEach(offset => {
+          const vertical = toMM({ x: offset, z: 0 });
+          const horizontal = toMM({ x: 0, z: offset });
+          mmCtx.fillRect(vertical.x - 2, 0, 4, h);
+          mmCtx.fillRect(0, horizontal.y - 2, w, 4);
+        });
+        mmCtx.fillStyle = '#6f6a61';
+        VILLAGE_DISTRICT_PLAN.alleys.forEach(alley => {
+          const topLeft = toMM({ x: alley.x - alley.w / 2, z: alley.z - alley.d / 2 });
+          const bottomRight = toMM({ x: alley.x + alley.w / 2, z: alley.z + alley.d / 2 });
+          mmCtx.fillRect(topLeft.x, topLeft.y, Math.max(1, bottomRight.x - topLeft.x), Math.max(1, bottomRight.y - topLeft.y));
+        });
 
         // Residences are subtle, merchants are gold, and quest NPCs are pink.
         mmCtx.fillStyle = 'rgba(190,178,145,.42)';
@@ -4008,6 +4019,8 @@
 
       // 1. Local Hero Movement with Alley Wall Sliding Collision
       if (leader.mesh) {
+        const previousHeroX = leader.mesh.position.x;
+        const previousHeroZ = leader.mesh.position.z;
         let mx = joyVec.x;
         let mz = joyVec.y;
         if (keys['KeyW'] || keys['ArrowUp']) mz -= 1;
@@ -4033,14 +4046,21 @@
         }
 
         const len = Math.hypot(mx, mz);
-        if (len > 0.05) {
-          mx /= Math.max(1, len);
-          mz /= Math.max(1, len);
-          const speed = 24;
-          const tryX = THREE.MathUtils.clamp(leader.mesh.position.x + mx * speed * dt, -130, 130);
-          const tryZ = THREE.MathUtils.clamp(leader.mesh.position.z + mz * speed * dt, -130, 130);
+        const inputStrength = Math.min(1, len);
+        const walkingSpeed = state.currentZone === 'village' ? 4.4 : 6.0;
+        const targetSpeed = len > .05 ? walkingSpeed * inputStrength : 0;
+        const acceleration = targetSpeed > heroMoveSpeed ? 6.5 : 10;
+        heroMoveSpeed += (targetSpeed - heroMoveSpeed) * (1 - Math.exp(-dt * acceleration));
+        if (heroMoveSpeed < .005) heroMoveSpeed = 0;
+        if (len > .05) {
+          heroMoveDirection.set(mx / Math.max(1, len), 0, mz / Math.max(1, len));
+        }
 
-          // Slide along X and Z independently against village house/shop colliders
+        if (heroMoveSpeed > 0 && heroMoveDirection.lengthSq() > 0) {
+          const tryX = THREE.MathUtils.clamp(leader.mesh.position.x + heroMoveDirection.x * heroMoveSpeed * dt, -130, 130);
+          const tryZ = THREE.MathUtils.clamp(leader.mesh.position.z + heroMoveDirection.z * heroMoveSpeed * dt, -130, 130);
+
+          // Slide along X and Z independently against village house/shop colliders.
           if (!isBlockedByBuilding(tryX, leader.mesh.position.z)) {
             if (!(state.currentZone === 'open_world' && Math.abs(tryX) < 7.2 && Math.abs(leader.mesh.position.z) > 7.2)) {
               leader.mesh.position.x = tryX;
@@ -4050,9 +4070,14 @@
             leader.mesh.position.z = tryZ;
           }
 
-          leader.mesh.position.y = (state.currentZone === 'open_world' && leader.mesh.position.x > 7) ? 1.2 : 0;
-          leader.mesh.rotation.y = Math.atan2(mx, mz);
+          const targetYaw = Math.atan2(heroMoveDirection.x, heroMoveDirection.z);
+          const yawDelta = Math.atan2(Math.sin(targetYaw - leader.mesh.rotation.y), Math.cos(targetYaw - leader.mesh.rotation.y));
+          leader.mesh.rotation.y += yawDelta * (1 - Math.exp(-dt * 14));
         }
+        leader.mesh.position.y = (state.currentZone === 'open_world' && leader.mesh.position.x > 7) ? 1.2 : 0;
+        const actualSpeed = Math.hypot(leader.mesh.position.x - previousHeroX, leader.mesh.position.z - previousHeroZ) / Math.max(dt, .001);
+        leader.mesh.userData.locomotionSpeed = actualSpeed;
+        if (leader.mesh.userData.updateLocomotion) leader.mesh.userData.updateLocomotion(dt, actualSpeed);
 
         leader.mesh.userData.labelRef.pos.set(
           leader.mesh.position.x,
