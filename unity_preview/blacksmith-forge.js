@@ -298,6 +298,67 @@ export function createBlacksmithForgeBuilder(THREE) {
     mesh(parent, new THREE.PlaneGeometry(2.65, .42), material, 0, 4.45, 4.9, false);
   }
 
+  function makeBrazier(parent, x, y, z, scale = 1) {
+    const group = new THREE.Group();
+    group.name = 'Exterior forged brazier';
+    group.position.set(x, y, z);
+    group.scale.setScalar(scale);
+    cylinder(group, .58, .4, .3, materials.iron, 0, 1.02, 0, 16);
+    const rim = mesh(group, new THREE.TorusGeometry(.53, .055, 8, 20), materials.iron, 0, 1.18, 0);
+    rim.rotation.x = Math.PI / 2;
+    for (let i = 0; i < 4; i++) {
+      const a = i * Math.PI / 2 + Math.PI / 4;
+      beam(group, new THREE.Vector3(Math.cos(a) * .34, .98, Math.sin(a) * .34),
+        new THREE.Vector3(Math.cos(a) * .48, .12, Math.sin(a) * .48), .085, materials.iron);
+    }
+    for (let i = 0; i < 7; i++) {
+      const a = i * Math.PI * 2 / 7;
+      const coal = mesh(group, new THREE.DodecahedronGeometry(.13 + (i % 2) * .035, 0),
+        i % 3 === 0 ? materials.ember : materials.coal,
+        Math.cos(a) * .32, 1.2 + (i % 2) * .035, Math.sin(a) * .32, false);
+      coal.rotation.set(random(), random(), random());
+    }
+    parent.add(group);
+  }
+
+  function makeExteriorDetails(parent) {
+    // Dressed voussoirs make the entrance read as a built stone arch, while
+    // the actual door and its independent hinge remain untouched.
+    for (let i = 0; i < 7; i++) {
+      const stone = box(parent, .62, .42, .32, materials.stoneBlock,
+        -1.86 + i * .62, 4.22 + Math.abs(i - 3) * .035, 4.35);
+      stone.rotation.z = (i - 3) * .075;
+    }
+
+    // A small forged medallion and spokes give the closed gable a readable
+    // silhouette at the normal village camera distance.
+    mesh(parent, new THREE.TorusGeometry(.36, .045, 8, 20), materials.gold, 0, 6.35, 4.34);
+    for (let i = 0; i < 4; i++) {
+      const spoke = box(parent, .055, .62, .055, materials.gold, 0, 6.35, 4.38);
+      spoke.rotation.z = i * Math.PI / 4;
+    }
+
+    // Ridge finials finish both ends of the now permanently closed roof.
+    [-1, 1].forEach(side => {
+      cylinder(parent, .075, .075, .38, materials.iron, 0, 7.91, side * 4.45, 10);
+      mesh(parent, new THREE.ConeGeometry(.16, .48, 6), materials.gold, 0, 8.29, side * 4.45);
+    });
+
+    // Extra hand-forged fasteners on the front posts; all use the existing
+    // metal PBR material and are merged with the static architecture later.
+    [-1, 1].forEach(side => {
+      for (let i = 0; i < 4; i++) {
+        const rivet = cylinder(parent, .05, .05, .075, materials.iron,
+          side * 4.56, 1.15 + i * .9, 4.19, 8);
+        rivet.rotation.x = Math.PI / 2;
+      }
+    });
+
+    // The purchase screen replaces the interior, so the working fire belongs
+    // outside where it is visible from the street and the approach camera.
+    makeBrazier(parent, 2.2, 0, 4.95, 1);
+  }
+
   function makeParticleCloud(parent, kind, count, origin) {
     const positions = new Float32Array(count * 3);
     const ages = new Float32Array(count);
@@ -331,11 +392,11 @@ export function createBlacksmithForgeBuilder(THREE) {
     group.position.set(shopDef.pos.x, 0, shopDef.pos.z);
     group.rotation.y = shopDef.rotY || 0;
     const architecture = new THREE.Group(); architecture.name = 'Forge static architecture and props';
-    const roof = new THREE.Group(); roof.name = 'Forge independently culled interior roof';
+    const roof = new THREE.Group(); roof.name = 'Forge closed exterior roof — never culled for interior view';
     const dynamic = new THREE.Group(); dynamic.name = 'Forge animated door lights and FX';
     group.add(architecture, roof, dynamic);
 
-    // Walkable shell: the 2.8 m entrance is a real opening, not a painted doorway.
+    // Closed exterior shell: the purchase UI replaces interior traversal.
     box(architecture, 9.55, .16, 7.65, materials.stone, 0, .015, 0);
     box(architecture, .46, 3.86, 7.7, materials.stone, -4.75, 2.66, 0);
     box(architecture, .46, 3.86, 7.7, materials.stone, 4.75, 2.66, 0);
@@ -449,6 +510,7 @@ export function createBlacksmithForgeBuilder(THREE) {
     makeWindow(architecture, 3.15, 2.38, 4.19);
     makeWindow(architecture, -5.14, 2.5, -.9, -Math.PI / 2);
     makeWindow(architecture, 5.14, 2.5, -.9, Math.PI / 2);
+    makeExteriorDetails(architecture);
 
     // Stone chimney with soot-dark outlet.
     box(architecture, 1.22, 4.9, 1.22, materials.stoneDark, -3, 7.15, -1.8);
@@ -496,21 +558,7 @@ export function createBlacksmithForgeBuilder(THREE) {
     }
     for (let i = 0; i < 7; i++) box(architecture, .38, .14, 1.05, materials.iron, 7.7 + (i % 2) * .42, .12 + Math.floor(i / 2) * .16, 1.9);
 
-    // Walkable active workshop interior.
-    box(architecture, 2.25, 1.3, 1.45, materials.stoneDark, -3, .66, -2.65);
-    box(architecture, 2.05, 3.35, .95, materials.stone, -3, 2.88, -3.15);
-    box(architecture, 1.45, .86, .12, materials.coal, -3, .86, -1.9);
-    for (let i = 0; i < 9; i++) {
-      const coal = mesh(architecture, new THREE.SphereGeometry(.19, 8, 6), materials.ember, -3.52 + (i % 3) * .5, .47 + Math.floor(i / 3) * .07, -1.8 + (i % 2) * .12, false);
-      coal.scale.y = .48;
-    }
-    cylinder(architecture, .5, .56, .84, materials.woodDark, .25, .42, -1.35, 14);
-    makeAnvil(architecture, .25, .82, -1.35, 1.12);
-    box(architecture, 2.75, .22, 1.15, materials.wood, 2.95, 1.02, -2.75);
-    [-1, 1].forEach(x => [-1, 1].forEach(z => box(architecture, .2, 1, .2, materials.woodDark, 2.95 + x * 1.08, .5, -2.75 + z * .39)));
-    makeSword(architecture, 2.45, 1.18, -2.65, .72, 1.25);
-    box(architecture, 3.25, .18, .16, materials.woodDark, 1.45, 2.3, -3.55);
-    for (let i = 0; i < 5; i++) makeSword(architecture, .25 + i * .58, 1.15, -3.4, .58 + (i % 2) * .08, (i - 2) * .06);
+    // Exterior-only presentation: no walkable workshop interior is built.
 
     // Cobbled foreground, moss, puddles and ingots leave the entrance clear.
     box(architecture, 16, .12, 8.5, materials.cobble, 1.2, .015, 6.4, false);
@@ -533,13 +581,13 @@ export function createBlacksmithForgeBuilder(THREE) {
     makeLantern(dynamic, 1.98, 3.15, 4.55, true, lanterns);
     const flames = [];
     for (let i = 0; i < 6; i++) {
-      const flame = mesh(dynamic, new THREE.ConeGeometry(.16, .85 + (i % 3) * .16, 8), materials.ember,
-        -3.45 + (i % 3) * .43, .85 + (i % 2) * .12, -1.72 + Math.floor(i / 3) * .08, false);
+      const flame = mesh(dynamic, new THREE.ConeGeometry(.13, .55 + (i % 3) * .12, 8), materials.ember,
+        2.02 + (i % 3) * .18, 1.28 + (i % 2) * .08, 4.82 + Math.floor(i / 3) * .16, false);
       flames.push({ mesh: flame, base: flame.scale.clone(), phase: random() * 6 });
     }
-    const fireLight = new THREE.PointLight(0xff6a28, 32, 16, 2); fireLight.position.set(-3, 1.5, -1.3); dynamic.add(fireLight);
+    const fireLight = new THREE.PointLight(0xff6a28, 32, 16, 2); fireLight.position.set(2.2, 1.65, 4.95); dynamic.add(fireLight);
     const smoke = makeParticleCloud(dynamic, 'smoke', 18, new THREE.Vector3(-3, 10.02, -1.8));
-    const sparks = makeParticleCloud(dynamic, 'spark', 14, new THREE.Vector3(-3, .75, -1.65));
+    const sparks = makeParticleCloud(dynamic, 'spark', 14, new THREE.Vector3(2.2, 1.25, 4.95));
 
     mergeStatic(architecture);
     mergeStatic(roof);
@@ -568,19 +616,17 @@ export function createBlacksmithForgeBuilder(THREE) {
   function update(elapsed, dt, heroPosition) {
     forges.forEach(forge => {
       let near = false;
-      let inside = false;
       if (heroPosition) {
         temp.copy(heroPosition);
         forge.group.worldToLocal(temp);
         const dx = temp.x;
         const dz = temp.z - 3.2;
         near = dx * dx + dz * dz < 72;
-        inside = Math.abs(temp.x) < 4.35 && temp.z > -3.45 && temp.z < 3.75;
       }
       const target = near ? 1 : 0;
       forge.open += (target - forge.open) * (1 - Math.exp(-dt * 4.6));
       forge.door.rotation.y = forge.open * 108 * Math.PI / 180;
-      forge.roof.visible = !inside;
+      forge.roof.visible = true; // Exterior-only: never cut away the closed roof.
       forge.lanterns.forEach(item => {
         const flicker = 1 + Math.sin(elapsed * 8.2 + item.phase) * .055 + Math.sin(elapsed * 17.1 + item.phase) * .025;
         item.glow.scale.setScalar(flicker);

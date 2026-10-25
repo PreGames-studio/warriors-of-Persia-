@@ -4,7 +4,8 @@
 Quality contract:
 - every primary PBR map must already be 2048x2048;
 - no source map is resized, downsampled, or converted to JPEG;
-- albedo, normal and FX PNG bytes are embedded unchanged;
+- primary albedo/normal/ORM pixels are preserved exactly with lossless WebP;
+- FX PNG bytes are embedded unchanged;
 - only the ORM channel packing is derived, at the same 2K resolution.
 
 Requires Pillow, like the other texture generators in Tools/.
@@ -25,8 +26,15 @@ SIZE = (2048, 2048)
 FAMILIES = ("stone", "wood", "metal", "roof", "cobble")
 
 
-def data_uri(data: bytes) -> str:
-    return "data:image/png;base64," + base64.b64encode(data).decode("ascii")
+def data_uri(data: bytes, mime: str = "image/png") -> str:
+    return f"data:{mime};base64," + base64.b64encode(data).decode("ascii")
+
+
+def lossless_webp(image: Image.Image) -> bytes:
+    """Compress without changing a pixel or reducing the authored resolution."""
+    output = io.BytesIO()
+    image.save(output, format="WEBP", lossless=True, quality=100, method=6)
+    return output.getvalue()
 
 
 def source_bytes(name: str) -> bytes:
@@ -34,7 +42,7 @@ def source_bytes(name: str) -> bytes:
     with Image.open(path) as image:
         if image.size != SIZE:
             raise ValueError(f"{path} must be {SIZE}, got {image.size}; refusing to resize it")
-    return path.read_bytes()
+        return lossless_webp(image.convert("RGB"))
 
 
 def make_orm(stem: str) -> bytes:
@@ -49,18 +57,16 @@ def make_orm(stem: str) -> bytes:
         # Three.js roughness is the inverse of Unity smoothness.
         roughness = smoothness.point(lambda value: 255 - value)
         orm = Image.merge("RGB", (ao, roughness, red))
-        output = io.BytesIO()
-        orm.save(output, format="PNG", optimize=True)
-        return output.getvalue()
+        return lossless_webp(orm)
 
 
 def main() -> None:
     pbr = {}
     for stem in FAMILIES:
         pbr[stem] = {
-            "albedo": data_uri(source_bytes(f"{stem}_albedo.png")),
-            "normal": data_uri(source_bytes(f"{stem}_normal.png")),
-            "orm": data_uri(make_orm(stem)),
+            "albedo": data_uri(source_bytes(f"{stem}_albedo.png"), "image/webp"),
+            "normal": data_uri(source_bytes(f"{stem}_normal.png"), "image/webp"),
+            "orm": data_uri(make_orm(stem), "image/webp"),
         }
 
     # These are intentionally small particle sprites, not primary PBR maps.
@@ -72,7 +78,7 @@ def main() -> None:
 
     header = (
         "// Generated from the original local Unity blacksmith PBR maps.\n"
-        "// Quality lock: primary albedo/normal/ORM maps are lossless 2048x2048; no resize or JPEG.\n"
+        "// Quality lock: primary albedo/normal/ORM maps are lossless 2048x2048 WebP; no resize or JPEG.\n"
         "// Three.js ORM channels: R = AO, G = roughness, B = metalness.\n"
         "// Data URIs keep the Android WebView build completely offline.\n"
     )
@@ -85,7 +91,7 @@ def main() -> None:
         + ";\n",
         encoding="utf-8",
     )
-    print(f"Exported {len(FAMILIES)} lossless 2K PBR sets to {DESTINATION}")
+    print(f"Exported {len(FAMILIES)} lossless 2K WebP PBR sets to {DESTINATION}")
     print(f"WebView texture module: {DESTINATION.stat().st_size:,} bytes")
 
 

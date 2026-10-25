@@ -1912,7 +1912,8 @@
       const g = villageKit.buildShop(shopDef);
 
       if (shopDef.id === 'blacksmith') {
-        // Real wall colliders preserve the doorway and the walkable workshop interior.
+        // Exterior-only: the purchase UI replaces interior traversal. Keep the
+        // visible door animated, but do not let the player enter an empty shell.
         const angle = shopDef.rotY || 0;
         const c = Math.cos(angle), s = Math.sin(angle);
         const addLocalWall = (x, z, halfW, halfD) => {
@@ -1926,6 +1927,7 @@
         addLocalWall(0, -3.85, 4.78, .23);
         addLocalWall(-3.18, 3.85, 1.6, .23);
         addLocalWall(3.18, 3.85, 1.6, .23);
+        addLocalWall(0, 3.85, 1.6, .23);
       } else {
         // Collider for the back building (leaving the front rug & counter walkable!)
         addColliderBox(shopDef.pos.x, shopDef.pos.z - 1.5, 5.2, 3.2);

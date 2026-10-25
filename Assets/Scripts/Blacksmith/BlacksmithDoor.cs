@@ -3,18 +3,15 @@ using UnityEngine;
 
 namespace WarriorsOfPersia.Blacksmith
 {
-    /// <summary>Proximity-driven, animated and mobile-friendly entrance to the physical workshop.</summary>
+    /// <summary>Proximity-driven exterior door; the purchase UI replaces interior traversal.</summary>
     public sealed class BlacksmithDoor : MonoBehaviour
     {
         public float openAngle = 108f;
         public float rotationResponse = 4.6f;
         public bool IsOpen { get; private set; }
-        public bool IsInside { get; private set; }
-        public event Action PlayerEnteredInterior;
         public event Action<string> StatusChanged;
 
         private Quaternion closedRotation;
-        private bool approaching;
         private bool configured;
 
         public void Configure()
@@ -23,7 +20,6 @@ namespace WarriorsOfPersia.Blacksmith
             configured = true;
             closedRotation = transform.localRotation;
             CreateTrigger("Door approach trigger", new Vector3(1.4f, 1.65f, .75f), new Vector3(4.9f, 3.3f, 3.6f), false);
-            CreateTrigger("Workshop interior trigger", new Vector3(1.4f, 1.55f, -2.15f), new Vector3(3.4f, 3.1f, 2.5f), true);
         }
 
         public void SetOpen(bool open)
@@ -33,7 +29,7 @@ namespace WarriorsOfPersia.Blacksmith
 
         private void Start()
         {
-            // A scene saved from the editor already contains its two trigger children.
+            // A scene saved from the editor already contains its approach trigger.
             if (!configured)
             {
                 configured = true;
@@ -72,25 +68,13 @@ namespace WarriorsOfPersia.Blacksmith
         internal void Approach(Collider other, bool entered)
         {
             if (!IsPlayer(other)) return;
-            approaching = entered;
-            SetOpen(entered || IsInside);
+            SetOpen(entered);
             if (entered) StatusChanged?.Invoke("KAVEH'S FORGE  •  DOOR OPEN");
         }
 
-        internal void Interior(Collider other, bool entered)
-        {
-            if (!IsPlayer(other)) return;
-            IsInside = entered;
-            SetOpen(entered || approaching);
-            if (entered)
-            {
-                StatusChanged?.Invoke("KAVEH'S FORGE  •  WORKSHOP ENTERED");
-                PlayerEnteredInterior?.Invoke();
-            }
-        }
     }
 
-    /// <summary>Separates the approach and interior volumes while keeping the door itself independently editable.</summary>
+    /// <summary>Keeps the approach volume independent from the rotating exterior door.</summary>
     public sealed class BlacksmithTriggerRelay : MonoBehaviour
     {
         public BlacksmithDoor door;
@@ -99,15 +83,14 @@ namespace WarriorsOfPersia.Blacksmith
         private void OnTriggerEnter(Collider other)
         {
             if (door == null) return;
-            if (interior) door.Interior(other, true);
-            else door.Approach(other, true);
+            // Legacy serialized interior relays are intentionally inert.
+            if (!interior) door.Approach(other, true);
         }
 
         private void OnTriggerExit(Collider other)
         {
             if (door == null) return;
-            if (interior) door.Interior(other, false);
-            else door.Approach(other, false);
+            if (!interior) door.Approach(other, false);
         }
     }
 }

@@ -70,7 +70,7 @@ namespace WarriorsOfPersia.Blacksmith
             BuildChimney();
             BuildWeaponDisplays();
             BuildAwningAndArmor();
-            BuildInterior();
+            BuildExteriorDetails();
             BuildStreet();
             BuildNeighbors();
             BuildAtmosphere();
@@ -82,7 +82,7 @@ namespace WarriorsOfPersia.Blacksmith
         private void BuildArchitecture()
         {
             Transform root = Group("Architecture • stone shell and oak frame", staticRoot);
-            Box("Interior flagstone floor", root, new Vector3(0f, .015f, 0f), new Vector3(9.55f, .16f, 7.65f), materials.StoneWall, null, true);
+            Box("Foundation flagstone floor", root, new Vector3(0f, .015f, 0f), new Vector3(9.55f, .16f, 7.65f), materials.StoneWall, null, true);
 
             // Two irregular courses of individual foundation blocks; the doorway stays clear.
             for (int row = 0; row < 2; row++)
@@ -144,6 +144,14 @@ namespace WarriorsOfPersia.Blacksmith
             Box("Rear gable tie beam", root, new Vector3(0f, 4.52f, -4.09f), new Vector3(9.65f, .31f, .35f), materials.WoodDark);
             BeamBetween("Gable king post", root, new Vector3(0f, 4.52f, 4.12f), new Vector3(0f, 7.28f, 4.12f), .24f, materials.WoodDark);
             Box("Worn stone threshold", root, new Vector3(0f, .09f, 4.06f), new Vector3(2.85f, .18f, .75f), materials.StoneBlock, null, true);
+
+            // The shop UI replaces interior traversal. This collision-only
+            // blocker leaves the animated door visible but keeps the player outside.
+            GameObject entranceCollision = new GameObject("Exterior-only entrance collision");
+            entranceCollision.transform.SetParent(root, false);
+            entranceCollision.transform.localPosition = new Vector3(0f, 1.9f, 3.85f);
+            BoxCollider entranceCollider = entranceCollision.AddComponent<BoxCollider>();
+            entranceCollider.size = new Vector3(3.2f, 3.8f, .46f);
 
             for (int i = 0; i < 9; i++)
             {
@@ -416,52 +424,71 @@ namespace WarriorsOfPersia.Blacksmith
             CreateBarrel(root, new Vector3(6.65f, 0f, 3.6f), .85f);
         }
 
-        private void BuildInterior()
+        private void BuildExteriorDetails()
         {
-            Transform root = Group("Interior • walkable active workshop", staticRoot);
-            Box("Forge hearth base", root, new Vector3(-3f, .66f, -2.65f), new Vector3(2.25f, 1.3f, 1.45f), materials.StoneDark, null, true);
-            Box("Forge chimney breast", root, new Vector3(-3f, 2.88f, -3.15f), new Vector3(2.05f, 3.35f, .95f), materials.StoneWall);
-            Box("Sooted firebox mouth", root, new Vector3(-3f, .86f, -1.9f), new Vector3(1.45f, .86f, .12f), materials.Coal);
-            for (int i = 0; i < 9; i++)
+            Transform root = Group("Exterior details • closed roof and street forge", staticRoot);
+
+            // Dressed voussoirs give the entrance a real stone-arch silhouette.
+            for (int i = 0; i < 7; i++)
             {
-                Primitive("Glowing coal in hearth", PrimitiveType.Sphere, root,
-                    new Vector3(-3.52f + (i % 3) * .5f, .47f + (i / 3) * .07f, -1.8f + (i % 2) * .12f),
-                    new Vector3(.38f, .18f, .28f), materials.Ember);
+                Box("Entrance dressed voussoir", root,
+                    new Vector3(-1.86f + i * .62f, 4.22f + Mathf.Abs(i - 3) * .035f, 4.35f),
+                    new Vector3(.62f, .42f, .32f), materials.StoneBlock,
+                    Quaternion.Euler(0f, 0f, (i - 3) * 4.3f));
+            }
+
+            // The gable remains visible at all times; there is no interior cutaway.
+            Torus("Forged gable medallion", root, new Vector3(0f, 6.35f, 4.34f),
+                new Vector3(.36f, .36f, .36f), materials.Gold);
+            for (int i = 0; i < 4; i++)
+            {
+                Box("Gable medallion spoke", root, new Vector3(0f, 6.35f, 4.38f),
+                    new Vector3(.055f, .62f, .055f), materials.Gold,
+                    Quaternion.Euler(0f, 0f, i * 45f));
+            }
+            for (int side = -1; side <= 1; side += 2)
+            {
+                Cylinder("Ridge finial stem", root, new Vector3(0f, 7.91f, side * 4.45f),
+                    new Vector3(.15f, .38f, .15f), materials.Iron);
+                Cone("Ridge finial tip", root, new Vector3(0f, 8.29f, side * 4.45f),
+                    new Vector3(.32f, .48f, .32f), materials.Gold);
+                for (int i = 0; i < 4; i++)
+                    Rivet(root, new Vector3(side * 4.56f, 1.15f + i * .9f, 4.19f));
+            }
+
+            // A working brazier replaces the hidden interior hearth. Its flames,
+            // light and embers are visible from the street and the approach camera.
+            Transform brazier = Group("Exterior forged brazier", root);
+            brazier.localPosition = new Vector3(2.2f, 0f, 4.95f);
+            Cylinder("Brazier iron bowl", brazier, new Vector3(0f, 1.02f, 0f),
+                new Vector3(1.16f, .3f, 1.16f), materials.Iron);
+            Torus("Brazier heavy rim", brazier, new Vector3(0f, 1.18f, 0f),
+                new Vector3(.53f, .53f, .53f), materials.Iron, Quaternion.Euler(90f, 0f, 0f));
+            for (int i = 0; i < 4; i++)
+            {
+                float angle = i * Mathf.PI * .5f + Mathf.PI * .25f;
+                BeamBetween("Brazier forged leg", brazier,
+                    new Vector3(Mathf.Cos(angle) * .34f, .98f, Mathf.Sin(angle) * .34f),
+                    new Vector3(Mathf.Cos(angle) * .48f, .12f, Mathf.Sin(angle) * .48f), .085f, materials.Iron);
+            }
+            for (int i = 0; i < 7; i++)
+            {
+                float angle = i * Mathf.PI * 2f / 7f;
+                Primitive("Brazier coal", PrimitiveType.Sphere, brazier,
+                    new Vector3(Mathf.Cos(angle) * .32f, 1.2f + (i % 2) * .035f, Mathf.Sin(angle) * .32f),
+                    new Vector3(.25f, .18f, .25f), i % 3 == 0 ? materials.Ember : materials.Coal);
             }
             for (int i = 0; i < 6; i++)
             {
-                GameObject flame = Cone("Living forge flame", dynamicRoot,
-                    new Vector3(-3.45f + (i % 3) * .43f, .85f + (i % 2) * .12f, -1.72f + (i / 3) * .08f),
-                    new Vector3(.28f, .85f + (i % 3) * .16f, .28f), materials.Ember,
+                GameObject flame = Cone("Living exterior forge flame", dynamicRoot,
+                    new Vector3(2.02f + (i % 3) * .18f, 1.28f + (i % 2) * .08f, 4.82f + (i / 3) * .16f),
+                    new Vector3(.26f, .55f + (i % 3) * .12f, .26f), materials.Ember,
                     Quaternion.Euler(Range(-9f, 9f), 0f, Range(-8f, 8f)));
                 animatedFlames.Add(flame.transform);
             }
-            PointLight(root, "Real forge illumination", new Vector3(-3f, 1.5f, -1.3f), new Color(1f, .29f, .055f), 3.1f, 11f, true);
-
-            Cylinder("Interior anvil stump", root, new Vector3(.25f, .42f, -1.35f), new Vector3(1.0f, .84f, 1.0f), materials.WoodDark);
-            CreateAnvil(root, new Vector3(.25f, .82f, -1.35f), 1.12f, true);
-            Box("Heavy workbench top", root, new Vector3(2.95f, 1.02f, -2.75f), new Vector3(2.75f, .22f, 1.15f), materials.Wood, null, true);
-            for (int x = -1; x <= 1; x += 2)
-            for (int z = -1; z <= 1; z += 2)
-            {
-                Box("Workbench leg", root, new Vector3(2.95f + x * 1.08f, .5f, -2.75f + z * .39f), new Vector3(.2f, 1f, .2f), materials.WoodDark);
-            }
-            CreateDagger(root, new Vector3(2.45f, 1.16f, -2.65f), Quaternion.Euler(78f, 12f, 88f), 2.1f);
-            Box("Smith hammer handle on bench", root, new Vector3(3.25f, 1.19f, -2.55f), new Vector3(.08f, .72f, .08f), materials.WoodLight,
-                Quaternion.Euler(75f, 0f, 62f));
-            Box("Smith hammer head on bench", root, new Vector3(3.51f, 1.22f, -2.72f), new Vector3(.48f, .21f, .22f), materials.Iron,
-                Quaternion.Euler(0f, 18f, 0f));
-            Box("Interior tool rack", root, new Vector3(1.45f, 2.3f, -3.55f), new Vector3(3.25f, .18f, .16f), materials.WoodDark);
-            for (int i = 0; i < 6; i++)
-            {
-                float x = .25f + i * .47f;
-                Cylinder("Hanging tool handle", root, new Vector3(x, 1.83f, -3.45f), new Vector3(.065f, .75f, .065f), materials.WoodLight,
-                    Quaternion.Euler(0f, 0f, Range(-8f, 8f)));
-                Box("Hanging forged tool head", root, new Vector3(x, 1.47f, -3.44f), new Vector3(.28f, .15f, .12f), materials.Iron);
-            }
-            CreateBarrel(root, new Vector3(3.85f, .12f, 2.3f), .82f);
-            CreateCrate(root, new Vector3(-3.85f, .12f, 2.1f), .75f);
-            CreateSparks(new Vector3(-3f, .85f, -1.5f));
+            PointLight(root, "Exterior brazier illumination", new Vector3(2.2f, 1.65f, 4.95f),
+                new Color(1f, .29f, .055f), 3.1f, 11f, true);
+            CreateSparks(new Vector3(2.2f, 1.25f, 4.95f));
         }
 
         private void BuildStreet()
