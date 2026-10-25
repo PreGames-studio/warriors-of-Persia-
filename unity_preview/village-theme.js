@@ -725,5 +725,5 @@ export function createPersianVillageKit(THREE) {
     }
   }
 
-  return { materials, buildHouse, buildDistrict, buildShop, buildArch, buildCypress, buildFountain, buildHero, buildVillager, populate, applyLighting, update, reset };
+  return { materials, districtBuildingScale: medievalForge.districtBuildingScale, buildHouse, buildDistrict, buildShop, buildArch, buildCypress, buildFountain, buildHero, buildVillager, populate, applyLighting, update, reset };
 }

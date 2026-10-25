@@ -363,6 +363,10 @@ export function createBlacksmithForgeBuilder(THREE) {
   // 2K PBR materials as Kaveh's forge are reused; no texture is resized or
   // replaced. Prototypes are merged once and then instanced per plot.
   const districtPrototypes = new Map();
+  // Hero head height is ~3.45 units and the forge doorway is 3.48. Scaling
+  // the district's 2.78-unit doorway by 1.25 gives the same 3.48 clearance,
+  // keeping houses, merchants, the hero and the reference forge consistent.
+  const DISTRICT_BUILDING_SCALE = 1.25;
 
   function makeDistrictPrototype(merchant = false) {
     ensureMaterials();
@@ -485,7 +489,7 @@ export function createBlacksmithForgeBuilder(THREE) {
     prototype.updateMatrixWorld(true);
     const plotMatrices = plots.map(plot => {
       const position = plotPosition(plot);
-      const scale = plot.scale || 1;
+      const scale = (plot.scale || 1) * DISTRICT_BUILDING_SCALE;
       const matrix = new THREE.Matrix4();
       matrix.compose(
         new THREE.Vector3(position.x, 0, position.z),
@@ -533,7 +537,9 @@ export function createBlacksmithForgeBuilder(THREE) {
     group.name = `${shopDef.title} • PBR merchant exterior`;
     group.position.set(shopDef.pos.x, 0, shopDef.pos.z);
     group.rotation.y = shopDef.rotY || 0;
+    group.scale.setScalar(DISTRICT_BUILDING_SCALE);
     group.userData.shopId = shopDef.id;
+    group.userData.buildingScale = DISTRICT_BUILDING_SCALE;
     return group;
   }
 
@@ -825,5 +831,5 @@ export function createBlacksmithForgeBuilder(THREE) {
     forges.length = 0;
   }
 
-  return { build, buildDistrict, buildShopExterior, update, reset };
+  return { build, buildDistrict, buildShopExterior, districtBuildingScale: DISTRICT_BUILDING_SCALE, update, reset };
 }
