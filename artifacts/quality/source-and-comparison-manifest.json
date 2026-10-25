@@ -1,0 +1,387 @@
+{
+  "method": "native procedural authoring; no upscaled source texture",
+  "preview": "software tangent-space GGX; not game/mobile benchmark",
+  "physicalCropFraction": 0.125,
+  "closeup": {
+    "physicalCropFraction": 0.03125,
+    "origin": [
+      0.275,
+      0.092
+    ]
+  },
+  "sourceMapsUnmodified": true,
+  "sets": {
+    "2048": {
+      "stone": {
+        "family": "stone",
+        "resolution": [
+          2048,
+          2048
+        ],
+        "nativeAuthoring": true,
+        "upsampled": false,
+        "encoding": "lossless WebP",
+        "channels": {
+          "albedo": "RGB",
+          "normal": "RGB",
+          "orm": "R=AO, G=roughness, B=metalness"
+        },
+        "maps": {
+          "albedo": {
+            "size": 2048,
+            "bytes": 422058,
+            "sha256": "ed282ac54c85acd4320209ed005affe5201dbdeab3df06fb81338c86692825c5"
+          },
+          "normal": {
+            "size": 2048,
+            "bytes": 932314,
+            "sha256": "3f61e618b7bb73cbf02ffe3730c8d7c2e7f232dff4591ec1e7ee04adc6e82c54"
+          },
+          "orm": {
+            "size": 2048,
+            "bytes": 132148,
+            "sha256": "198a5281c5f4a6492a75dd9a3354e8dba7f2e8dbc4e6618f5ac44a93b40fa87c"
+          }
+        }
+      },
+      "wood": {
+        "family": "wood",
+        "resolution": [
+          2048,
+          2048
+        ],
+        "nativeAuthoring": true,
+        "upsampled": false,
+        "encoding": "lossless WebP",
+        "channels": {
+          "albedo": "RGB",
+          "normal": "RGB",
+          "orm": "R=AO, G=roughness, B=metalness"
+        },
+        "maps": {
+          "albedo": {
+            "size": 2048,
+            "bytes": 1506252,
+            "sha256": "4d2ecdd12ba1301653557862b0d58cb1735bf084eaf8c2dba08f6d7e71176f73"
+          },
+          "normal": {
+            "size": 2048,
+            "bytes": 3278802,
+            "sha256": "f827a8b223abd671eb016ecc5eb8c1bfe7262dae2be50c975955380f5b31cd32"
+          },
+          "orm": {
+            "size": 2048,
+            "bytes": 531534,
+            "sha256": "0ddd5bfe9f118f7e7789e9516bbebca7ccb64a7377960e5b2d1de4fbad49aa63"
+          }
+        }
+      },
+      "metal": {
+        "family": "metal",
+        "resolution": [
+          2048,
+          2048
+        ],
+        "nativeAuthoring": true,
+        "upsampled": false,
+        "encoding": "lossless WebP",
+        "channels": {
+          "albedo": "RGB",
+          "normal": "RGB",
+          "orm": "R=AO, G=roughness, B=metalness"
+        },
+        "maps": {
+          "normal": {
+            "size": 2048,
+            "bytes": 2340478,
+            "sha256": "96d1bee0ca05f7872a911244e6552286100559118ea757cdb0fb5424d8ace496"
+          },
+          "orm": {
+            "size": 2048,
+            "bytes": 2648032,
+            "sha256": "05e527b7d3b21a5a2ef2a468eff96d8278053f5c78e0617edd6fe4126654880c"
+          },
+          "albedo": {
+            "size": 2048,
+            "bytes": 2899416,
+            "sha256": "ea32dd3424f54d28f310f64793c6aad41ceee6344538ef46b9008b823a0ca90c"
+          }
+        }
+      },
+      "roof": {
+        "family": "roof",
+        "resolution": [
+          2048,
+          2048
+        ],
+        "nativeAuthoring": true,
+        "upsampled": false,
+        "encoding": "lossless WebP",
+        "channels": {
+          "albedo": "RGB",
+          "normal": "RGB",
+          "orm": "R=AO, G=roughness, B=metalness"
+        },
+        "maps": {
+          "albedo": {
+            "size": 2048,
+            "bytes": 183876,
+            "sha256": "67c5215e59419a65cefaecb76cc0c1d58223f787be86d32a83bc0b7ed3cb915c"
+          },
+          "normal": {
+            "size": 2048,
+            "bytes": 643020,
+            "sha256": "455b6addb8caff26c92f647f8de0df3000959ab9a24530e120a068460d9c8d5e"
+          },
+          "orm": {
+            "size": 2048,
+            "bytes": 217856,
+            "sha256": "070b1cc55c0e4551a3968c2f7353a1412fbcbb5cc2165adccf2034c88894606f"
+          }
+        }
+      },
+      "cobble": {
+        "family": "cobble",
+        "resolution": [
+          2048,
+          2048
+        ],
+        "nativeAuthoring": true,
+        "upsampled": false,
+        "encoding": "lossless WebP",
+        "channels": {
+          "albedo": "RGB",
+          "normal": "RGB",
+          "orm": "R=AO, G=roughness, B=metalness"
+        },
+        "maps": {
+          "albedo": {
+            "size": 2048,
+            "bytes": 420092,
+            "sha256": "921e85b1f3da02723adbea058bb13b589f5054c28f93c221a500671c0bd2ab0a"
+          },
+          "normal": {
+            "size": 2048,
+            "bytes": 794026,
+            "sha256": "764f4fc545cdb45215dacb4839bef6717ea4b5f3de9866e0c75075126c32f202"
+          },
+          "orm": {
+            "size": 2048,
+            "bytes": 225662,
+            "sha256": "a1ce605b7a6323810e3f346ac3f1e2883b04e5b27810be44e48fdaecd1ac5726"
+          }
+        }
+      }
+    },
+    "4096": {
+      "stone": {
+        "family": "stone",
+        "resolution": [
+          4096,
+          4096
+        ],
+        "nativeAuthoring": true,
+        "upsampled": false,
+        "encoding": "lossless WebP",
+        "channels": {
+          "albedo": "RGB",
+          "normal": "RGB",
+          "orm": "R=AO, G=roughness, B=metalness"
+        },
+        "maps": {
+          "albedo": {
+            "size": 4096,
+            "bytes": 1660288,
+            "sha256": "32cc3ec731c96b25630a386c9a04c9cc0d0c2498ce3877028f8849dbcdd5a0f2"
+          },
+          "normal": {
+            "size": 4096,
+            "bytes": 5077386,
+            "sha256": "ef7ac110672621190130834af5446cd709ed68ca4bf4a78a5f267aff5ad35481"
+          },
+          "orm": {
+            "size": 4096,
+            "bytes": 498634,
+            "sha256": "37e793d9ca3e4fd8f4aa7fad5af21b0e33fa4ca0c153efff6f13fc93fefd988c"
+          }
+        }
+      },
+      "wood": {
+        "family": "wood",
+        "resolution": [
+          4096,
+          4096
+        ],
+        "nativeAuthoring": true,
+        "upsampled": false,
+        "encoding": "lossless WebP",
+        "channels": {
+          "albedo": "RGB",
+          "normal": "RGB",
+          "orm": "R=AO, G=roughness, B=metalness"
+        },
+        "maps": {
+          "albedo": {
+            "size": 4096,
+            "bytes": 4383164,
+            "sha256": "ad63d47f6b4c0f3a43d052b8931f80f008630df588c168b9ba9f1bf860b0f9e0"
+          },
+          "normal": {
+            "size": 4096,
+            "bytes": 12528014,
+            "sha256": "f11e30fb35e7211c2f979c0cd3949b7c5dd182383f511522583672c38583e572"
+          },
+          "orm": {
+            "size": 4096,
+            "bytes": 1756124,
+            "sha256": "e92ef54950bd846d80fef317e49843aaddfc273f6e8859473c33c82c5c4d940a"
+          }
+        }
+      },
+      "metal": {
+        "family": "metal",
+        "resolution": [
+          4096,
+          4096
+        ],
+        "nativeAuthoring": true,
+        "upsampled": false,
+        "encoding": "lossless WebP",
+        "channels": {
+          "albedo": "RGB",
+          "normal": "RGB",
+          "orm": "R=AO, G=roughness, B=metalness"
+        },
+        "maps": {
+          "normal": {
+            "size": 4096,
+            "bytes": 12915844,
+            "sha256": "2261625016ef9f64c51b2fe9579873e8b0b60aa54b8c7f34b181d07b3a3f4361"
+          },
+          "orm": {
+            "size": 4096,
+            "bytes": 11121458,
+            "sha256": "4339cd50b38d8623454c914026a503ee54a73ce0fa8603796b908d26afac7c95"
+          },
+          "albedo": {
+            "size": 4096,
+            "bytes": 11927332,
+            "sha256": "af1be0928ece4b35ba492707d785443bc01cfcce97878c4686e4896e759583b0"
+          }
+        }
+      },
+      "roof": {
+        "family": "roof",
+        "resolution": [
+          4096,
+          4096
+        ],
+        "nativeAuthoring": true,
+        "upsampled": false,
+        "encoding": "lossless WebP",
+        "channels": {
+          "albedo": "RGB",
+          "normal": "RGB",
+          "orm": "R=AO, G=roughness, B=metalness"
+        },
+        "maps": {
+          "albedo": {
+            "size": 4096,
+            "bytes": 726922,
+            "sha256": "309d45b0bc3ebc4b36f8d0f4271f38a4bc349a1191d69edb67ddcc526670407c"
+          },
+          "normal": {
+            "size": 4096,
+            "bytes": 4117394,
+            "sha256": "f2029436f212ff67f579ba993181300b08b6d5c5b4fa3d983ecef3e2802379d5"
+          },
+          "orm": {
+            "size": 4096,
+            "bytes": 865294,
+            "sha256": "a335369f52c6c1753218dcb402a1085bdaaaa9a4f91928ad56c27eebe0627026"
+          }
+        }
+      },
+      "cobble": {
+        "family": "cobble",
+        "resolution": [
+          4096,
+          4096
+        ],
+        "nativeAuthoring": true,
+        "upsampled": false,
+        "encoding": "lossless WebP",
+        "channels": {
+          "albedo": "RGB",
+          "normal": "RGB",
+          "orm": "R=AO, G=roughness, B=metalness"
+        },
+        "maps": {
+          "albedo": {
+            "size": 4096,
+            "bytes": 1583478,
+            "sha256": "985f1dd1f7547b483d737482ddc596bfedfc0e85ed7cffb01b75044b3ef3cbbb"
+          },
+          "normal": {
+            "size": 4096,
+            "bytes": 4558692,
+            "sha256": "071195e44c3132c5a22dd0f6fff2be22d18aeb831faf2e85c71005ff9df95526"
+          },
+          "orm": {
+            "size": 4096,
+            "bytes": 852410,
+            "sha256": "f5f5685730ba4d723c9698a4917b189adfe26eadcf4a370c17f7dd0cfcfb0b32"
+          }
+        }
+      }
+    },
+    "8192": {
+      "metal": {
+        "family": "metal",
+        "resolution": [
+          8192,
+          8192
+        ],
+        "nativeAuthoring": true,
+        "upsampled": false,
+        "encoding": "lossless WebP",
+        "channels": {
+          "albedo": "RGB",
+          "normal": "RGB",
+          "orm": "R=AO, G=roughness, B=metalness"
+        },
+        "maps": {
+          "normal": {
+            "size": 8192,
+            "bytes": 74108702,
+            "sha256": "dc4592628d2c9b44f004c789b12cad5e5f2ee2a5c18652ee446cd5d322ad2500"
+          },
+          "orm": {
+            "size": 8192,
+            "bytes": 39281154,
+            "sha256": "9c9a53f5abf2bbcffb5cefe3812a0548a963ec7fa79efc5366f5462d32a5e276"
+          },
+          "albedo": {
+            "size": 8192,
+            "bytes": 49817432,
+            "sha256": "76f1f8e9fbaffb631ed5ab4f406cfae3f232203987f2ca03c17e1d1fb54b5c33"
+          }
+        }
+      }
+    }
+  },
+  "comparisonImages": {
+    "metal-2k-4k-8k.png": {
+      "bytes": 919635,
+      "sha256": "23bfefdc0642830c92792ae55eaa0f3b5c66dc2e7cc247e7ef1e486a3de99f3b"
+    },
+    "metal-closeup-2k-4k-8k.png": {
+      "bytes": 601810,
+      "sha256": "07bdeb83dfb2869edfbb3d380271064320940e98828f504930c7cf96e75ac690"
+    },
+    "families-2k-vs-4k.png": {
+      "bytes": 773340,
+      "sha256": "292daaa600179982e8da7028522cbf636f7ab9bf70703ab293c148ec0a16f849"
+    }
+  }
+}

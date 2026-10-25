@@ -18,12 +18,15 @@ export function createBlacksmithForgeBuilder(THREE) {
   function texture(uri, srgb, repeat = [1, 1], clamp = false) {
     let entry = textureCache.get(uri);
     if (!entry) {
-      entry = { image: null, waiting: [] };
+      // Textures share Source, so Three.js r160 uploads one GPU texture while
+      // each material keeps its own repeat/offset. Never duplicate an 8K map
+      // merely because two meshes use different tiling.
+      entry = { base: new THREE.Texture(), waiting: [] };
       const image = new Image();
       image.onload = () => {
-        entry.image = image;
+        entry.base.image = image;
+        entry.base.needsUpdate = true;
         entry.waiting.forEach(result => {
-          result.image = image;
           result.needsUpdate = true;
         });
         entry.waiting.length = 0;
@@ -31,13 +34,14 @@ export function createBlacksmithForgeBuilder(THREE) {
       image.src = uri;
       textureCache.set(uri, entry);
     }
-    // A fresh Texture avoids clone() marking an image-less texture for upload.
-    const result = new THREE.Texture(entry.image);
+    // Avoid clone() here: it marks an image-less texture for immediate upload.
+    const result = new THREE.Texture();
+    result.source = entry.base.source;
     result.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
     result.anisotropy = 4;
     result.wrapS = result.wrapT = clamp ? THREE.ClampToEdgeWrapping : THREE.RepeatWrapping;
     result.repeat.set(repeat[0], repeat[1]);
-    if (entry.image) result.needsUpdate = true;
+    if (entry.base.image) result.needsUpdate = true;
     else entry.waiting.push(result);
     return result;
   }

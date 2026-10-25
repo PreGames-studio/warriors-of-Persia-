@@ -1,0 +1,192 @@
+{
+  "build": "hq8k-424be3dbcca8",
+  "baseApkSha256": "cf0f450844c41091bbe63ef777cb8ac0fa66385f0f2ce7ba1d329ab49defb722",
+  "quality": {
+    "metal": "native 8192x8192",
+    "stone/wood/roof/cobble": "native 4096x4096"
+  },
+  "encoding": "lossless WebP VP8L; files packed without base64",
+  "runtimeOptimization": "shared THREE.Source per PBR URI; per-material repeat preserved; no resolution or mipmap reduction",
+  "maps": [
+    {
+      "family": "stone",
+      "map": "albedo",
+      "resolution": 4096,
+      "path": "assets/pbr_hq/stone_albedo.webp",
+      "bytes": 1660288,
+      "sha256": "32cc3ec731c96b25630a386c9a04c9cc0d0c2498ce3877028f8849dbcdd5a0f2"
+    },
+    {
+      "family": "stone",
+      "map": "normal",
+      "resolution": 4096,
+      "path": "assets/pbr_hq/stone_normal.webp",
+      "bytes": 5077386,
+      "sha256": "ef7ac110672621190130834af5446cd709ed68ca4bf4a78a5f267aff5ad35481"
+    },
+    {
+      "family": "stone",
+      "map": "orm",
+      "resolution": 4096,
+      "path": "assets/pbr_hq/stone_orm.webp",
+      "bytes": 498634,
+      "sha256": "37e793d9ca3e4fd8f4aa7fad5af21b0e33fa4ca0c153efff6f13fc93fefd988c"
+    },
+    {
+      "family": "wood",
+      "map": "albedo",
+      "resolution": 4096,
+      "path": "assets/pbr_hq/wood_albedo.webp",
+      "bytes": 4383164,
+      "sha256": "ad63d47f6b4c0f3a43d052b8931f80f008630df588c168b9ba9f1bf860b0f9e0"
+    },
+    {
+      "family": "wood",
+      "map": "normal",
+      "resolution": 4096,
+      "path": "assets/pbr_hq/wood_normal.webp",
+      "bytes": 12528014,
+      "sha256": "f11e30fb35e7211c2f979c0cd3949b7c5dd182383f511522583672c38583e572"
+    },
+    {
+      "family": "wood",
+      "map": "orm",
+      "resolution": 4096,
+      "path": "assets/pbr_hq/wood_orm.webp",
+      "bytes": 1756124,
+      "sha256": "e92ef54950bd846d80fef317e49843aaddfc273f6e8859473c33c82c5c4d940a"
+    },
+    {
+      "family": "metal",
+      "map": "albedo",
+      "resolution": 8192,
+      "path": "assets/pbr_hq/metal_albedo.webp",
+      "bytes": 49817432,
+      "sha256": "76f1f8e9fbaffb631ed5ab4f406cfae3f232203987f2ca03c17e1d1fb54b5c33"
+    },
+    {
+      "family": "metal",
+      "map": "normal",
+      "resolution": 8192,
+      "path": "assets/pbr_hq/metal_normal.webp",
+      "bytes": 74108702,
+      "sha256": "dc4592628d2c9b44f004c789b12cad5e5f2ee2a5c18652ee446cd5d322ad2500"
+    },
+    {
+      "family": "metal",
+      "map": "orm",
+      "resolution": 8192,
+      "path": "assets/pbr_hq/metal_orm.webp",
+      "bytes": 39281154,
+      "sha256": "9c9a53f5abf2bbcffb5cefe3812a0548a963ec7fa79efc5366f5462d32a5e276"
+    },
+    {
+      "family": "roof",
+      "map": "albedo",
+      "resolution": 4096,
+      "path": "assets/pbr_hq/roof_albedo.webp",
+      "bytes": 726922,
+      "sha256": "309d45b0bc3ebc4b36f8d0f4271f38a4bc349a1191d69edb67ddcc526670407c"
+    },
+    {
+      "family": "roof",
+      "map": "normal",
+      "resolution": 4096,
+      "path": "assets/pbr_hq/roof_normal.webp",
+      "bytes": 4117394,
+      "sha256": "f2029436f212ff67f579ba993181300b08b6d5c5b4fa3d983ecef3e2802379d5"
+    },
+    {
+      "family": "roof",
+      "map": "orm",
+      "resolution": 4096,
+      "path": "assets/pbr_hq/roof_orm.webp",
+      "bytes": 865294,
+      "sha256": "a335369f52c6c1753218dcb402a1085bdaaaa9a4f91928ad56c27eebe0627026"
+    },
+    {
+      "family": "cobble",
+      "map": "albedo",
+      "resolution": 4096,
+      "path": "assets/pbr_hq/cobble_albedo.webp",
+      "bytes": 1583478,
+      "sha256": "985f1dd1f7547b483d737482ddc596bfedfc0e85ed7cffb01b75044b3ef3cbbb"
+    },
+    {
+      "family": "cobble",
+      "map": "normal",
+      "resolution": 4096,
+      "path": "assets/pbr_hq/cobble_normal.webp",
+      "bytes": 4558692,
+      "sha256": "071195e44c3132c5a22dd0f6fff2be22d18aeb831faf2e85c71005ff9df95526"
+    },
+    {
+      "family": "cobble",
+      "map": "orm",
+      "resolution": 4096,
+      "path": "assets/pbr_hq/cobble_orm.webp",
+      "bytes": 852410,
+      "sha256": "f5f5685730ba4d723c9698a4917b189adfe26eadcf4a370c17f7dd0cfcfb0b32"
+    }
+  ],
+  "unsignedApk": "/tmp/WarriorsOfPersia_3D_HQ_8K-unsigned.apk",
+  "unsignedBytes": 208920109,
+  "unsignedSha256": "f95cce5baec380413ebcd3e98f5fa34b595b156de2ca19e9f6698a13208f61ea",
+  "htmlBytes": 10253796,
+  "inlineScriptForNodeCheck": "/tmp/WarriorsOfPersia_3D_HQ_8K-unsigned.inline.js",
+  "resourcesArscDataOffsetMod4": 0,
+  "signed": true,
+  "signedApk": "/tmp/WarriorsOfPersia_3D_HQ_8K.apk",
+  "signedBytes": 208930506,
+  "signedSha256": "6854c6338140440cf236d636a817084a4069a63d2404c94c78e4477460cf1221",
+  "signature": "apksigner 33.0.2; v1/v2/v3 verification passed",
+  "signingCertificateSubject": "CN=Warriors of Persia, O=PreGames Studio, C=US",
+  "previousSigningKeyAvailable": false,
+  "desktopSmoke": {
+    "passed": true,
+    "environment": "Chromium 153 / SwiftShader / file:// content extracted from signed APK",
+    "build": "hq8k-424be3dbcca8",
+    "miaVisible": true,
+    "canvasCount": 4,
+    "texturesRequestFinished": [
+      "cobble_albedo.webp",
+      "cobble_normal.webp",
+      "cobble_orm.webp",
+      "metal_albedo.webp",
+      "metal_normal.webp",
+      "metal_orm.webp",
+      "roof_albedo.webp",
+      "roof_normal.webp",
+      "roof_orm.webp",
+      "stone_albedo.webp",
+      "stone_normal.webp",
+      "stone_orm.webp",
+      "wood_albedo.webp",
+      "wood_normal.webp",
+      "wood_orm.webp"
+    ],
+    "pageOrConsoleErrors": [],
+    "requestFailures": [],
+    "glInfo": {
+      "maxTextureSize": 8192,
+      "error": 0,
+      "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+    },
+    "contextLossCount": 0,
+    "textureWarningCount": 0,
+    "otherWarnings": [
+      "warning: [.WebGL-0x1ec4001a4400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): Running out of reserved outsideRenderPass queueSerial. ending renderPass now."
+    ]
+  },
+  "physicalDeviceTest": {
+    "performed": false,
+    "mobileReadyClaimed": false
+  },
+  "signedZipAudit": {
+    "passed": true,
+    "mapCount": 15,
+    "allMapsStoredIndependently": true,
+    "allHashesDimensionsAndVp8lPassed": true,
+    "resourcesArscDataOffsetMod4": 0
+  }
+}
