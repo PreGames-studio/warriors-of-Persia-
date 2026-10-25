@@ -66,6 +66,7 @@ namespace WarriorsOfPersia.Blacksmith
                 mesh.SetUVs(0, uv);
                 mesh.SetTriangles(triangles, 0, true);
                 mesh.RecalculateBounds();
+                mesh.RecalculateTangents();
                 return mesh;
             }
         }
@@ -139,6 +140,7 @@ namespace WarriorsOfPersia.Blacksmith
             mesh.vertices = vertices;
             mesh.RecalculateNormals();
             mesh.RecalculateBounds();
+            mesh.RecalculateTangents();
             mesh.name = "Hand-chipped irregular ashlar";
             return mesh;
         }

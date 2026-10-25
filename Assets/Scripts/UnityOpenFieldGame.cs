@@ -313,6 +313,7 @@ public sealed class UnityOpenFieldGame : MonoBehaviour
         mesh.SetTriangles(triangles, 0, true);
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();
+        mesh.RecalculateTangents();
         return mesh;
     }
 
