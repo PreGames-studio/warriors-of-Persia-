@@ -827,9 +827,16 @@ export function createBlacksmithForgeBuilder(THREE) {
     });
   }
 
+  function getHeroMaterials() {
+    ensureMaterials();
+    // Share the original 2K forged-metal maps with the hero. Materials can be
+    // cloned per character without cloning or resizing their GPU textures.
+    return { forged: materials.iron, steel: materials.steel, gold: materials.gold };
+  }
+
   function reset() {
     forges.length = 0;
   }
 
-  return { build, buildDistrict, buildShopExterior, districtBuildingScale: DISTRICT_BUILDING_SCALE, update, reset };
+  return { build, buildDistrict, buildShopExterior, districtBuildingScale: DISTRICT_BUILDING_SCALE, getHeroMaterials, update, reset };
 }

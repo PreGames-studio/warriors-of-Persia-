@@ -141,6 +141,35 @@ export function createPersianVillageKit(THREE) {
       ctx.strokeStyle = 'rgba(235,203,137,.55)'; ctx.lineWidth = 2; ctx.strokeRect(29, 29, s - 58, s - 58);
       noise(ctx, s, 3200, 190, .07);
     }),
+    heroLeather: canvasTexture(1024, (ctx, s) => {
+      let localSeed = 74119;
+      const rnd = () => ((localSeed = (localSeed * 1664525 + 1013904223) >>> 0) / 4294967296);
+      ctx.fillStyle = '#39271c'; ctx.fillRect(0, 0, s, s);
+      for (let i = 0; i < 14500; i++) {
+        const v = 42 + Math.floor(rnd() * 48);
+        ctx.fillStyle = `rgba(${v + 18},${v + 5},${v},${.05 + rnd() * .13})`;
+        const d = .6 + rnd() * 2.4;
+        ctx.fillRect(rnd() * s, rnd() * s, d, d);
+      }
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 150; i++) {
+        ctx.strokeStyle = `rgba(212,155,100,${.025 + rnd() * .05})`;
+        const x = rnd() * s, y = rnd() * s;
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 12 + rnd() * 55, y + rnd() * 5 - 2.5); ctx.stroke();
+      }
+    }),
+    heroCape: canvasTexture(512, (ctx, s) => {
+      ctx.fillStyle = '#35181b'; ctx.fillRect(0, 0, s, s);
+      const gradient = ctx.createLinearGradient(0, 0, s, 0);
+      gradient.addColorStop(0, 'rgba(0,0,0,.35)'); gradient.addColorStop(.5, 'rgba(128,56,44,.2)'); gradient.addColorStop(1, 'rgba(0,0,0,.35)');
+      ctx.fillStyle = gradient; ctx.fillRect(0, 0, s, s);
+      ctx.strokeStyle = '#a77b38'; ctx.lineWidth = 13; ctx.strokeRect(16, 16, s - 32, s - 32);
+      ctx.strokeStyle = '#d0a657'; ctx.lineWidth = 3; ctx.strokeRect(29, 29, s - 58, s - 58);
+      for (let y = 52; y < s - 40; y += 64) {
+        ctx.save(); ctx.translate(32, y); ctx.rotate(Math.PI / 4); ctx.strokeRect(-10, -10, 20, 20); ctx.restore();
+        ctx.save(); ctx.translate(s - 32, y); ctx.rotate(Math.PI / 4); ctx.strokeRect(-10, -10, 20, 20); ctx.restore();
+      }
+    }),
     awning: canvasTexture(256, (ctx, s) => {
       ctx.fillStyle = '#b7a986'; ctx.fillRect(0, 0, s, s);
       for (let x = 0; x < s; x += 64) { ctx.fillStyle = '#4d5548'; ctx.fillRect(x, 0, 32, s); }
@@ -453,57 +482,252 @@ export function createPersianVillageKit(THREE) {
 
   function buildHero(member, roleObj) {
     const group = new THREE.Group();
-    const armorColor = new THREE.Color(roleObj.color).lerp(new THREE.Color(0x263a34), .32);
-    const armor = new THREE.MeshStandardMaterial({ color: armorColor, roughness: .34, metalness: .62 });
-    const steel = new THREE.MeshStandardMaterial({ color: 0x89928b, roughness: .3, metalness: .78 });
-    const cape = new THREE.MeshStandardMaterial({ color: 0x5d2728, roughness: .93, side: THREE.DoubleSide });
+    group.name = 'Persian immortal — articulated forged-armour hero';
+    const shared = medievalForge.getHeroMaterials();
+    const darkTint = new THREE.Color(0x9a9b96);
+    const armor = shared.forged.clone();
+    armor.name = 'Hero forged steel • shared original 2K maps';
+    armor.color.set(roleObj.color).lerp(darkTint, .68);
+    armor.metalness = .68;
+    armor.roughness = .9;
+    armor.emissive.set(0x151719); armor.emissiveIntensity = .12;
+    const blackened = shared.forged.clone();
+    blackened.color.set(0x858c90);
+    blackened.metalness = .62; blackened.roughness = .9;
+    blackened.emissive.set(0x101214); blackened.emissiveIntensity = .12;
+    const leather = surface(textures.heroLeather, { repeat: [1.6, 1.6], color: 0xd4b08a, roughness: .9, bump: .055 });
+    leather.emissive.set(0x1c0e06); leather.emissiveIntensity = .16;
+    const cloth = surface(textures.heroCape, { color: 0xd3b1a8, roughness: .96, bump: .025, side: THREE.DoubleSide });
+    cloth.emissive.set(0x1a0809); cloth.emissiveIntensity = .14;
+    const steel = shared.steel.clone();
+    steel.color.set(0xb7c0c4); steel.metalness = .72; steel.roughness = .28;
+    const gold = shared.gold.clone();
+    gold.color.set(0xd0a24f); gold.metalness = .62; gold.roughness = .38;
+    gold.emissive.set(0x2b1a08); gold.emissiveIntensity = .12;
+    const heroSkin = materials.skin.clone();
+    heroSkin.color.set(0xc58b66); heroSkin.emissive.set(0x1c0d08); heroSkin.emissiveIntensity = .1;
 
-    const auraMaterial = new THREE.MeshStandardMaterial({ color: member.isLocal ? 0x65c79a : 0x55a7b0, emissive: member.isLocal ? 0x1d6c4c : 0x174c55, emissiveIntensity: .65, transparent: true, opacity: .65, side: THREE.DoubleSide });
-    const aura = addMesh(group, new THREE.RingGeometry(1.35, 1.85, 28), auraMaterial, 0, .08, 0, false);
+    const rig = new THREE.Group();
+    group.add(rig);
+    if (member.isLocal) {
+      // Short-range cinematic fill, like the forge's warm light on armour.
+      // It casts no extra shadow map and is created only for the local hero.
+      const armourFill = new THREE.PointLight(0xffb27a, 12, 8, 2);
+      armourFill.position.set(1.6, 3.2, 2.1);
+      armourFill.castShadow = false;
+      group.add(armourFill);
+    }
+    const auraMaterial = new THREE.MeshStandardMaterial({
+      color: member.isLocal ? 0x7dbb91 : 0x659aa5,
+      emissive: member.isLocal ? 0x1d6c4c : 0x174c55,
+      emissiveIntensity: .55, transparent: true, opacity: .5, side: THREE.DoubleSide
+    });
+    const aura = addMesh(group, new THREE.RingGeometry(1.18, 1.52, 32), auraMaterial, 0, .055, 0, false);
     aura.rotation.x = -Math.PI / 2;
 
-    [-.29, .29].forEach(x => {
-      addCylinder(group, .19, .23, 1.05, materials.darkMetal, x, .7, 0, 8);
-      addBox(group, .43, .34, .65, materials.wood, x, .22, .12);
-    });
-    const torso = addCylinder(group, .59, .78, 1.65, armor, 0, 1.65, 0, 12);
-    addBox(group, 1.08, .92, .34, armor, 0, 1.83, .38);
-    addBox(group, 1.16, .1, .4, materials.bronze, 0, 2.16, .39);
-    addBox(group, 1.25, .16, .68, materials.wood, 0, 1.13, 0);
-    addBox(group, .23, .25, .12, materials.bronze, 0, 1.13, .4);
-
+    // Pelvis, leather belt, metal buckle and lamellar armoured skirt.
+    addCylinder(rig, .48, .56, .42, leather, 0, 1.55, 0, 14);
+    addCylinder(rig, .59, .59, .17, leather, 0, 1.67, 0, 16);
+    addBox(rig, .28, .23, .12, gold, 0, 1.67, .52);
+    addBox(rig, .14, .12, .14, blackened, 0, 1.67, .59);
     [-1, 1].forEach(side => {
-      const shoulder = addMesh(group, new THREE.SphereGeometry(.37, 10, 7), armor, side * .7, 2.15, 0);
-      shoulder.scale.set(1.2, .65, 1);
-      const arm = addCylinder(group, .15, .2, 1.25, materials.darkMetal, side * .77, 1.48, .02, 8);
-      arm.rotation.z = side * -.12;
-      addCylinder(group, .19, .19, .38, materials.bronze, side * .84, .96, .04, 8);
+      addBox(rig, .24, .34, .18, leather, side * .48, 1.43, -.03);
+      addBox(rig, .13, .06, .2, gold, side * .48, 1.52, .04);
+      for (let row = 0; row < 3; row++) {
+        const plate = addBox(rig, .28, .28, .09, row % 2 ? armor : blackened,
+          side * (.2 + row * .03), 1.34 - row * .2, .38 - row * .025);
+        plate.rotation.z = side * (.04 + row * .025);
+      }
     });
 
-    const head = addMesh(group, new THREE.SphereGeometry(.5, 14, 10), materials.skin, 0, 2.9, .02);
-    head.scale.set(1, 1.08, .95);
-    const helmet = addMesh(group, new THREE.SphereGeometry(.57, 14, 9, 0, Math.PI * 2, 0, Math.PI * .62), steel, 0, 3.08, 0);
-    helmet.scale.y = .85;
-    addBox(group, .1, .65, .09, materials.bronze, 0, 2.91, .5);
-    addMesh(group, new THREE.ConeGeometry(.12, .45, 8), materials.bronze, 0, 3.73, 0);
+    // Torso with the same worn forged-metal PBR used by the blacksmith.
+    const torso = new THREE.Group();
+    torso.position.set(0, 1.67, 0);
+    rig.add(torso);
+    addCylinder(torso, .49, .61, 1.02, blackened, 0, .55, 0, 16);
+    const armorMesh = addMesh(torso, new THREE.SphereGeometry(.66, 20, 14), armor, 0, .72, .02);
+    armorMesh.scale.set(1, .82, .65);
+    addBox(torso, .92, .08, .09, gold, 0, .25, .48);
+    addBox(torso, .78, .055, .08, gold, 0, 1.03, .39);
 
-    const capeShape = new THREE.Shape();
-    capeShape.moveTo(-.66, 1); capeShape.lineTo(.66, 1); capeShape.lineTo(.58, -.72); capeShape.lineTo(0, -1.08); capeShape.lineTo(-.58, -.72); capeShape.closePath();
-    const capeMesh = addMesh(group, new THREE.ShapeGeometry(capeShape), cape, 0, 1.7, -.48);
-    capeMesh.rotation.x = -.09;
+    // Instanced chainmail rings: detailed close-up silhouette in one draw call.
+    const mailRows = 6, mailCols = 9;
+    const mail = new THREE.InstancedMesh(new THREE.TorusGeometry(.052, .012, 5, 8), blackened, mailRows * mailCols * 2);
+    mail.castShadow = true;
+    const mailMatrix = new THREE.Matrix4();
+    const mailQuat = new THREE.Quaternion();
+    const mailScale = new THREE.Vector3(1, 1, 1);
+    let mailIndex = 0;
+    [-1, 1].forEach(back => {
+      for (let row = 0; row < mailRows; row++) for (let col = 0; col < mailCols; col++) {
+        const x = -.44 + col * .11 + (row % 2) * .035;
+        const y = .22 + row * .105;
+        const z = back * (.48 - Math.abs(x) * .12);
+        mailQuat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), back < 0 ? Math.PI : 0);
+        mailMatrix.compose(new THREE.Vector3(x, y, z), mailQuat, mailScale);
+        mail.setMatrixAt(mailIndex++, mailMatrix);
+      }
+    });
+    mail.instanceMatrix.needsUpdate = true;
+    torso.add(mail);
 
-    const sword = new THREE.Group(); sword.position.set(1.03, 1.25, .27); sword.rotation.z = -.24;
-    addBox(sword, .12, 1.9, .065, steel, 0, .45, 0);
-    addBox(sword, .72, .1, .13, materials.bronze, 0, -.52, 0);
-    addCylinder(sword, .09, .09, .6, materials.wood, 0, -.85, 0, 8);
-    group.add(sword);
-    const shield = addCylinder(group, .57, .57, .12, materials.bronze, -.87, 1.48, .3, 12);
-    shield.rotation.x = Math.PI / 2;
-    const shieldFace = addCylinder(group, .45, .45, .14, armor, -.87, 1.48, .32, 12);
-    shieldFace.rotation.x = Math.PI / 2;
-    addMesh(group, new THREE.SphereGeometry(.15, 9, 7), materials.bronze, -.87, 1.48, .43);
+    // Persian sun / immortal emblem on the breastplate.
+    const emblem = new THREE.Group();
+    emblem.position.set(0, .74, .49);
+    torso.add(emblem);
+    addMesh(emblem, new THREE.TorusGeometry(.17, .025, 7, 20), gold, 0, 0, 0);
+    addMesh(emblem, new THREE.SphereGeometry(.07, 10, 7), gold, 0, 0, .015);
+    for (let i = 0; i < 8; i++) {
+      const a = i * Math.PI / 4;
+      const ray = addBox(emblem, .035, .13, .035, gold, Math.sin(a) * .26, Math.cos(a) * .26, 0);
+      ray.rotation.z = -a;
+    }
 
-    return { group, armorMesh: torso };
+    // Articulated legs: thigh, knee, greave and foot each have their own pivot.
+    function buildLeg(side) {
+      const upper = new THREE.Group();
+      upper.position.set(side * .28, 1.52, 0);
+      rig.add(upper);
+      addCylinder(upper, .19, .23, .6, leather, 0, -.3, 0, 10);
+      addCylinder(upper, .21, .24, .42, blackened, 0, -.24, .015, 10);
+      const knee = new THREE.Group();
+      knee.position.set(0, -.61, 0);
+      upper.add(knee);
+      const cop = addMesh(knee, new THREE.SphereGeometry(.2, 12, 8), armor, 0, 0, .07);
+      cop.scale.set(1, .8, .7);
+      addCylinder(knee, .14, .18, .55, blackened, 0, -.29, 0, 10);
+      addBox(knee, .08, .43, .08, gold, 0, -.29, .17);
+      const foot = new THREE.Group();
+      foot.position.set(0, -.56, 0);
+      knee.add(foot);
+      addBox(foot, .36, .31, .55, leather, 0, -.13, .12);
+      addBox(foot, .37, .13, .3, blackened, 0, -.12, .31);
+      addBox(foot, .38, .07, .58, materials.darkMetal, 0, -.3, .13);
+      return { upper, knee, foot };
+    }
+    const leftLeg = buildLeg(-1), rightLeg = buildLeg(1);
+
+    // Arms with layered pauldrons and elbow pivots. Weapons follow the hands.
+    function buildArm(side) {
+      const upper = new THREE.Group();
+      upper.position.set(side * .67, 2.65, 0);
+      rig.add(upper);
+      const pauldron = addMesh(upper, new THREE.SphereGeometry(.35, 14, 9), armor, side * .03, -.02, 0);
+      pauldron.scale.set(1.2, .62, .9);
+      addBox(upper, .48, .08, .4, gold, side * .04, -.15, .01);
+      addCylinder(upper, .14, .19, .52, leather, 0, -.34, 0, 10);
+      const elbow = new THREE.Group();
+      elbow.position.set(0, -.56, 0);
+      upper.add(elbow);
+      addMesh(elbow, new THREE.SphereGeometry(.17, 10, 7), blackened, 0, 0, 0);
+      addCylinder(elbow, .13, .17, .47, blackened, 0, -.26, .01, 10);
+      for (let i = 0; i < 3; i++) addCylinder(elbow, .175, .175, .035, gold, 0, -.12 - i * .13, .01, 10);
+      addMesh(elbow, new THREE.SphereGeometry(.15, 10, 7), leather, 0, -.54, .03);
+      return { upper, elbow };
+    }
+    const leftArm = buildArm(-1), rightArm = buildArm(1);
+
+    // Neck, face, short beard and a forged helmet with cheek guards and plume.
+    addCylinder(rig, .19, .22, .28, heroSkin, 0, 2.91, 0, 12);
+    const head = new THREE.Group();
+    head.position.set(0, 3.2, .01);
+    rig.add(head);
+    const face = addMesh(head, new THREE.SphereGeometry(.38, 18, 12), heroSkin, 0, 0, 0);
+    face.scale.set(1, 1.08, .95);
+    addMesh(head, new THREE.SphereGeometry(.07, 9, 6), heroSkin, 0, -.03, .37);
+    [-1, 1].forEach(side => addMesh(head, new THREE.SphereGeometry(.025, 7, 5), materials.recess, side * .13, .07, .35, false));
+    const beard = addMesh(head, new THREE.ConeGeometry(.27, .43, 12), materials.darkMetal, 0, -.28, .22);
+    beard.rotation.z = Math.PI;
+    const helmet = addMesh(head, new THREE.SphereGeometry(.43, 18, 11, 0, Math.PI * 2, 0, Math.PI * .64), armor, 0, .13, 0);
+    helmet.scale.y = .92;
+    const helmetBand = addMesh(head, new THREE.TorusGeometry(.4, .035, 7, 22), gold, 0, .12, 0);
+    helmetBand.rotation.x = Math.PI / 2;
+    addBox(head, .07, .4, .065, gold, 0, -.01, .41);
+    [-1, 1].forEach(side => {
+      const cheek = addBox(head, .16, .38, .09, blackened, side * .31, -.14, .13);
+      cheek.rotation.z = side * -.13;
+    });
+    addMesh(head, new THREE.ConeGeometry(.12, .46, 10), cloth, 0, .67, -.04);
+
+    // Segmented cloth cape with a painted Persian-gold border.
+    const cape = new THREE.Group();
+    cape.position.set(0, 2.67, -.43);
+    rig.add(cape);
+    const capeGeometry = new THREE.PlaneGeometry(1.28, 1.85, 6, 8);
+    const capeMesh = addMesh(cape, capeGeometry, cloth, 0, -.925, 0, false);
+    const capeBase = capeGeometry.attributes.position.array.slice();
+
+    // Ridged steel sword, leather grip and golden guard attached to right hand.
+    const sword = new THREE.Group();
+    sword.position.set(0, -.49, .08);
+    sword.rotation.z = -.16;
+    rightArm.elbow.add(sword);
+    addBox(sword, .1, 1.42, .045, steel, 0, -.85, 0);
+    addBox(sword, .025, 1.34, .055, blackened, 0, -.82, 0);
+    const tip = addMesh(sword, new THREE.ConeGeometry(.071, .25, 4), steel, 0, -1.68, 0);
+    tip.rotation.z = Math.PI;
+    addBox(sword, .58, .09, .12, gold, 0, -.12, 0);
+    addCylinder(sword, .07, .07, .34, leather, 0, .09, 0, 10);
+    addMesh(sword, new THREE.SphereGeometry(.1, 10, 7), gold, 0, .3, 0);
+
+    // Kite shield with a raised gold rim and central forged boss.
+    function shieldGeometry(scale = 1) {
+      const shape = new THREE.Shape();
+      shape.moveTo(0, .72 * scale); shape.lineTo(.48 * scale, .46 * scale);
+      shape.lineTo(.42 * scale, -.28 * scale); shape.lineTo(0, -.72 * scale);
+      shape.lineTo(-.42 * scale, -.28 * scale); shape.lineTo(-.48 * scale, .46 * scale); shape.closePath();
+      return new THREE.ExtrudeGeometry(shape, { depth: .065, bevelEnabled: true, bevelSize: .018, bevelThickness: .018, bevelSegments: 1 });
+    }
+    const shield = new THREE.Group();
+    shield.position.set(-.12, -.34, .27);
+    shield.rotation.y = -.18;
+    leftArm.elbow.add(shield);
+    addMesh(shield, shieldGeometry(1.06), gold, 0, 0, 0);
+    addMesh(shield, shieldGeometry(.91), blackened, 0, 0, .075);
+    const boss = addMesh(shield, new THREE.SphereGeometry(.18, 12, 8), armor, 0, .02, .17);
+    boss.scale.z = .45;
+    addMesh(shield, new THREE.TorusGeometry(.29, .025, 7, 20), gold, 0, .02, .16);
+
+    // Distance-driven locomotion prevents foot sliding. The phase advances by
+    // metres travelled, not by key-down time, and eases back to a breathing idle.
+    let travel = 0, time = 0;
+    const damp = (current, target, alpha) => current + (target - current) * alpha;
+    group.userData.updateLocomotion = (dt, speed) => {
+      time += dt;
+      travel += Math.max(0, speed) * dt;
+      const phase = travel * 1.85;
+      const move = THREE.MathUtils.clamp(speed / 2.4, 0, 1);
+      const alpha = 1 - Math.exp(-dt * 13);
+      const swing = Math.sin(phase);
+      leftLeg.upper.rotation.x = damp(leftLeg.upper.rotation.x, swing * .52 * move, alpha);
+      rightLeg.upper.rotation.x = damp(rightLeg.upper.rotation.x, -swing * .52 * move, alpha);
+      leftLeg.knee.rotation.x = damp(leftLeg.knee.rotation.x, Math.max(0, -swing) * .72 * move, alpha);
+      rightLeg.knee.rotation.x = damp(rightLeg.knee.rotation.x, Math.max(0, swing) * .72 * move, alpha);
+      leftLeg.foot.rotation.x = damp(leftLeg.foot.rotation.x, -leftLeg.upper.rotation.x * .45 - leftLeg.knee.rotation.x * .55, alpha);
+      rightLeg.foot.rotation.x = damp(rightLeg.foot.rotation.x, -rightLeg.upper.rotation.x * .45 - rightLeg.knee.rotation.x * .55, alpha);
+      leftArm.upper.rotation.x = damp(leftArm.upper.rotation.x, -swing * .4 * move, alpha);
+      rightArm.upper.rotation.x = damp(rightArm.upper.rotation.x, swing * .4 * move, alpha);
+      leftArm.elbow.rotation.x = damp(leftArm.elbow.rotation.x, -.12 - Math.max(0, swing) * .18 * move, alpha);
+      rightArm.elbow.rotation.x = damp(rightArm.elbow.rotation.x, -.12 - Math.max(0, -swing) * .18 * move, alpha);
+      torso.rotation.y = damp(torso.rotation.y, swing * .05 * move, alpha);
+      torso.rotation.z = damp(torso.rotation.z, swing * .022 * move, alpha);
+      head.rotation.y = damp(head.rotation.y, -swing * .035 * move, alpha);
+      rig.position.y = Math.sin(phase * 2) * .035 * move + Math.sin(time * 1.7) * .008 * (1 - move);
+      rig.position.x = swing * .018 * move;
+      cape.rotation.x = -.035 - move * .055;
+
+      const positions = capeGeometry.attributes.position;
+      for (let i = 0; i < positions.count; i++) {
+        const x = capeBase[i * 3], y = capeBase[i * 3 + 1];
+        const weight = 1 - (y + .925) / 1.85;
+        positions.setX(i, x + Math.sin(phase * 1.2 + weight * 3.2) * .018 * weight * move);
+        positions.setZ(i, -weight * (.045 + move * .11) + Math.sin(phase * 1.35 + weight * 4 + x * 2) * .05 * weight * (.25 + move));
+      }
+      positions.needsUpdate = true;
+      capeGeometry.computeVertexNormals();
+    };
+
+    return { group, armorMesh };
   }
 
   function addWares(group, type, color) {

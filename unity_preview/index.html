@@ -2255,6 +2255,8 @@
       state.currentZone = zoneId;
       state.dungeonTier = tier;
       portalCooldown = 2.2;
+      heroMoveSpeed = 0;
+      heroMoveDirection.set(0, 0, 0);
       stage.dataset.zone = zoneId;
       villageKit.reset();
       villageKit.applyLighting(zoneId, scene, hemiLight, dirLight, renderer);
@@ -2559,7 +2561,7 @@
           state.party[s].roleIndex = (state.party[s].roleIndex + 1) % ROLES.length;
           const newRole = ROLES[state.party[s].roleIndex];
           if (state.party[s].mesh && state.party[s].mesh.userData.armorMesh) {
-            state.party[s].mesh.userData.armorMesh.material.color.setHex(newRole.color);
+            state.party[s].mesh.userData.armorMesh.material.color.setHex(newRole.color).lerp(new THREE.Color(0x9a9b96), .68);
             state.party[s].mesh.userData.labelRef.el.textContent = `${state.party[s].name} (${newRole.title})`;
           }
           renderPartyHUD();
@@ -3746,6 +3748,8 @@
     const joyKnob = document.getElementById('joystick-knob');
     let joyVec = { x: 0, y: 0 };
     let joyActive = false;
+    let heroMoveSpeed = 0;
+    const heroMoveDirection = new THREE.Vector3();
 
     function updateJoystick(cxClient, cyClient) {
       const rect = joyZone.getBoundingClientRect();
@@ -4008,6 +4012,8 @@
 
       // 1. Local Hero Movement with Alley Wall Sliding Collision
       if (leader.mesh) {
+        const previousHeroX = leader.mesh.position.x;
+        const previousHeroZ = leader.mesh.position.z;
         let mx = joyVec.x;
         let mz = joyVec.y;
         if (keys['KeyW'] || keys['ArrowUp']) mz -= 1;
@@ -4033,14 +4039,21 @@
         }
 
         const len = Math.hypot(mx, mz);
-        if (len > 0.05) {
-          mx /= Math.max(1, len);
-          mz /= Math.max(1, len);
-          const speed = 24;
-          const tryX = THREE.MathUtils.clamp(leader.mesh.position.x + mx * speed * dt, -130, 130);
-          const tryZ = THREE.MathUtils.clamp(leader.mesh.position.z + mz * speed * dt, -130, 130);
+        const inputStrength = Math.min(1, len);
+        const walkingSpeed = state.currentZone === 'village' ? 4.4 : 6.0;
+        const targetSpeed = len > .05 ? walkingSpeed * inputStrength : 0;
+        const acceleration = targetSpeed > heroMoveSpeed ? 6.5 : 10;
+        heroMoveSpeed += (targetSpeed - heroMoveSpeed) * (1 - Math.exp(-dt * acceleration));
+        if (heroMoveSpeed < .005) heroMoveSpeed = 0;
+        if (len > .05) {
+          heroMoveDirection.set(mx / Math.max(1, len), 0, mz / Math.max(1, len));
+        }
 
-          // Slide along X and Z independently against village house/shop colliders
+        if (heroMoveSpeed > 0 && heroMoveDirection.lengthSq() > 0) {
+          const tryX = THREE.MathUtils.clamp(leader.mesh.position.x + heroMoveDirection.x * heroMoveSpeed * dt, -130, 130);
+          const tryZ = THREE.MathUtils.clamp(leader.mesh.position.z + heroMoveDirection.z * heroMoveSpeed * dt, -130, 130);
+
+          // Slide along X and Z independently against village house/shop colliders.
           if (!isBlockedByBuilding(tryX, leader.mesh.position.z)) {
             if (!(state.currentZone === 'open_world' && Math.abs(tryX) < 7.2 && Math.abs(leader.mesh.position.z) > 7.2)) {
               leader.mesh.position.x = tryX;
@@ -4050,9 +4063,14 @@
             leader.mesh.position.z = tryZ;
           }
 
-          leader.mesh.position.y = (state.currentZone === 'open_world' && leader.mesh.position.x > 7) ? 1.2 : 0;
-          leader.mesh.rotation.y = Math.atan2(mx, mz);
+          const targetYaw = Math.atan2(heroMoveDirection.x, heroMoveDirection.z);
+          const yawDelta = Math.atan2(Math.sin(targetYaw - leader.mesh.rotation.y), Math.cos(targetYaw - leader.mesh.rotation.y));
+          leader.mesh.rotation.y += yawDelta * (1 - Math.exp(-dt * 14));
         }
+        leader.mesh.position.y = (state.currentZone === 'open_world' && leader.mesh.position.x > 7) ? 1.2 : 0;
+        const actualSpeed = Math.hypot(leader.mesh.position.x - previousHeroX, leader.mesh.position.z - previousHeroZ) / Math.max(dt, .001);
+        leader.mesh.userData.locomotionSpeed = actualSpeed;
+        if (leader.mesh.userData.updateLocomotion) leader.mesh.userData.updateLocomotion(dt, actualSpeed);
 
         leader.mesh.userData.labelRef.pos.set(
           leader.mesh.position.x,
