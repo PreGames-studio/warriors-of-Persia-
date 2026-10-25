@@ -1928,13 +1928,30 @@
     function buildShopBuilding3D(shopDef) {
       const g = villageKit.buildShop(shopDef);
 
-      // Collider for the back building (leaving the front rug & counter walkable!)
-      addColliderBox(shopDef.pos.x, shopDef.pos.z - 1.5, 5.2, 3.2);
+      if (shopDef.id === 'blacksmith') {
+        // Real wall colliders preserve the doorway and the walkable workshop interior.
+        const angle = shopDef.rotY || 0;
+        const c = Math.cos(angle), s = Math.sin(angle);
+        const addLocalWall = (x, z, halfW, halfD) => {
+          const worldX = shopDef.pos.x + x * c + z * s;
+          const worldZ = shopDef.pos.z - x * s + z * c;
+          const quarterTurn = Math.abs(s) > .7;
+          addColliderBox(worldX, worldZ, quarterTurn ? halfD : halfW, quarterTurn ? halfW : halfD);
+        };
+        addLocalWall(-4.75, 0, .23, 3.85);
+        addLocalWall(4.75, 0, .23, 3.85);
+        addLocalWall(0, -3.85, 4.78, .23);
+        addLocalWall(-3.18, 3.85, 1.6, .23);
+        addLocalWall(3.18, 3.85, 1.6, .23);
+      } else {
+        // Collider for the back building (leaving the front rug & counter walkable!)
+        addColliderBox(shopDef.pos.x, shopDef.pos.z - 1.5, 5.2, 3.2);
+      }
 
       // World Label above Shop (Clickable to enter shop!)
       addWorldLabel(
         shopDef.title,
-        new THREE.Vector3(shopDef.pos.x, 9.2, shopDef.pos.z),
+        new THREE.Vector3(shopDef.pos.x, shopDef.id === 'blacksmith' ? 11.2 : 9.2, shopDef.pos.z),
         '#d8b66a',
         () => {
           if (shopDef.id === 'blacksmith') openBlacksmithShop();
@@ -3960,7 +3977,10 @@
         }
       }
 
-      if (state.currentZone === 'village') villageKit.update(elapsed, dt);
+      if (state.currentZone === 'village') {
+        const heroMesh = state.party[0] && state.party[0].mesh;
+        villageKit.update(elapsed, dt, heroMesh ? heroMesh.position : null);
+      }
       renderer.render(scene, camera);
       updateBlacksmith3DScene(dt, elapsed);
       drawMinimap();
