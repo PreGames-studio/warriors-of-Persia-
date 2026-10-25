@@ -24,6 +24,7 @@ namespace WarriorsOfPersia.Blacksmith
         private Mesh cylinder;
         private Mesh cone;
         private Mesh torus;
+        private Mesh[] stoneVariants;
         private System.Random random;
         private readonly List<Light> flickeringLights = new List<Light>();
         private readonly List<Transform> animatedFlames = new List<Transform>();
@@ -51,6 +52,12 @@ namespace WarriorsOfPersia.Blacksmith
             cylinder = BlacksmithMeshUtility.CreateCylinder(12);
             cone = BlacksmithMeshUtility.CreateCylinder(12, 0f);
             torus = BlacksmithMeshUtility.CreateTorus();
+            stoneVariants = new[]
+            {
+                BlacksmithMeshUtility.CreateIrregularStone(17),
+                BlacksmithMeshUtility.CreateIrregularStone(43),
+                BlacksmithMeshUtility.CreateIrregularStone(89)
+            };
             staticRoot = Group("01 • STATIC • editable architecture and props", transform);
             dynamicRoot = Group("02 • DYNAMIC • door and fire", transform);
             effectsRoot = Group("03 • FX • smoke and sparks", transform);
@@ -109,6 +116,7 @@ namespace WarriorsOfPersia.Blacksmith
             Box("Stone lintel above real doorway", root, new Vector3(0f, 4.18f, 3.85f), new Vector3(3.2f, .82f, .46f), materials.StoneWall, null, true);
             MeshObject("Front stone gable", root, gable, materials.StoneWall, new Vector3(0f, 5.84f, 3.86f), new Vector3(9.55f, 2.82f, .42f));
             MeshObject("Rear stone gable", root, gable, materials.StoneWall, new Vector3(0f, 5.84f, -3.86f), new Vector3(9.55f, 2.82f, .42f));
+            BuildMasonryVeneer(root);
 
             for (int x = -1; x <= 1; x += 2)
             for (int z = -1; z <= 1; z += 2)
@@ -145,6 +153,70 @@ namespace WarriorsOfPersia.Blacksmith
             }
         }
 
+        private void BuildMasonryVeneer(Transform root)
+        {
+            // The structural wall behind these stones remains continuous for
+            // collision. The visible surface is individual, uneven masonry,
+            // not a stretched cube with a repeating texture.
+            for (int side = -1; side <= 1; side += 2)
+            {
+                for (int row = 0; row < 7; row++)
+                {
+                    float y = .98f + row * .51f;
+                    for (int col = 0; col < 9; col++)
+                    {
+                        float z = -3.47f + col * .86f + (row % 2) * .12f;
+                        Stone("Side wall individual ashlar", root,
+                            new Vector3(side * 4.99f, y + Range(-.025f, .025f), z),
+                            new Vector3(Range(.18f, .27f), Range(.39f, .47f), Range(.73f, .91f)),
+                            (row + col) % 4 == 0 ? materials.StoneWall : materials.StoneBlock,
+                            Quaternion.Euler(Range(-1.4f, 1.4f), Range(-1.8f, 1.8f), Range(-1.2f, 1.2f)));
+                    }
+                }
+            }
+            for (int row = 0; row < 7; row++)
+            {
+                float y = .98f + row * .51f;
+                for (int col = 0; col < 10; col++)
+                {
+                    float x = -4.18f + col * .91f + (row % 2) * .1f;
+                    Stone("Rear wall individual ashlar", root,
+                        new Vector3(x, y + Range(-.025f, .025f), -4.02f),
+                        new Vector3(Range(.76f, .94f), Range(.39f, .47f), Range(.18f, .27f)),
+                        (row + col) % 3 == 0 ? materials.StoneWall : materials.StoneBlock,
+                        Quaternion.Euler(Range(-1.2f, 1.2f), Range(-1.4f, 1.4f), Range(-1.4f, 1.4f)));
+                }
+            }
+
+            // Front courses stop at the door opening. No hidden block or
+            // collider is introduced into the walkable entrance.
+            for (int side = -1; side <= 1; side += 2)
+            for (int row = 0; row < 7; row++)
+            for (int col = 0; col < 3; col++)
+            {
+                float x = side * (2.02f + col * .82f + (row % 2) * .08f);
+                Stone("Front doorway ashlar", root,
+                    new Vector3(x, .98f + row * .51f, 4.04f),
+                    new Vector3(Range(.68f, .82f), Range(.39f, .47f), Range(.18f, .27f)),
+                    materials.StoneBlock,
+                    Quaternion.Euler(Range(-1.1f, 1.1f), Range(-1.4f, 1.4f), Range(-1.1f, 1.1f)));
+            }
+            for (int col = 0; col < 5; col++)
+            {
+                Stone("Lintel dressed stone", root, new Vector3(-1.7f + col * .85f, 4.2f, 4.08f),
+                    new Vector3(.78f, .48f, .28f), materials.StoneBlock,
+                    Quaternion.Euler(0f, Range(-1.2f, 1.2f), Range(-1f, 1f)));
+            }
+            // Larger alternating quoins make the corners read as load-bearing
+            // masonry from the gameplay camera as well as at close range.
+            for (int side = -1; side <= 1; side += 2)
+            for (int row = 0; row < 7; row++)
+            {
+                Stone("Corner dressed quoin", root, new Vector3(side * 4.86f, 1.02f + row * .51f, 4.12f),
+                    new Vector3(.55f, .44f, row % 2 == 0 ? .42f : .3f), materials.StoneBlock);
+            }
+        }
+
         private void BuildRoof()
         {
             Transform root = Group("Roof • individual weathered slate and exposed rafters", staticRoot);
@@ -177,6 +249,16 @@ namespace WarriorsOfPersia.Blacksmith
             {
                 Cylinder("Slate ridge cap", root, new Vector3(0f, 7.72f, -4.45f + i * .99f), new Vector3(.43f, 1.06f, .43f), materials.RoofTile,
                     Quaternion.Euler(90f, 0f, 0f));
+            }
+            for (int side = -1; side <= 1; side += 2)
+            {
+                Cylinder("Iron rain gutter", root, new Vector3(side * 5.28f, 4.39f, 0f),
+                    new Vector3(.16f, 9.35f, .16f), materials.Iron, Quaternion.Euler(90f, 0f, 0f));
+                Cylinder("Forged downspout", root, new Vector3(side * 5.27f, 2.2f, 4.18f),
+                    new Vector3(.12f, 4.35f, .12f), materials.Iron);
+                for (int i = 0; i < 5; i++)
+                    Box("Gutter bracket", root, new Vector3(side * 5.26f, 4.38f, -3.7f + i * 1.85f),
+                        new Vector3(.32f, .08f, .08f), materials.Iron);
             }
         }
 
@@ -364,7 +446,7 @@ namespace WarriorsOfPersia.Blacksmith
             {
                 Box("Workbench leg", root, new Vector3(2.95f + x * 1.08f, .5f, -2.75f + z * .39f), new Vector3(.2f, 1f, .2f), materials.WoodDark);
             }
-            CreateSword(root, new Vector3(2.45f, 1.16f, -2.65f), Quaternion.Euler(78f, 12f, 88f), .72f);
+            CreateDagger(root, new Vector3(2.45f, 1.16f, -2.65f), Quaternion.Euler(78f, 12f, 88f), 2.1f);
             Box("Smith hammer handle on bench", root, new Vector3(3.25f, 1.19f, -2.55f), new Vector3(.08f, .72f, .08f), materials.WoodLight,
                 Quaternion.Euler(75f, 0f, 62f));
             Box("Smith hammer head on bench", root, new Vector3(3.51f, 1.22f, -2.72f), new Vector3(.48f, .21f, .22f), materials.Iron,
@@ -407,6 +489,7 @@ namespace WarriorsOfPersia.Blacksmith
             }
             CreateCrate(root, new Vector3(7.9f, 0f, 5.4f), 1f);
             CreateCrate(root, new Vector3(8.65f, 0f, 6.35f), .72f);
+            CreateChest(root, new Vector3(7.85f, 0f, 7.35f), .85f);
             CreateBarrel(root, new Vector3(-6.7f, 0f, 5.75f), 1f);
             CreateBarrel(root, new Vector3(-7.45f, 0f, 6.75f), .75f);
             for (int i = 0; i < 14; i++)
@@ -463,15 +546,22 @@ namespace WarriorsOfPersia.Blacksmith
             root.localPosition = position;
             Box("Lantern wall mount", root, new Vector3(0f, .45f, -.2f), new Vector3(.1f, .8f, .1f), materials.Iron);
             BeamBetween("Lantern bracket", root, new Vector3(0f, .78f, -.2f), new Vector3(0f, .78f, .34f), .07f, materials.Iron);
-            Box("Lantern glowing glass", root, new Vector3(0f, .1f, .35f), new Vector3(.34f, .57f, .34f), materials.Window);
-            Box("Lantern base", root, new Vector3(0f, -.22f, .35f), new Vector3(.48f, .1f, .48f), materials.Iron);
-            Cone("Lantern cap", root, new Vector3(0f, .54f, .35f), new Vector3(.57f, .28f, .57f), materials.Iron);
-            for (int x = -1; x <= 1; x += 2)
-            for (int z = -1; z <= 1; z += 2)
-                Box("Lantern metal corner", root, new Vector3(x * .19f, .1f, .35f + z * .19f), new Vector3(.045f, .68f, .045f), materials.Iron);
+            GameObject imported = PolyhavenPropLibrary.Instantiate("wooden_lantern_01", root,
+                new Vector3(0f, -.34f, .35f), Quaternion.identity, 1.65f);
+            if (imported == null)
+            {
+                // Deterministic fallback for an unimported asset or a stripped
+                // player build; the normal path uses the CC0 UV-mapped mesh.
+                Box("Lantern glowing glass", root, new Vector3(0f, .1f, .35f), new Vector3(.34f, .57f, .34f), materials.Window);
+                Box("Lantern base", root, new Vector3(0f, -.22f, .35f), new Vector3(.48f, .1f, .48f), materials.Iron);
+                Cone("Lantern cap", root, new Vector3(0f, .54f, .35f), new Vector3(.57f, .28f, .57f), materials.Iron);
+                for (int x = -1; x <= 1; x += 2)
+                for (int z = -1; z <= 1; z += 2)
+                    Box("Lantern metal corner", root, new Vector3(x * .19f, .1f, .35f + z * .19f), new Vector3(.045f, .68f, .045f), materials.Iron);
+            }
             if (realLight)
             {
-                PointLight(root, "Warm lantern light", new Vector3(0f, .12f, .62f), new Color(1f, .48f, .14f), 1.35f, 6.5f, true);
+                PointLight(root, "Warm lantern light", new Vector3(0f, .12f, .62f), new Color(1f, .48f, .14f), 1.65f, 7.5f, true);
             }
         }
 
@@ -489,9 +579,65 @@ namespace WarriorsOfPersia.Blacksmith
                 Box("Neighbor corner timber", root, new Vector3(side * (size.x * .5f - .15f), size.y * .5f, size.z * .5f + .08f),
                     new Vector3(.24f, size.y, .24f), materials.WoodDark);
             }
-            Box("Neighbor door", root, new Vector3(0f, 1.25f, size.z * .5f + .12f), new Vector3(1.35f, 2.5f, .16f), materials.WoodDark);
-            CreateWindow(root, new Vector3(-size.x * .27f, 2.2f, size.z * .5f + .14f), 0f);
-            CreateWindow(root, new Vector3(size.x * .27f, 2.2f, size.z * .5f + .14f), 0f);
+            CreateWindow(root, new Vector3(-size.x * .27f, 2.2f, size.z * .5f + .34f), 0f);
+            CreateWindow(root, new Vector3(size.x * .27f, 2.2f, size.z * .5f + .34f), 0f);
+            BuildNeighborDetail(root, size, timberVariant);
+        }
+
+        private void BuildNeighborDetail(Transform root, Vector3 size, bool timberVariant)
+        {
+            float front = size.z * .5f + .24f;
+            for (int row = 0; row < 5; row++)
+            for (int col = 0; col < 7; col++)
+            {
+                float x = -size.x * .43f + col * size.x * .143f + (row % 2) * .08f;
+                Stone("Neighbor front masonry course", root, new Vector3(x, .65f + row * .65f, front),
+                    new Vector3(size.x * .12f, .48f, .18f), materials.StoneBlock,
+                    Quaternion.Euler(0f, Range(-1.5f, 1.5f), Range(-1f, 1f)));
+            }
+            for (int side = -1; side <= 1; side += 2)
+            {
+                BeamBetween("Neighbor structural diagonal", root,
+                    new Vector3(side * (size.x * .44f), .75f, front + .08f),
+                    new Vector3(side * (size.x * .15f), size.y - .35f, front + .08f),
+                    .16f, materials.WoodDark);
+                Box("Neighbor side timber rail", root, new Vector3(side * size.x * .49f, size.y * .55f, 0f),
+                    new Vector3(.18f, .18f, size.z), materials.Wood);
+                for (int row = 0; row < 4; row++)
+                for (int col = 0; col < 6; col++)
+                {
+                    float t = (row + .5f) / 4f;
+                    float x = side * (size.x * (.08f + t * .42f));
+                    float y = size.y + 2.15f - t * 1.85f;
+                    float z = -size.z * .43f + col * size.z * .17f;
+                    Box("Neighbor individual slate", root, new Vector3(x, y, z),
+                        new Vector3(size.x * .16f, .08f, size.z * .15f), materials.RoofTile,
+                        Quaternion.Euler(0f, 0f, -side * 31f));
+                }
+            }
+            for (int i = 0; i < 3; i++)
+            {
+                Box("Neighbor door plank", root, new Vector3(-.48f + i * .48f, 1.25f, front + .05f),
+                    new Vector3(.45f, 2.45f, .12f), i == 1 ? materials.Wood : materials.WoodDark);
+                Box("Neighbor door iron strap", root, new Vector3(0f, .75f + i * .55f, front + .14f),
+                    new Vector3(1.25f, .07f, .06f), materials.Iron);
+            }
+            Box("Neighbor chimney", root, new Vector3(-size.x * .25f, size.y + 1.4f, -size.z * .2f),
+                new Vector3(.7f, 2.2f, .7f), materials.StoneDark);
+            CreateLantern(root, new Vector3(0f, 2.4f, front + .2f), false);
+            if (timberVariant)
+            {
+                Box("Neighbor timber sign bracket", root, new Vector3(size.x * .52f, 2.5f, front + .2f),
+                    new Vector3(.9f, .1f, .1f), materials.WoodDark);
+                Box("Neighbor timber sign", root, new Vector3(size.x * .52f, 2.05f, front + .2f),
+                    new Vector3(.75f, .65f, .1f), materials.Wood);
+            }
+        }
+
+        private void CreateDagger(Transform parent, Vector3 position, Quaternion rotation, float scale)
+        {
+            GameObject imported = PolyhavenPropLibrary.Instantiate("ornate_medieval_dagger", parent, position, rotation, scale);
+            if (imported == null) CreateSword(parent, position, rotation, scale * .42f);
         }
 
         private void CreateSword(Transform parent, Vector3 position, Quaternion rotation, float scale)
@@ -540,6 +686,15 @@ namespace WarriorsOfPersia.Blacksmith
 
         private void CreateBarrel(Transform parent, Vector3 position, float scale)
         {
+            GameObject imported = PolyhavenPropLibrary.Instantiate("Barrel_01", parent, position,
+                Quaternion.Euler(0f, Range(-12f, 12f), 0f), scale * 1.45f);
+            if (imported != null)
+            {
+                BoxCollider importedCollider = imported.AddComponent<BoxCollider>();
+                importedCollider.center = new Vector3(0f, .44f, 0f);
+                importedCollider.size = new Vector3(.65f, .9f, .65f);
+                return;
+            }
             Transform root = Group("Coopered oak barrel", parent);
             root.localPosition = position;
             root.localScale = Vector3.one * scale;
@@ -561,6 +716,16 @@ namespace WarriorsOfPersia.Blacksmith
 
         private void CreateCrate(Transform parent, Vector3 position, float scale)
         {
+            GameObject imported = PolyhavenPropLibrary.Instantiate("wooden_crate_01", parent, position,
+                Quaternion.Euler(0f, Range(-9f, 9f), 0f), scale);
+            if (imported != null)
+            {
+                imported.transform.localScale = new Vector3(1.2f, 2.4f, 2.4f) * scale;
+                BoxCollider importedCollider = imported.AddComponent<BoxCollider>();
+                importedCollider.center = new Vector3(0f, .17f, 0f);
+                importedCollider.size = new Vector3(.85f, .36f, .42f);
+                return;
+            }
             Transform root = Group("Iron-bound supply crate", parent);
             root.localPosition = position;
             root.localRotation = Quaternion.Euler(0f, Range(-9f, 9f), 0f);
@@ -575,6 +740,17 @@ namespace WarriorsOfPersia.Blacksmith
             BoxCollider collider = root.gameObject.AddComponent<BoxCollider>();
             collider.center = new Vector3(0f, .45f, 0f);
             collider.size = new Vector3(1.05f, .95f, 1.05f);
+        }
+
+        private void CreateChest(Transform parent, Vector3 position, float scale)
+        {
+            // Keep the high-poly LOD out of the static architecture batch.
+            GameObject imported = PolyhavenPropLibrary.Instantiate("treasure_chest", dynamicRoot, position,
+                Quaternion.Euler(0f, -12f, 0f), scale * 1.65f);
+            if (imported == null) return;
+            BoxCollider collider = imported.AddComponent<BoxCollider>();
+            collider.center = new Vector3(0f, .31f, 0f);
+            collider.size = new Vector3(1f, .65f, .55f);
         }
 
         private void CreateSmoke(Vector3 position)
@@ -685,6 +861,13 @@ namespace WarriorsOfPersia.Blacksmith
             Quaternion? rotation = null, bool solid = false)
         {
             return MeshObject(name, parent, bevel, material, position, scale, rotation ?? Quaternion.identity, solid);
+        }
+
+        private GameObject Stone(string name, Transform parent, Vector3 position, Vector3 scale, Material material,
+            Quaternion? rotation = null)
+        {
+            int index = Mathf.Abs(Mathf.RoundToInt(position.x * 13f + position.y * 17f + position.z * 19f)) % stoneVariants.Length;
+            return MeshObject(name, parent, stoneVariants[index], material, position, scale, rotation, false);
         }
 
         private GameObject MeshObject(string name, Transform parent, Mesh mesh, Material material, Vector3 position,

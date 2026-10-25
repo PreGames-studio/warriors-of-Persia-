@@ -1,0 +1,21 @@
+{
+  "source": "https://polyhaven.com/a/wooden_lantern_01",
+  "license": "CC0-1.0",
+  "sourcePack": "https://github.com/Eruldin/Gambling-with-the-devil/tree/asset-scan/env-table/assets_external/env-table/polyhaven/wooden_lantern_01",
+  "triangles": 8321,
+  "boundsMin": [
+    -0.11051704734563828,
+    -0.011375105008482933,
+    -0.12418060004711151
+  ],
+  "boundsMax": [
+    0.1105310469865799,
+    0.5187614560127258,
+    0.11054381728172302
+  ],
+  "materials": [
+    "wooden_lantern_01",
+    "wooden_lantern_01_glass"
+  ],
+  "coordinateConversion": "glTF (x,y,z) -> Unity (x,y,-z), reversed winding"
+}

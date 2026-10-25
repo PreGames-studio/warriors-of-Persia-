@@ -1,0 +1,20 @@
+{
+  "source": "https://polyhaven.com/a/treasure_chest",
+  "license": "CC0-1.0",
+  "sourcePack": "https://github.com/Eruldin/Gambling-with-the-devil/tree/asset-scan/env-table/assets_external/env-table/polyhaven/treasure_chest",
+  "triangles": 103330,
+  "boundsMin": [
+    -0.47951826453208923,
+    -0.0016826540231704712,
+    -0.2620454728603363
+  ],
+  "boundsMax": [
+    0.47951826453208923,
+    0.6172918677330017,
+    0.26080796122550964
+  ],
+  "materials": [
+    "treasure_chest"
+  ],
+  "coordinateConversion": "glTF (x,y,z) -> Unity (x,y,-z), reversed winding"
+}

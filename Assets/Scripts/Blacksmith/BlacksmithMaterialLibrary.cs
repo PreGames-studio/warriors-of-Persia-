@@ -11,7 +11,8 @@ namespace WarriorsOfPersia.Blacksmith
         {
             "Stone", "StoneWall", "StoneBlock", "StoneDark", "Wood", "WoodDark", "WoodLight",
             "Roof", "RoofTile", "Iron", "Steel", "Gold", "Cobble", "CobbleBlock", "Water",
-            "Coal", "Moss", "Ember", "Window", "Smoke", "Spark"
+            "Coal", "Moss", "Ember", "Window", "Smoke", "Spark",
+            "Grass", "GrassDry", "GrassDark", "Earth"
         };
 
         private readonly Dictionary<string, Material> materials = new Dictionary<string, Material>();
@@ -71,6 +72,10 @@ namespace WarriorsOfPersia.Blacksmith
                 case "Window": return CreateEmission(name, new Color(.34f, .095f, .016f), new Color(1f, .32f, .055f) * 2.2f);
                 case "Smoke": return CreateParticle(name, "smoke", false);
                 case "Spark": return CreateParticle(name, "spark", true);
+                case "Grass": return CreatePbr(name, "grass", Color.white, new Vector2(18f, 18f));
+                case "GrassDry": return CreatePbr(name, "grass_dry", new Color(.9f, .94f, .86f), new Vector2(12f, 12f));
+                case "GrassDark": return CreatePbr(name, "grass_dark", new Color(.86f, .92f, .88f), new Vector2(10f, 10f));
+                case "Earth": return CreatePbr(name, "earth", Color.white, new Vector2(4f, 14f));
                 default: return CreateSolid(name, Color.magenta, 0f, .5f, false);
             }
         }
@@ -99,6 +104,16 @@ namespace WarriorsOfPersia.Blacksmith
             {
                 material.SetTexture("_OcclusionMap", ao);
                 material.SetFloat("_OcclusionStrength", .82f);
+            }
+            Texture2D detailAlbedo = Texture("detail_albedo");
+            Texture2D detailNormal = Texture("detail_normal");
+            if (detailAlbedo != null && detailNormal != null)
+            {
+                material.SetTexture("_DetailAlbedoMap", detailAlbedo);
+                material.SetTexture("_DetailNormalMap", detailNormal);
+                material.detailAlbedoMapScale = 6f;
+                material.detailNormalMapScale = .28f;
+                material.EnableKeyword("_DETAIL_MULX2");
             }
             material.mainTextureScale = tiling;
             return material;

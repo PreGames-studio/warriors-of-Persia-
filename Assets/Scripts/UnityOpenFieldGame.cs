@@ -12,13 +12,28 @@ public sealed class UnityOpenFieldGame : MonoBehaviour
     private readonly System.Random random = new System.Random(2319);
     private SwordsmanController hero;
     private Text statusText;
+    private BlacksmithMaterialLibrary environmentMaterials;
+    private bool highQuality;
 
     private void Start()
     {
         Application.targetFrameRate = 60;
         Screen.sleepTimeout = SleepTimeout.NeverSleep;
-        QualitySettings.antiAliasing = 2;
-        QualitySettings.pixelLightCount = Mathf.Max(QualitySettings.pixelLightCount, 4); // Moonlight + two lanterns + forge.
+        // No physical device is available in this environment; use a
+        // conservative 1 GB mobile threshold instead of forcing every GPU
+        // through 2K textures, depth AO and high-resolution shadow passes.
+        highQuality = !Application.isMobilePlatform || SystemInfo.graphicsMemorySize >= 1024;
+        QualitySettings.antiAliasing = highQuality ? 4 : 2;
+        QualitySettings.pixelLightCount = highQuality ? 5 : 3;
+        QualitySettings.shadows = ShadowQuality.All;
+        QualitySettings.shadowResolution = highQuality ? ShadowResolution.VeryHigh : ShadowResolution.High;
+        QualitySettings.shadowDistance = highQuality ? 72f : 48f;
+        QualitySettings.shadowCascades = highQuality ? 2 : 1;
+        QualitySettings.shadowProjection = ShadowProjection.StableFit;
+        QualitySettings.anisotropicFiltering = AnisotropicFiltering.Enable;
+        QualitySettings.masterTextureLimit = highQuality ? 0 : 1;
+        QualitySettings.lodBias = highQuality ? 1.2f : .85f;
+        environmentMaterials = new BlacksmithMaterialLibrary();
 
         BuildLighting();
         BuildGroundAndPaths();
@@ -34,9 +49,12 @@ public sealed class UnityOpenFieldGame : MonoBehaviour
 
     private void BuildLighting()
     {
-        RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
+        RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
+        RenderSettings.ambientSkyColor = new Color(.36f, .45f, .62f);
+        RenderSettings.ambientEquatorColor = new Color(.25f, .29f, .34f);
+        RenderSettings.ambientGroundColor = new Color(.12f, .14f, .15f);
         RenderSettings.ambientLight = new Color(.25f, .32f, .43f);
-        RenderSettings.ambientIntensity = .72f;
+        RenderSettings.ambientIntensity = .78f;
         RenderSettings.fog = true;
         RenderSettings.fogColor = new Color(.085f, .125f, .19f);
         RenderSettings.fogMode = FogMode.Linear;
@@ -48,8 +66,11 @@ public sealed class UnityOpenFieldGame : MonoBehaviour
         Light sun = sunObject.AddComponent<Light>();
         sun.type = LightType.Directional;
         sun.color = new Color(.57f, .67f, .86f);
-        sun.intensity = .64f;
-        sun.shadows = LightShadows.Hard;
+        sun.intensity = .72f;
+        sun.shadows = LightShadows.Soft;
+        sun.shadowBias = .035f;
+        sun.shadowNormalBias = .35f;
+        sun.shadowStrength = .84f;
         sunObject.transform.rotation = Quaternion.Euler(34f, -28f, 0f);
 
         GameObject cameraObject = new GameObject("Mobile third-person camera");
@@ -59,27 +80,30 @@ public sealed class UnityOpenFieldGame : MonoBehaviour
         camera.fieldOfView = 62f;
         camera.nearClipPlane = .08f;
         camera.farClipPlane = 180f;
-        camera.allowHDR = false;
+        camera.allowHDR = true;
         camera.allowMSAA = true;
         cameraObject.AddComponent<AudioListener>();
+        CinematicPostProcess postProcess = cameraObject.AddComponent<CinematicPostProcess>();
+        postProcess.Configure(highQuality);
         _camera = camera;
     }
 
     private void BuildReflectionEnvironment()
     {
-        Cubemap reflection = new Cubemap(32, TextureFormat.RGBA32, true);
+        const int reflectionSize = 64;
+        Cubemap reflection = new Cubemap(reflectionSize, TextureFormat.RGBA32, true);
         Color sky = new Color(.11f, .17f, .27f);
         Color horizon = new Color(.31f, .29f, .27f);
         Color ground = new Color(.055f, .06f, .07f);
         for (int faceIndex = 0; faceIndex < 6; faceIndex++)
         {
             CubemapFace face = (CubemapFace)faceIndex;
-            Color[] pixels = new Color[32 * 32];
-            for (int y = 0; y < 32; y++)
+            Color[] pixels = new Color[reflectionSize * reflectionSize];
+            for (int y = 0; y < reflectionSize; y++)
             {
-                float vertical = face == CubemapFace.PositiveY ? 1f : face == CubemapFace.NegativeY ? 0f : 1f - y / 31f;
+                float vertical = face == CubemapFace.PositiveY ? 1f : face == CubemapFace.NegativeY ? 0f : 1f - y / (reflectionSize - 1f);
                 Color value = vertical > .52f ? Color.Lerp(horizon, sky, (vertical - .52f) / .48f) : Color.Lerp(ground, horizon, vertical / .52f);
-                for (int x = 0; x < 32; x++) pixels[y * 32 + x] = value;
+                for (int x = 0; x < reflectionSize; x++) pixels[y * reflectionSize + x] = value;
             }
             reflection.SetPixels(pixels, face);
         }
@@ -94,9 +118,14 @@ public sealed class UnityOpenFieldGame : MonoBehaviour
     private void BuildGroundAndPaths()
     {
         CreatePrimitive("Open green meadow", PrimitiveType.Cube, transform,
-            new Vector3(0f, -0.12f, 0f), new Vector3(146f, 0.24f, 146f), Mat("#60934e", 0.98f), true);
+            new Vector3(0f, -0.12f, 0f), new Vector3(146f, 0.24f, 146f), environmentMaterials.Get("Grass"), true);
+        BuildTerrainSurface();
 
-        string[] patchColors = { "#6a9b54", "#5a8d49", "#709d57", "#5f914e" };
+        Material[] patchMaterials =
+        {
+            environmentMaterials.Get("Grass"), environmentMaterials.Get("GrassDry"),
+            environmentMaterials.Get("GrassDark"), environmentMaterials.Get("Grass")
+        };
         for (int i = 0; i < 34; i++)
         {
             Vector2 point = RandomPoint(64f);
@@ -106,12 +135,12 @@ public sealed class UnityOpenFieldGame : MonoBehaviour
             float depth = Range(3f, 7.5f);
             CreatePrimitive("Soft grass variation", PrimitiveType.Cube, transform,
                 new Vector3(point.x, 0.015f, point.y), new Vector3(width, 0.025f, depth),
-                Mat(patchColors[i % patchColors.Length], 1f), false);
+                patchMaterials[i % patchMaterials.Length], false);
         }
 
-        Material trailEdge = Mat("#90744f", 1f);
-        Material trailEarth = Mat("#aa8b61", 0.96f);
-        Material trailStone = Mat("#d3c298", 0.88f);
+        Material trailEdge = environmentMaterials.Get("StoneDark");
+        Material trailEarth = environmentMaterials.Get("Earth");
+        Material trailStone = environmentMaterials.Get("CobbleBlock");
         AddTrail(new Vector2(0f, -66f), new Vector2(0f, 66f), 5.2f, 0.055f, trailEdge);
         AddTrail(new Vector2(0f, -66f), new Vector2(0f, 66f), 4.4f, 0.065f, trailEarth);
         AddTrail(new Vector2(0f, 18f), new Vector2(-55f, 66f), 3.6f, 0.05f, trailEarth);
@@ -128,6 +157,41 @@ public sealed class UnityOpenFieldGame : MonoBehaviour
         }
 
         BuildInvisibleBoundary();
+    }
+
+    private void BuildTerrainSurface()
+    {
+        const int resolution = 48;
+        const float extent = 73f;
+        List<Vector3> vertices = new List<Vector3>((resolution + 1) * (resolution + 1));
+        List<Vector2> uv = new List<Vector2>(vertices.Capacity);
+        List<int> triangles = new List<int>(resolution * resolution * 6);
+        for (int z = 0; z <= resolution; z++)
+        for (int x = 0; x <= resolution; x++)
+        {
+            float worldX = -extent + x * (extent * 2f / resolution);
+            float worldZ = -extent + z * (extent * 2f / resolution);
+            float height = (Mathf.PerlinNoise(worldX * .075f, worldZ * .075f) - .5f) * .035f;
+            vertices.Add(new Vector3(worldX, .006f + height, worldZ));
+            uv.Add(new Vector2(x / (float)resolution, z / (float)resolution));
+        }
+        for (int z = 0; z < resolution; z++)
+        for (int x = 0; x < resolution; x++)
+        {
+            int start = z * (resolution + 1) + x;
+            triangles.Add(start); triangles.Add(start + resolution + 1); triangles.Add(start + 1);
+            triangles.Add(start + 1); triangles.Add(start + resolution + 1); triangles.Add(start + resolution + 2);
+        }
+        Mesh mesh = new Mesh { name = "Subtle continuous meadow surface" };
+        mesh.SetVertices(vertices);
+        mesh.SetUVs(0, uv);
+        mesh.SetTriangles(triangles, 0, true);
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        GameObject surface = new GameObject("2K meadow surface • collision retained on base");
+        surface.transform.SetParent(transform, false);
+        surface.AddComponent<MeshFilter>().sharedMesh = mesh;
+        surface.AddComponent<MeshRenderer>().sharedMaterial = environmentMaterials.Get("Grass");
     }
 
     private void AddTrail(Vector2 start, Vector2 end, float width, float height, Material material)
@@ -177,7 +241,7 @@ public sealed class UnityOpenFieldGame : MonoBehaviour
 
     private void BuildFoliage()
     {
-        Mesh bladeMesh = PrimitiveMesh(PrimitiveType.Cube);
+        Mesh bladeMesh = CreateGrassBladeMesh();
         Material[] bladeMaterials = { Mat("#75a755", 0.95f), Mat("#83b45d", 0.95f), Mat("#4f8043", 0.95f) };
         List<Matrix4x4>[] grass = { new List<Matrix4x4>(), new List<Matrix4x4>(), new List<Matrix4x4>() };
         for (int i = 0; i < 1700; i++)
@@ -223,6 +287,35 @@ public sealed class UnityOpenFieldGame : MonoBehaviour
             AddFoliageBatch("Field shrubs " + i, shrubMesh, shrubMaterials[i], shrubs[i]);
     }
 
+    private Mesh CreateGrassBladeMesh()
+    {
+        List<Vector3> vertices = new List<Vector3>();
+        List<Vector2> uv = new List<Vector2>();
+        List<int> triangles = new List<int>();
+        for (int blade = 0; blade < 3; blade++)
+        {
+            float angle = blade * Mathf.PI / 3f;
+            Vector3 right = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * .5f;
+            Vector3 bend = new Vector3(Mathf.Sin(angle), 0f, -Mathf.Cos(angle)) * .16f;
+            int start = vertices.Count;
+            vertices.Add(-right); vertices.Add(right);
+            vertices.Add(right * .55f + Vector3.up * .62f + bend);
+            vertices.Add(Vector3.up + bend * 1.5f);
+            uv.Add(new Vector2(0f, 0f)); uv.Add(new Vector2(1f, 0f));
+            uv.Add(new Vector2(1f, .62f)); uv.Add(new Vector2(.5f, 1f));
+            triangles.Add(start); triangles.Add(start + 2); triangles.Add(start + 1);
+            triangles.Add(start); triangles.Add(start + 3); triangles.Add(start + 2);
+            triangles.Add(start + 1); triangles.Add(start + 2); triangles.Add(start + 3);
+        }
+        Mesh mesh = new Mesh { name = "Tapered crossed meadow blades" };
+        mesh.SetVertices(vertices);
+        mesh.SetUVs(0, uv);
+        mesh.SetTriangles(triangles, 0, true);
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        return mesh;
+    }
+
     private void AddFoliageBatch(string objectName, Mesh mesh, Material material, List<Matrix4x4> matrices)
     {
         GameObject batchObject = new GameObject(objectName);
@@ -242,33 +335,13 @@ public sealed class UnityOpenFieldGame : MonoBehaviour
 
     private void BuildVillageGate()
     {
-        Material plaster = Mat("#c7a578", 0.9f);
-        Material roof = Mat("#8e4e3a", 0.87f);
-        Material timber = Mat("#68462f", 0.91f);
-        Material bronze = Mat("#d0aa62", 0.55f);
-        float z = -66f;
-
-        CreatePrimitive("Village gate left", PrimitiveType.Cube, transform,
-            new Vector3(-3.4f, 2f, z), new Vector3(0.7f, 4f, 0.85f), plaster, false);
-        CreatePrimitive("Village gate right", PrimitiveType.Cube, transform,
-            new Vector3(3.4f, 2f, z), new Vector3(0.7f, 4f, 0.85f), plaster, false);
-        CreatePrimitive("Gate lintel", PrimitiveType.Cube, transform,
-            new Vector3(0f, 4.1f, z), new Vector3(7.6f, 0.65f, 1f), roof, false);
-        CreatePrimitive("Gate door left", PrimitiveType.Cube, transform,
-            new Vector3(-1.45f, 1.8f, z + 0.1f), new Vector3(2.2f, 3.45f, 0.2f), timber, false);
-        CreatePrimitive("Gate door right", PrimitiveType.Cube, transform,
-            new Vector3(1.45f, 1.8f, z + 0.1f), new Vector3(2.2f, 3.45f, 0.2f), timber, false);
-        CreatePrimitive("Gate crest", PrimitiveType.Cube, transform,
-            new Vector3(0f, 4.2f, z + 0.56f), new Vector3(0.65f, 0.65f, 0.12f), bronze, false);
-
-        CreatePrimitive("Village house west", PrimitiveType.Cube, transform,
-            new Vector3(-10f, 2f, -72f), new Vector3(7f, 4f, 6f), plaster, false);
-        CreatePrimitive("Village roof west", PrimitiveType.Cube, transform,
-            new Vector3(-10f, 4.25f, -72f), new Vector3(8f, 0.55f, 7f), roof, false);
-        CreatePrimitive("Village house east", PrimitiveType.Cube, transform,
-            new Vector3(10f, 2f, -73f), new Vector3(6f, 4f, 6f), plaster, false);
-        CreatePrimitive("Village roof east", PrimitiveType.Cube, transform,
-            new Vector3(10f, 4.25f, -73f), new Vector3(7f, 0.55f, 7f), roof, false);
+        const float z = -66f;
+        Transform villageRoot = new GameObject("Detailed village gate district").transform;
+        villageRoot.SetParent(transform, false);
+        MedievalVillageBuilder.CreateGate(villageRoot, z);
+        MedievalVillageBuilder.CreateHouse(villageRoot, new Vector3(-10f, 0f, -72f), new Vector3(7f, 4f, 6f), false);
+        MedievalVillageBuilder.CreateHouse(villageRoot, new Vector3(10f, 0f, -73f), new Vector3(6f, 4f, 6f), true);
+        if (Application.isPlaying) StaticBatchingUtility.Combine(villageRoot.gameObject);
 
         GameObject sign = new GameObject("Village sign");
         sign.transform.SetParent(transform, false);

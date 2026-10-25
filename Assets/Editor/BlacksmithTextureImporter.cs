@@ -2,19 +2,22 @@
 using UnityEditor;
 using UnityEngine;
 
-/// <summary>Correct mobile-sized, linear/normal import settings for the original forge PBR maps.</summary>
+/// <summary>Correct 2K/1K, linear/normal import settings for forge and ground PBR maps.</summary>
 public sealed class BlacksmithTextureImporter : AssetPostprocessor
 {
     private void OnPreprocessTexture()
     {
         string path = assetPath.Replace('\\', '/');
+        bool imported = path.Contains("BlacksmithExterior/Textures/Imported/");
         if (!path.Contains("BlacksmithExterior/Textures/")) return;
         TextureImporter importer = (TextureImporter)assetImporter;
         string file = System.IO.Path.GetFileNameWithoutExtension(path);
         importer.mipmapEnabled = true;
-        importer.maxTextureSize = 512;
+        // Main architectural maps are authored at 2K. Imported props are 1K
+        // source maps; never upscale them, but retain their full resolution.
+        importer.maxTextureSize = 2048;
         importer.filterMode = FilterMode.Bilinear;
-        importer.anisoLevel = 4;
+        importer.anisoLevel = imported ? 8 : 4;
         importer.wrapMode = TextureWrapMode.Repeat;
         importer.textureCompression = TextureImporterCompression.Compressed;
         importer.isReadable = false;

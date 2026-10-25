@@ -9,7 +9,9 @@ import math
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
-SIZE = 512
+# Hero architectural maps are authored at 2K; mobile import settings can
+# downsample them per quality tier without making the source assets blurry.
+SIZE = 2048
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "Assets" / "Resources" / "BlacksmithExterior" / "Textures"
 OUT.mkdir(parents=True, exist_ok=True)
@@ -30,6 +32,8 @@ def to_image(array):
 
 
 def normal_from_height(height, strength=5.0):
+    # Preserve the same physical relief when the authoring resolution grows.
+    strength *= SIZE / 512.0
     dy, dx = np.gradient(height.astype(np.float32))
     normal = np.stack((-dx * strength, -dy * strength, np.ones_like(height)), axis=-1)
     normal /= np.maximum(np.linalg.norm(normal, axis=-1, keepdims=True), 1e-6)

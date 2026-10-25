@@ -121,6 +121,28 @@ namespace WarriorsOfPersia.Blacksmith
             return builder.ToMesh("Forge beveled block");
         }
 
+        public static Mesh CreateIrregularStone(int seed = 0)
+        {
+            Mesh mesh = CreateBeveledBox(.085f);
+            Vector3[] vertices = mesh.vertices;
+            System.Random rng = new System.Random(seed);
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                Vector3 value = vertices[i];
+                // Small, deterministic chipping keeps the silhouette irregular
+                // without opening large cracks in the bevelled stone.
+                value.x += ((float)rng.NextDouble() - .5f) * .055f;
+                value.y += ((float)rng.NextDouble() - .5f) * .045f;
+                value.z += ((float)rng.NextDouble() - .5f) * .055f;
+                vertices[i] = value;
+            }
+            mesh.vertices = vertices;
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            mesh.name = "Hand-chipped irregular ashlar";
+            return mesh;
+        }
+
         public static Mesh CreateGablePrism()
         {
             MeshBuilder builder = new MeshBuilder();
