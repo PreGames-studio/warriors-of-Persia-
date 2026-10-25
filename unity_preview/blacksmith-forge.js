@@ -359,6 +359,190 @@ export function createBlacksmithForgeBuilder(THREE) {
     makeBrazier(parent, 2.2, 0, 4.95, 1);
   }
 
+  // Shared, exterior-only architecture for the expanded village. The same
+  // 2K PBR materials as Kaveh's forge are reused; no texture is resized or
+  // replaced. Prototypes are merged once and then instanced per plot.
+  const districtPrototypes = new Map();
+  // Hero head height is ~3.45 units and the forge doorway is 3.48. Scaling
+  // the district's 2.78-unit doorway by 1.25 gives the same 3.48 clearance,
+  // keeping houses, merchants, the hero and the reference forge consistent.
+  const DISTRICT_BUILDING_SCALE = 1.25;
+
+  function makeDistrictPrototype(merchant = false) {
+    ensureMaterials();
+    const key = merchant ? 'merchant' : 'residence';
+    if (districtPrototypes.has(key)) return districtPrototypes.get(key);
+    const root = new THREE.Group();
+    root.name = merchant ? 'PBR merchant house prototype' : 'PBR residence prototype';
+
+    box(root, 8.95, .18, 7.15, materials.stone, 0, .09, 0);
+    box(root, 8.65, 3.72, 6.7, materials.stone, 0, 2.02, 0);
+
+    // Raised ashlar courses on all four sides keep the village readable from
+    // every camera angle, rather than adding detail only to the front facade.
+    for (let row = 0; row < 5; row++) {
+      for (let col = 0; col < 8; col++) {
+        const x = -3.78 + col * 1.08 + (row % 2) * .08;
+        const y = .55 + row * .57;
+        box(root, .98, .43, .18, materials.stoneBlock, x, y, 3.42);
+        box(root, .98, .43, .18, materials.stoneBlock, x, y, -3.42);
+      }
+      for (let col = 0; col < 6; col++) {
+        const z = -2.72 + col * 1.08 + (row % 2) * .08;
+        const y = .55 + row * .57;
+        box(root, .18, .43, .98, materials.stoneBlock, 4.42, y, z);
+        box(root, .18, .43, .98, materials.stoneBlock, -4.42, y, z);
+      }
+    }
+
+    // Oak corner posts, plates and diagonal braces echo the forge's frame.
+    [-1, 1].forEach(side => {
+      [-1, 1].forEach(front => {
+        box(root, .3, 4.35, .3, materials.woodDark, side * 4.16, 2.35, front * 3.48);
+        box(root, .38, .13, .38, materials.iron, side * 4.16, 1.05, front * 3.48);
+        box(root, .38, .13, .38, materials.iron, side * 4.16, 3.55, front * 3.48);
+      });
+      box(root, .28, .28, 7.25, materials.woodDark, side * 4.18, 4.35, 0);
+      beam(root, new THREE.Vector3(side * 3.95, .9, 3.58), new THREE.Vector3(side * 1.7, 3.55, 3.58), .2, materials.woodDark);
+    });
+    box(root, 8.65, .3, .3, materials.woodDark, 0, 4.35, 3.5);
+    box(root, 8.65, .3, .3, materials.woodDark, 0, 4.35, -3.5);
+
+    // Closed front entry: these village buildings are exterior scenery, not
+    // empty walk-in interiors. The shop UI remains the interaction surface.
+    box(root, 1.72, 2.78, .14, materials.woodDark, 0, 1.48, 3.52);
+    for (let i = 0; i < 5; i++) {
+      box(root, .3, 2.7, .08, i % 2 ? materials.wood : materials.woodDark, -.64 + i * .32, 1.48, 3.61);
+    }
+    for (let i = 0; i < 2; i++) box(root, 1.62, .1, .07, materials.iron, 0, .85 + i * 1.1, 3.69);
+    mesh(root, new THREE.SphereGeometry(.09, 8, 6), materials.gold, .55, 1.45, 3.72, false);
+    box(root, 2.2, .18, .72, materials.stoneBlock, 0, .12, 3.85);
+
+    makeWindow(root, -2.35, 2.35, 3.58);
+    makeWindow(root, 2.35, 2.35, 3.58);
+    makeWindow(root, -4.52, 2.35, -.95, -Math.PI / 2);
+    makeWindow(root, 4.52, 2.35, -.95, Math.PI / 2);
+
+    // Individually laid slate tiles, ridge caps and exposed rafters.
+    [-1, 1].forEach(side => {
+      const substrate = box(root, 4.95, .22, 7.55, materials.roof, side * 2.12, 5.38, 0);
+      substrate.rotation.z = -side * 29 * Math.PI / 180;
+      for (let row = 0; row < 5; row++) {
+        const t = (row + .4) / 5;
+        for (let col = 0; col < 7; col++) {
+          const tile = box(root, .82, .1, 1.02, materials.roofTile,
+            side * (.12 + t * 4.35), 7.22 - t * 2.48 + row * .006,
+            -3.35 + col * 1.08 + (row % 2) * .06);
+          tile.rotation.z = -side * 29 * Math.PI / 180;
+        }
+      }
+      for (let i = 0; i < 5; i++) {
+        beam(root, new THREE.Vector3(side * .1, 7.12, -3.25 + i * 1.62),
+          new THREE.Vector3(side * 4.42, 4.48, -3.25 + i * 1.62), .15, materials.woodDark);
+      }
+      box(root, .24, .25, 7.7, materials.woodDark, side * 4.4, 4.48, 0);
+    });
+    for (let i = 0; i < 7; i++) {
+      const cap = cylinder(root, .19, .19, 1.08, materials.roofTile, 0, 7.48, -3.45 + i * 1.08, 10);
+      cap.rotation.x = Math.PI / 2;
+    }
+    box(root, .85, 3.2, .85, materials.stoneDark, -2.45, 6.25, -1.45);
+    for (let i = 0; i < 4; i++) box(root, 1.0, .18, 1.0, materials.stoneBlock, -2.45, 7.85 + i * .2, -1.45);
+
+    if (merchant) {
+      // A shallow merchant awning and street counter distinguish the twenty
+      // shops while retaining the same forge-quality architectural language.
+      const awning = box(root, 8.15, .16, 1.9, materials.roof, 0, 3.55, 4.28);
+      awning.rotation.x = -.12;
+      [-1, 1].forEach(side => {
+        box(root, .16, 2.85, .16, materials.woodDark, side * 3.7, 1.65, 4.82);
+        box(root, .22, .22, 1.95, materials.wood, side * 3.7, 3.35, 4.28);
+      });
+      box(root, 5.8, .82, .72, materials.woodDark, 0, .62, 4.55);
+      box(root, 5.95, .14, .82, materials.wood, 0, 1.08, 4.55);
+      box(root, 3.3, .82, .16, materials.woodDark, 0, 4.65, 3.65);
+      box(root, 3.38, .08, .08, materials.gold, 0, 5.08, 3.76);
+      box(root, 3.38, .08, .08, materials.gold, 0, 4.22, 3.76);
+      mesh(root, new THREE.TorusGeometry(.31, .045, 8, 18), materials.gold, 0, 6.18, 3.62, false);
+      makeBarrel(root, -4.75, 4.35, .72);
+      makeCrate(root, 4.75, 4.45, .72);
+      makeCrate(root, 5.35, 5.1, .5);
+      // Warm emissive lanterns are static meshes here; twenty extra point
+      // lights would add cost without improving the shop interaction.
+      [-1, 1].forEach(side => {
+        box(root, .34, .55, .34, materials.window, side * 3.05, 2.65, 3.85, false);
+        box(root, .48, .08, .48, materials.iron, side * 3.05, 2.32, 3.85);
+      });
+    }
+
+    mergeStatic(root);
+    districtPrototypes.set(key, root);
+    return root;
+  }
+
+  function plotPosition(plot) {
+    return plot.pos || plot;
+  }
+
+  function appendInstancedPrototype(parent, prototype, plots, kind) {
+    if (!plots.length) return;
+    prototype.updateMatrixWorld(true);
+    const plotMatrices = plots.map(plot => {
+      const position = plotPosition(plot);
+      const scale = (plot.scale || 1) * DISTRICT_BUILDING_SCALE;
+      const matrix = new THREE.Matrix4();
+      matrix.compose(
+        new THREE.Vector3(position.x, 0, position.z),
+        new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), plot.rotY || 0),
+        new THREE.Vector3(scale, scale, scale)
+      );
+      return matrix;
+    });
+    const localMatrix = new THREE.Matrix4();
+    const instanceMatrix = new THREE.Matrix4();
+    prototype.traverse(source => {
+      if (!source.isMesh || Array.isArray(source.material)) return;
+      const batch = new THREE.InstancedMesh(source.geometry, source.material, plots.length);
+      batch.name = `${kind} • ${plots.length} instanced ${source.material.name || 'PBR material'}`;
+      batch.castShadow = source.castShadow;
+      batch.receiveShadow = source.receiveShadow;
+      localMatrix.copy(source.matrixWorld);
+      plotMatrices.forEach((plotMatrix, index) => {
+        instanceMatrix.multiplyMatrices(plotMatrix, localMatrix);
+        batch.setMatrixAt(index, instanceMatrix);
+      });
+      batch.instanceMatrix.needsUpdate = true;
+      batch.computeBoundingSphere();
+      batch.userData.buildingCount = plots.length;
+      batch.userData.buildingKind = kind;
+      parent.add(batch);
+    });
+  }
+
+  function buildDistrict(plots = []) {
+    const root = new THREE.Group();
+    root.name = 'Expanded village • shared PBR architecture';
+    const houses = plots.filter(plot => plot.kind !== 'shop');
+    const shops = plots.filter(plot => plot.kind === 'shop');
+    appendInstancedPrototype(root, makeDistrictPrototype(false), houses, 'Residence');
+    appendInstancedPrototype(root, makeDistrictPrototype(true), shops, 'Merchant');
+    root.userData.buildingCount = plots.length;
+    root.userData.residenceCount = houses.length;
+    root.userData.merchantCount = shops.length;
+    return root;
+  }
+
+  function buildShopExterior(shopDef) {
+    const group = makeDistrictPrototype(true).clone(true);
+    group.name = `${shopDef.title} • PBR merchant exterior`;
+    group.position.set(shopDef.pos.x, 0, shopDef.pos.z);
+    group.rotation.y = shopDef.rotY || 0;
+    group.scale.setScalar(DISTRICT_BUILDING_SCALE);
+    group.userData.shopId = shopDef.id;
+    group.userData.buildingScale = DISTRICT_BUILDING_SCALE;
+    return group;
+  }
+
   function makeParticleCloud(parent, kind, count, origin) {
     const positions = new Float32Array(count * 3);
     const ages = new Float32Array(count);
@@ -647,5 +831,5 @@ export function createBlacksmithForgeBuilder(THREE) {
     forges.length = 0;
   }
 
-  return { build, update, reset };
+  return { build, buildDistrict, buildShopExterior, districtBuildingScale: DISTRICT_BUILDING_SCALE, update, reset };
 }

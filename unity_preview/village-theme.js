@@ -445,6 +445,9 @@ export function createPersianVillageKit(THREE) {
   function buildVillager(robeColor) {
     const person = buildShopkeeper('villager', robeColor);
     person.scale.setScalar(.94);
+    // Quest NPCs are stationary, so their static parts can be merged without
+    // changing their silhouette or touching the player's animated hero.
+    mergeStaticGroup(person);
     return person;
   }
 
@@ -543,50 +546,15 @@ export function createPersianVillageKit(THREE) {
     }
   }
 
+  function buildDistrict(plots) {
+    return medievalForge.buildDistrict(plots);
+  }
+
   function buildShop(shopDef) {
     if (shopDef.id === 'blacksmith') return medievalForge.build(shopDef);
-    const group = new THREE.Group();
-    group.position.set(shopDef.pos.x, 0, shopDef.pos.z); group.rotation.y = shopDef.rotY || 0;
-    const awningMaterial = surface(textures.awning, { repeat: [3, 1], color: new THREE.Color(shopDef.roofColor).lerp(new THREE.Color(0xb9ab83), .28), roughness: .94, bump: .02 });
-    const accent = new THREE.MeshStandardMaterial({ color: new THREE.Color(shopDef.roofColor).multiplyScalar(.55), roughness: .76 });
-
-    addBox(group, 11, 7.2, 7, materials.adobe, 0, 3.6, -2.2);
-    addBox(group, 11.35, .55, 7.3, materials.stone, 0, .28, -2.2);
-    addBox(group, 11.25, .32, .15, materials.tile, 0, 6.55, 1.35);
-    addBox(group, 11.5, .35, 7.4, materials.adobeDark, 0, 7.25, -2.2);
-    addBox(group, 8.6, 3.8, .12, materials.recess, 0, 2.35, 1.36, false);
-    // Shelves and jars are visible inside the dark shop recess.
-    [2.6, 4.05].forEach(y => {
-      addBox(group, 8.2, .13, .65, materials.wood, 0, y, 1.22);
-      for (let i = -3; i <= 3; i++) addCylinder(group, .18, .25, .5, i % 2 ? materials.terracotta : materials.tile, i * 1.05, y + .3, 1.25, 8);
-    });
-
-    const awning = addBox(group, 11.7, .18, 5.6, awningMaterial, 0, 5.55, 2.2);
-    awning.rotation.x = .13;
-    addBox(group, 11.8, .22, .2, materials.wood, 0, 5.25, 4.92);
-    for (let i = -5; i <= 5; i++) addBox(group, .82, .42 + (i % 2 ? .08 : 0), .1, accent, i * 1.02, 5.02, 4.94);
-    [-5.25, 5.25].forEach(x => {
-      addCylinder(group, .15, .2, 5.3, materials.wood, x, 2.65, 4.4, 10);
-      addCylinder(group, .24, .24, .18, materials.bronze, x, 5.17, 4.4, 10);
-      makeLantern(group, x, 5.05, 4.15, x < 0 && (shopDef.id === 'apothecary' || shopDef.id === 'blacksmith'));
-    });
-
-    addBox(group, 8.6, .16, 4.25, materials.rug, 0, .1, 3.65);
-    for (let i = 0; i < 12; i++) {
-      addBox(group, .035, .03, .28, materials.parchment, -4.05 + i * .74, .1, 5.87, false);
-      addBox(group, .035, .03, .28, materials.parchment, -4.05 + i * .74, .1, 1.44, false);
-    }
-
-    addBox(group, 8.3, 2.05, 1.85, materials.wood, 0, 1.08, 1.85);
-    addBox(group, 8.65, .18, 2.1, materials.stone, 0, 2.16, 1.85);
-    [-3.55, 3.55].forEach(x => addBox(group, .15, 1.85, 1.92, materials.bronze, x, 1.06, 1.85));
-    for (let i = -3; i <= 3; i++) addBox(group, .07, 1.75, .05, materials.darkMetal, i * 1.03, 1.05, 2.8);
-    addWares(group, shopDef.id, shopDef.roofColor);
-    const keeper = buildShopkeeper(shopDef.id, shopDef.roofColor); keeper.position.set(0, .1, -.05); group.add(keeper);
-    makePot(group, -4.65, 0, 2.6, .85, shopDef.id === 'apothecary');
-    makeCrate(group, 4.55, 0, 2.25, .82);
-    mergeStaticGroup(group);
-    return group;
+    // Every merchant now uses the same detailed stone/timber/slate exterior
+    // family as the forge; only its sign, stock and interaction differ.
+    return medievalForge.buildShopExterior(shopDef);
   }
 
   function buildArch({ x, z, spanW, rotY }) {
@@ -654,7 +622,7 @@ export function createPersianVillageKit(THREE) {
     sky.renderOrder = -100;
     const mountainMaterial = new THREE.MeshStandardMaterial({ color: 0x15251f, roughness: 1 });
     [[-75, -62, 24, 29], [-42, -72, 29, 35], [0, -78, 32, 30], [43, -72, 25, 34], [76, -60, 24, 27]].forEach(([x, z, r, h], i) => {
-      const peak = addMesh(group, new THREE.ConeGeometry(r, h, 5), mountainMaterial, x, h / 2 - 2, z, false);
+      const peak = addMesh(group, new THREE.ConeGeometry(r * 1.35, h * 1.25, 5), mountainMaterial, x * 1.85, h * 1.25 / 2 - 2, z * 1.85, false);
       peak.rotation.y = i * .73;
     });
 
@@ -757,5 +725,5 @@ export function createPersianVillageKit(THREE) {
     }
   }
 
-  return { materials, buildHouse, buildShop, buildArch, buildCypress, buildFountain, buildHero, buildVillager, populate, applyLighting, update, reset };
+  return { materials, districtBuildingScale: medievalForge.districtBuildingScale, buildHouse, buildDistrict, buildShop, buildArch, buildCypress, buildFountain, buildHero, buildVillager, populate, applyLighting, update, reset };
 }

@@ -1205,7 +1205,7 @@
         <span id="minimap-zone-tag" style="color:#4ade80;">Village</span>
       </div>
       <canvas id="minimap-canvas" width="136" height="82"></canvas>
-      <button class="cam-switch-btn" id="btn-cam-mode">🎥 دوربین: نمای کوچه‌گردی (نزدیک)</button>
+      <button class="cam-switch-btn" id="btn-cam-mode">🎥 دوربین: سوم‌شخص (پشت‌سر هیرو)</button>
     </div>
 
     <!-- VIRTUAL JOYSTICK (BOTTOM-LEFT) -->
@@ -1402,7 +1402,7 @@
           <div class="catalog-row" style="border-color:#4ade80; background:rgba(22, 163, 74, 0.18);">
             <div>
               <div style="font-weight:700; color:#4ade80; font-size:13.5px;">🤖 ۱. فایل نصبی اندروید (WarriorsOfPersia_3D.apk)</div>
-              <div style="font-size:11px; color:#d1fae5;">نسخه کامل با کوچه‌های روستا، ۶ مغازه سه‌بعدی و رفع مشکل تصویر روی موبایل</div>
+              <div style="font-size:11px; color:#d1fae5;">روستای بزرگ با ۱۰۰ خانه، ۲۰ فروشگاه سه‌بعدی و ۲۰ NPC ثابت مأموریت‌دهنده</div>
             </div>
             <a href="/download-apk" download="WarriorsOfPersia_3D.apk" class="top-btn emerald" style="text-decoration:none; padding:8px 14px;">
               📲 دانلود مستقیم APK
@@ -1494,7 +1494,7 @@
     ];
 
     // 6 Distinct Walkable Village Shops placed along the Alleys
-    const VILLAGE_SHOPS_3D = [
+    const CENTRAL_VILLAGE_SHOPS_3D = [
       {
         id: 'jeweler',
         title: '💎 جواهر و کریستال‌فروشی جمشید',
@@ -1557,6 +1557,99 @@
       }
     ];
 
+    // Expanded village plan: 6 existing merchants + 14 new merchants + 80
+    // residences = exactly 100 buildings. Positions are deterministic so a
+    // future quest/shop editor can address every plot by a stable id.
+    const DISTRICT_SHOP_NAMES = [
+      '🗡️ سلاح‌فروشی رستم', '🛡️ زره‌فروشی سپاه', '👢 چرم‌فروشی کاوش',
+      '💍 زیورآلات ماهور', '📜 کتاب‌فروشی دانا', '🕯️ شمع‌فروشی روشن',
+      '🥖 نانوایی تنور', '🧵 خیاطی پارس', '🧿 تلسم‌فروشی آریا',
+      '🍯 عسل‌فروشی زاگرس', '🧴 روغن‌فروشی ارغوان', '🐎 مرکب‌فروشی شهریار',
+      '🏺 سفال‌فروشی کاسپین', '🪙 سکه‌فروشی بازار'
+    ];
+    const DISTRICT_SHOP_COLORS = [0x06b6d4, 0xea580c, 0x16a34a, 0x9333ea, 0xdc2626, 0xf59e0b, 0x0f766e];
+
+    function faceVillageCenter(x, z) {
+      if (Math.abs(x) > Math.abs(z)) return x > 0 ? -Math.PI / 2 : Math.PI / 2;
+      return z > 0 ? Math.PI : 0;
+    }
+
+    function createExpandedVillagePlan() {
+      const candidates = [];
+      for (let col = 0; col < 14; col++) {
+        for (let row = 0; row < 14; row++) {
+          const x = -117 + col * 18;
+          const z = -117 + row * 18;
+          // Keep the fountain, its four approaches and the existing market
+          // fronts clear. The six original shops are inserted separately.
+          if (Math.abs(x) < 25 && Math.abs(z) < 25) continue;
+          if (CENTRAL_VILLAGE_SHOPS_3D.some(shop => Math.hypot(shop.pos.x - x, shop.pos.z - z) < 18)) continue;
+          candidates.push({ x, z, distance: Math.hypot(x, z) });
+        }
+      }
+      candidates.sort((a, b) => a.distance - b.distance || a.x - b.x || a.z - b.z);
+      const selected = candidates.slice(0, 94);
+      const shopIndices = new Set(Array.from({ length: 14 }, (_, i) => Math.floor((i + 1) * 95 / 15) - 1));
+      const houses = [];
+      const shops = [];
+      selected.forEach((plot, index) => {
+        const rotY = faceVillageCenter(plot.x, plot.z);
+        if (shopIndices.has(index)) {
+          const shopIndex = shops.length;
+          const title = DISTRICT_SHOP_NAMES[shopIndex];
+          shops.push({
+            id: `district_shop_${String(shopIndex + 1).padStart(2, '0')}`,
+            title,
+            alleyName: 'محله‌ی بازار بزرگ پارس',
+            pos: { x: plot.x, z: plot.z },
+            rotY,
+            roofColor: DISTRICT_SHOP_COLORS[shopIndex % DISTRICT_SHOP_COLORS.length],
+            carpetColor: 0x7c2d12,
+            greeting: `به ${title} خوش آمدید! کالاها و پیشنهادهای این حجره به‌زودی کامل‌تر می‌شوند.`,
+            kind: 'shop',
+            district: true
+          });
+        } else {
+          houses.push({
+            id: `residence_${String(houses.length + 1).padStart(3, '0')}`,
+            kind: 'house', x: plot.x, z: plot.z, rotY,
+            scale: [.94, 1.02, .98, 1.08][index % 4]
+          });
+        }
+      });
+      if (houses.length !== 80 || shops.length !== 14) {
+        throw new Error(`Village plot invariant failed: ${houses.length} houses / ${shops.length} new shops`);
+      }
+      return { houses, shops, buildingCount: 100, shopCount: 20, npcCount: 20 };
+    }
+
+    const VILLAGE_DISTRICT_PLAN = createExpandedVillagePlan();
+    const VILLAGE_SHOPS_3D = [...CENTRAL_VILLAGE_SHOPS_3D, ...VILLAGE_DISTRICT_PLAN.shops];
+
+    // Twenty stationary quest-giver slots around the perimeter. questId is
+    // deliberately empty until the user's mission content is supplied.
+    const QUEST_NPC_NAMES = [
+      'راوی سپیدار', 'نگهبان شمال', 'دانای کوهستان', 'پیرزن حکیم', 'فرزین پیام‌رسان',
+      'سپهبد شرق', 'ماهور ستاره‌خوان', 'رستم دیروز', 'آرین راهنما', 'شهریار کاروان',
+      'پهلوان جنوب', 'کاووس کتابدار', 'نارگس گل‌فروش', 'مهرداد بازرگان', 'سودابه پارسی',
+      'نگهبان غرب', 'کاوه راهنما', 'آرش کمانگیر', 'مینا دلسوز', 'پیروز پیام‌آور'
+    ];
+    const QUEST_NPC_POSITIONS = [
+      [-108, -126], [-54, -126], [0, -126], [54, -126], [108, -126],
+      [126, -90], [126, -45], [126, 0], [126, 45], [126, 90],
+      [108, 126], [54, 126], [0, 126], [-54, 126], [-108, 126],
+      [-126, 90], [-126, 45], [-126, 0], [-126, -45], [-126, -90]
+    ];
+    const QUEST_NPC_ROBES = [0x0284c7, 0x7c3aed, 0xb45309, 0x0f766e, 0xbe123c];
+    const VILLAGE_QUEST_NPCS = QUEST_NPC_POSITIONS.map(([x, z], index) => ({
+      id: `quest_npc_${String(index + 1).padStart(2, '0')}`,
+      name: QUEST_NPC_NAMES[index],
+      x, z,
+      robeColor: QUEST_NPC_ROBES[index % QUEST_NPC_ROBES.length],
+      questId: null,
+      dialogue: 'مأموریت‌های این شخصیت به‌زودی وارد بازی می‌شوند.'
+    }));
+
     const state = {
       currentZone: 'village', // Starts directly in the Village Map so the user can walk the alleys!
       dungeonTier: 1,
@@ -1571,7 +1664,7 @@
       inventory: [ { ...SHOP_CATALOG[0] } ],
       skillCooldowns: [0, 0, 0, 0],
       basicAttackCd: 0,
-      cameraMode: 0, // 0 = Street/Alley Close Follow, 1 = Top-Down High, 2 = Free Orbit
+      cameraMode: 0, // 0 = Third-person follow, 1 = Top-down, 2 = Free orbit
       party: [
         {
           slot: 0,
@@ -1776,6 +1869,28 @@
     orbitControls.enableDamping = true;
     orbitControls.enabled = false;
 
+    // Village camera: a true over-the-shoulder view that rotates behind the
+    // hero instead of hovering at a fixed isometric offset. Reused vectors
+    // keep the per-frame path allocation-free on mobile.
+    const VILLAGE_CAMERA = Object.freeze({
+      distance: 11.5,
+      height: 6.4,
+      targetHeight: 2.25,
+      lookAhead: 3.2,
+      closeHeight: 5.4
+    });
+    let villageCameraYaw = Math.PI;
+    let villageCameraShouldAlign = true;
+    let villageCameraAvoiding = false;
+    const villageCameraForward = new THREE.Vector3();
+    const villageCameraPivot = new THREE.Vector3();
+    const villageCameraDesired = new THREE.Vector3();
+    const villageCameraCandidate = new THREE.Vector3();
+    const villageCameraBoom = new THREE.Vector3();
+    const villageCameraTarget = new THREE.Vector3();
+    const villageCameraSample = new THREE.Vector3();
+    const VILLAGE_CAMERA_SHOULDERS = [0, -.61, .61, -1.05, 1.05, -1.57, 1.57];
+
     const hemiLight = new THREE.HemisphereLight(0xfffbeb, 0x334155, 0.95);
     scene.add(hemiLight);
 
@@ -1796,6 +1911,7 @@
     let villageShopNodes = [];
     let buildingColliders = []; // AABB boxes { minX, maxX, minZ, maxZ } for alley walls & houses
     let villagersNPCs = [];
+    let questNpcNodes = [];
     let enemiesList = [];
     let crystals3DList = [];
     let projectilesList = [];
@@ -1804,6 +1920,7 @@
     let activePopups = [];
     let portalCooldown = 0;
     let activeShopNear = null;
+    let activeQuestNear = null;
 
     const villageKit = createPersianVillageKit(THREE);
 
@@ -1896,6 +2013,12 @@
       });
     }
 
+    function addOrientedCollider(cx, cz, halfW, halfD, rotY = 0, padding = .45) {
+      const c = Math.abs(Math.cos(rotY));
+      const s = Math.abs(Math.sin(rotY));
+      addColliderBox(cx, cz, c * halfW + s * halfD + padding, s * halfW + c * halfD + padding);
+    }
+
     function buildPersianHouse3D(x, z, w, d, h = 8.5, hasWindcatcher = false) {
       const g = villageKit.buildHouse({ x, z, w, d, h, hasWindcatcher });
       addColliderBox(x, z, w / 2 + 0.8, d / 2 + 0.8);
@@ -1929,14 +2052,16 @@
         addLocalWall(3.18, 3.85, 1.6, .23);
         addLocalWall(0, 3.85, 1.6, .23);
       } else {
-        // Collider for the back building (leaving the front rug & counter walkable!)
-        addColliderBox(shopDef.pos.x, shopDef.pos.z - 1.5, 5.2, 3.2);
+        // Merchant exteriors are solid scenery; the purchase panel is opened
+        // from the sign, the building, or the proximity action button.
+        const buildingScale = villageKit.districtBuildingScale;
+        addOrientedCollider(shopDef.pos.x, shopDef.pos.z, 4.8 * buildingScale, 3.8 * buildingScale, shopDef.rotY || 0);
       }
 
       // World Label above Shop (Clickable to enter shop!)
-      addWorldLabel(
+      const shopLabel = addWorldLabel(
         shopDef.title,
-        new THREE.Vector3(shopDef.pos.x, shopDef.id === 'blacksmith' ? 11.2 : 9.2, shopDef.pos.z),
+        new THREE.Vector3(shopDef.pos.x, shopDef.id === 'blacksmith' ? 11.2 : 9.2 * villageKit.districtBuildingScale, shopDef.pos.z),
         '#d8b66a',
         () => {
           if (shopDef.id === 'blacksmith') openBlacksmithShop();
@@ -1944,8 +2069,10 @@
           else openShopModal(shopDef);
         }
       );
+      shopLabel.maxDistance = 72;
 
-      const frontOffset = new THREE.Vector3(0, 0, 5.2).applyAxisAngle(new THREE.Vector3(0, 1, 0), shopDef.rotY || 0);
+      const frontDistance = 5.2 * (shopDef.id === 'blacksmith' ? 1 : villageKit.districtBuildingScale);
+      const frontOffset = new THREE.Vector3(0, 0, frontDistance).applyAxisAngle(new THREE.Vector3(0, 1, 0), shopDef.rotY || 0);
       const interactPos = new THREE.Vector3(shopDef.pos.x, 0, shopDef.pos.z).add(frontOffset);
       villageShopNodes.push({ def: shopDef, group: g, interactPos });
       return g;
@@ -2015,6 +2142,33 @@
       villagersNPCs.push({ group: g, points: pathPoints, targetIdx: 1, labelRef: lbl });
     }
 
+
+    function openQuestNPC(def) {
+      if (!def) return;
+      playTone(620, .12, 'triangle');
+      // Intentional placeholder: mission content will be supplied later.
+      showToast(`❗ ${def.name}: ${def.dialogue}`, '#d8b66a');
+    }
+
+    function spawnQuestNPC(def) {
+      const g = villageKit.buildVillager(def.robeColor);
+      g.name = `${def.id} • stationary quest giver`;
+      g.position.set(def.x, 0, def.z);
+      g.rotation.y = Math.atan2(-def.x, -def.z);
+      g.userData.questNpcId = def.id;
+      g.userData.questId = def.questId;
+      const ring = new THREE.Mesh(new THREE.RingGeometry(.74, .9, 20), MATS.goldTrim);
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = .035;
+      g.add(ring);
+      const lbl = addWorldLabel(`❗ ${def.name} • مأموریت`, new THREE.Vector3(def.x, 4.65, def.z), '#d8b66a', () => openQuestNPC(def));
+      lbl.el.dataset.questNpc = def.id;
+      lbl.maxDistance = 52;
+      mapRoot.add(g);
+      const node = { def, group: g, labelRef: lbl };
+      questNpcNodes.push(node);
+      villagersNPCs.push({ group: g, points: [new THREE.Vector3(def.x, 0, def.z)], targetIdx: 0, labelRef: lbl, static: true, quest: def });
+    }
 
     function spawnEnemyUnit3D(x, y, z, level, rank = 'normal', customTitle = '') {
       const isBoss = rank === 'boss';
@@ -2114,6 +2268,8 @@
       villageShopNodes = [];
       buildingColliders = [];
       villagersNPCs = [];
+      questNpcNodes = [];
+      activeQuestNear = null;
       enemiesList = [];
       crystals3DList = [];
       projectilesList = [];
@@ -2125,35 +2281,46 @@
 
       if (zoneId === 'village') {
         // Cinematic blue-hour lighting is applied by the Persian village art kit.
-        // 1. Village Ground (160 x 120)
-        const ground = new THREE.Mesh(new THREE.BoxGeometry(170, 3, 130), villageKit.materials.ground);
+        // 1. Expanded village ground: 100 plots plus perimeter quest NPCs.
+        const ground = new THREE.Mesh(new THREE.BoxGeometry(270, 3, 270), villageKit.materials.ground);
         ground.position.set(0, -1.5, 0);
         ground.receiveShadow = true;
         mapRoot.add(ground);
 
         // 2. Cobblestone Alleys Network (شبکه سنگفرش کوچه‌ها و خیابان‌های روستا)
         // Main East-West Bazaar Street
-        const mainStreetEW = new THREE.Mesh(new THREE.BoxGeometry(135, 0.14, 13), villageKit.materials.road);
+        const mainStreetEW = new THREE.Mesh(new THREE.BoxGeometry(252, 0.14, 6), villageKit.materials.road);
         mainStreetEW.position.set(0, 0.07, 0);
         mainStreetEW.receiveShadow = true;
         // Main North-South Bazaar Street
-        const mainStreetNS = new THREE.Mesh(new THREE.BoxGeometry(14, 0.14, 96), villageKit.materials.road);
+        const mainStreetNS = new THREE.Mesh(new THREE.BoxGeometry(6, 0.14, 252), villageKit.materials.road);
         mainStreetNS.position.set(0, 0.07, 0);
         mainStreetNS.receiveShadow = true;
-        // North Bazaar Alley (کوچه بازار شمالی)
-        const northAlley = new THREE.Mesh(new THREE.BoxGeometry(92, 0.15, 11), villageKit.materials.road);
-        northAlley.position.set(0, 0.08, -14);
-        // South Caravanserai Alley (کوچه کاروانسرا و قالی‌بافان)
-        const southAlley = new THREE.Mesh(new THREE.BoxGeometry(84, 0.15, 11), villageKit.materials.road);
-        southAlley.position.set(0, 0.08, 16);
-        // West Blacksmith Alley (راسته آهنگران)
-        const westAlley = new THREE.Mesh(new THREE.BoxGeometry(11, 0.15, 68), villageKit.materials.road);
-        westAlley.position.set(-28, 0.08, 0);
-        // East Apothecary Alley (کوچه عطاران و ستاره‌شناسان)
-        const eastAlley = new THREE.Mesh(new THREE.BoxGeometry(11, 0.15, 68), villageKit.materials.road);
-        eastAlley.position.set(28, 0.08, 0);
+        // The central lanes line up with the expanded plot grid.
+        const northAlley = new THREE.Mesh(new THREE.BoxGeometry(220, 0.15, 4.2), villageKit.materials.road);
+        northAlley.position.set(0, 0.08, -18);
+        const southAlley = new THREE.Mesh(new THREE.BoxGeometry(220, 0.15, 4.2), villageKit.materials.road);
+        southAlley.position.set(0, 0.08, 18);
+        const westAlley = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.15, 220), villageKit.materials.road);
+        westAlley.position.set(-18, 0.08, 0);
+        const eastAlley = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.15, 220), villageKit.materials.road);
+        eastAlley.position.set(18, 0.08, 0);
 
         mapRoot.add(mainStreetEW, mainStreetNS, northAlley, southAlley, westAlley, eastAlley);
+
+        // Cobblestone roads run between every row and column of plots. They
+        // are simple shared-material meshes; the detailed houses are instanced.
+        const districtRoads = new THREE.Group();
+        districtRoads.name = '100-plot cobblestone road network';
+        for (let i = 0; i <= 14; i++) {
+          const offset = -126 + i * 18;
+          const vertical = new THREE.Mesh(new THREE.BoxGeometry(4.2, .1, 252), villageKit.materials.road);
+          vertical.position.set(offset, .055, 0);
+          const horizontal = new THREE.Mesh(new THREE.BoxGeometry(252, .1, 4.2), villageKit.materials.road);
+          horizontal.position.set(0, .056, offset);
+          districtRoads.add(vertical, horizontal);
+        }
+        mapRoot.add(districtRoads);
 
         // 3. Central Octagonal Plaza & Healing Fountain (میدان مرکزی و چشمه شفا)
         const plaza = new THREE.Mesh(new THREE.CylinderGeometry(13, 14, 0.25, 8), villageKit.materials.plaza);
@@ -2165,44 +2332,27 @@
         mapRoot.add(fnt);
         addWorldLabel('💧 میدان چشمه شفا (مرکز روستا)', new THREE.Vector3(0, 6.2, 0), '#34d399');
 
-        // 4. Build All 6 Walkable 3D Village Shops along the Alleys!
+        // 4. Twenty detailed merchant exteriors (six original + fourteen new).
         VILLAGE_SHOPS_3D.forEach(shopDef => {
           mapRoot.add(buildShopBuilding3D(shopDef));
         });
 
-        // 5. Build Traditional Persian Adobe Houses & Badgirs (خانه‌های کاهگلی و بادگیرها برای شکل‌گیری کوچه‌ها)
-        const housesLayout = [
-          // North-West Block
-          [-46, -34, 14, 10, 9.0, true],
-          [-26, -34, 14, 10, 8.2, false],
-          [-8,  -34, 12, 10, 8.5, false],
-          // North-East Block
-          [8,   -34, 12, 10, 8.5, false],
-          [26,  -34, 14, 10, 8.8, true],
-          [46,  -34, 14, 10, 8.0, false],
-          // Far West Wall of Alleys
-          [-52, -4,  11, 14, 8.5, false],
-          [-52, 16,  11, 14, 9.2, true],
-          // South Block along Carpet & Teahouse Alleys
-          [-44, 36,  14, 10, 8.4, false],
-          [-14, 36,  13, 10, 9.0, true],
-          [14,  36,  13, 10, 8.2, false],
-          [44,  36,  14, 10, 8.8, true],
-          // Inner Courtyard Divider Houses (creating true walkable alleys!)
-          [-16, 6,   8,  6,  7.5, false],
-          [16,  6,   8,  6,  7.5, false]
-        ];
-        housesLayout.forEach(([hx, hz, hw, hd, hh, hasBadgir]) => {
-          mapRoot.add(buildPersianHouse3D(hx, hz, hw, hd, hh, hasBadgir));
+        // 5. Eighty ordinary homes, built with the same 2K PBR stone, oak and
+        // slate family as the forge and instanced for mobile rendering.
+        const district = villageKit.buildDistrict(VILLAGE_DISTRICT_PLAN.houses);
+        mapRoot.add(district);
+        VILLAGE_DISTRICT_PLAN.houses.forEach(plot => {
+          const buildingScale = villageKit.districtBuildingScale;
+          addOrientedCollider(plot.x, plot.z, 4.7 * plot.scale * buildingScale, 3.75 * plot.scale * buildingScale, plot.rotY);
         });
 
         // 6. Overhead Alley Arches (ساباط‌ها و طاق‌های سنتی بالای کوچه‌ها)
         mapRoot.add(
-          buildAlleyArchSabat3D(0, -14, 12, 0),
-          buildAlleyArchSabat3D(-28, -6, 11, Math.PI / 2),
-          buildAlleyArchSabat3D(28, -6, 11, Math.PI / 2),
-          buildAlleyArchSabat3D(-14, 0, 12, Math.PI / 2),
-          buildAlleyArchSabat3D(14, 0, 12, Math.PI / 2)
+          buildAlleyArchSabat3D(0, -18, 12, 0),
+          buildAlleyArchSabat3D(-18, -6, 11, Math.PI / 2),
+          buildAlleyArchSabat3D(18, -6, 11, Math.PI / 2),
+          buildAlleyArchSabat3D(-18, 0, 12, Math.PI / 2),
+          buildAlleyArchSabat3D(18, 0, 12, Math.PI / 2)
         );
 
         // 7. Cypress Trees along the Courtyards
@@ -2210,15 +2360,8 @@
           mapRoot.add(buildCypress3D(tx, 0, tz, 0.95));
         });
 
-        // 8. Walking Villager NPCs inside the Alleys
-        spawnVillagerNPC('👳‍♂️ بازرگان پارسی', [
-          new THREE.Vector3(-24, 0, -14),
-          new THREE.Vector3(24, 0, -14)
-        ], 0x0284c7);
-        spawnVillagerNPC('🧕 بانوی روستا', [
-          new THREE.Vector3(-22, 0, 16),
-          new THREE.Vector3(22, 0, 16)
-        ], 0xdb2777);
+        // 8. Twenty stationary quest-giver NPCs around the village perimeter.
+        VILLAGE_QUEST_NPCS.forEach(spawnQuestNPC);
 
         // 9. East Gate Portal to OpenWorld
         const pOut = buildPortal3D(62, 0, 0, MATS.turquoiseTile, '➡️ دروازه خروج به جهان باز (میدان شکار)', '#38bdf8', 'open_world', 1);
@@ -2316,8 +2459,22 @@
       if (overrideHeroPos && typeof overrideHeroPos.x === 'number' && typeof overrideHeroPos.z === 'number') {
         spawnPoint.set(overrideHeroPos.x, overrideHeroPos.y || 0, overrideHeroPos.z);
       }
+      // Older saves may point at a plot that is now occupied by a new house.
+      // Move only that invalid spawn to the central road; never rewrite the
+      // player's saved position during ordinary zone travel.
+      if (zoneId === 'village' && isBlockedByBuilding(spawnPoint.x, spawnPoint.z)) {
+        spawnPoint.set(0, 0, 10);
+      }
 
       syncPartyUnitsIn3D(spawnPoint);
+      if (zoneId === 'village' && state.party[0] && state.party[0].mesh) {
+        // Enter the village facing its centre, with the camera already behind
+        // the hero on the first rendered frame (no fly-in from the old view).
+        state.party[0].mesh.rotation.y = Math.atan2(-spawnPoint.x, -spawnPoint.z);
+        villageCameraYaw = state.party[0].mesh.rotation.y;
+        if (state.cameraMode === 0) updateVillageThirdPersonCamera(1, true);
+      }
+      syncCameraModeUI();
       updateTopZoneBanner();
       saveGameProgress();
     }
@@ -2349,8 +2506,8 @@
       const mmTag = document.getElementById('minimap-zone-tag');
       let zoneTitle;
       if (state.currentZone === 'village') {
-        zoneTitle = '🏛️ روستای امن (کوچه‌ها و ۶ مغازه بازار)';
-        mmTag.textContent = 'Village Bazaar';
+        zoneTitle = '🏛️ روستای امن (۱۰۰ خانه • ۲۰ فروشگاه • ۲۰ NPC)';
+        mmTag.textContent = '100 Homes';
       } else if (state.currentZone === 'open_world') {
         zoneTitle = '🌍 جهان باز (دشت، رودخانه و کوهستان)';
         mmTag.textContent = 'OpenWorld';
@@ -2751,7 +2908,9 @@
     document.getElementById('btn-open-apothecary')?.addEventListener('click', () => openApothecaryShop());
     document.getElementById('btn-open-shop')?.addEventListener('click', () => openShopModal(activeShopNear));
     document.getElementById('context-action-btn').addEventListener('click', () => {
-      if (activeShopNear && activeShopNear.id === 'blacksmith') {
+      if (activeQuestNear) {
+        openQuestNPC(activeQuestNear);
+      } else if (activeShopNear && activeShopNear.id === 'blacksmith') {
         openBlacksmithShop();
       } else if (activeShopNear && activeShopNear.id === 'apothecary') {
         openApothecaryShop();
@@ -3548,16 +3707,13 @@
       });
     });
 
-    // Camera Mode Cycle: 0 = Alley Close View, 1 = Top-Down High View, 2 = Free Orbit
-    document.getElementById('btn-cam-mode').addEventListener('click', (e) => {
+    // Camera Mode Cycle: third-person follow, top-down and free orbit.
+    document.getElementById('btn-cam-mode').addEventListener('click', () => {
       state.cameraMode = (state.cameraMode + 1) % 3;
-      orbitControls.enabled = (state.cameraMode === 2);
-      const labels = [
-        '🎥 دوربین: نمای کوچه‌گردی (نزدیک)',
-        '🎥 دوربین: نمای بالا (Top-Down)',
-        '🎥 دوربین: چرخش آزاد ۳ بعدی'
-      ];
-      e.currentTarget.textContent = labels[state.cameraMode];
+      if (state.cameraMode === 0 && state.party[0] && state.party[0].mesh) {
+        villageCameraYaw = state.party[0].mesh.rotation.y;
+      }
+      syncCameraModeUI();
     });
 
     document.getElementById('btn-download-obj').addEventListener('click', () => {
@@ -3637,24 +3793,40 @@
       mmCtx.fillStyle = state.currentZone === 'dungeon' ? '#1a122b' : '#143322';
       mmCtx.fillRect(0, 0, w, h);
 
-      const toMM = (pos) => ({
-        x: ((pos.x + 85) / 170) * w,
-        y: ((pos.z + 55) / 110) * h
-      });
+      const toMM = (pos) => state.currentZone === 'village'
+        ? { x: ((pos.x + 135) / 270) * w, y: ((pos.z + 135) / 270) * h }
+        : { x: ((pos.x + 85) / 170) * w, y: ((pos.z + 55) / 110) * h };
 
       if (state.currentZone === 'village') {
-        // Draw Alleys on Minimap
+        // Expanded plot grid and the two main streets.
         mmCtx.fillStyle = '#78716c';
-        mmCtx.fillRect(w * 0.1, h * 0.45, w * 0.8, h * 0.1);
-        mmCtx.fillRect(w * 0.46, h * 0.1, w * 0.08, h * 0.8);
-        mmCtx.fillRect(w * 0.22, h * 0.32, w * 0.56, h * 0.08);
-        mmCtx.fillRect(w * 0.22, h * 0.60, w * 0.56, h * 0.08);
+        for (let i = 0; i <= 14; i++) {
+          const offset = -126 + i * 18;
+          const v = toMM({ x: offset, z: 0 });
+          const hzl = toMM({ x: 0, z: offset });
+          mmCtx.fillRect(v.x - 1, 0, 2, h);
+          mmCtx.fillRect(0, hzl.y - 1, w, 2);
+        }
+        mmCtx.fillStyle = '#a29a8a';
+        const center = toMM({ x: 0, z: 0 });
+        mmCtx.fillRect(center.x - 2, 0, 4, h);
+        mmCtx.fillRect(0, center.y - 2, w, 4);
 
-        // Draw 6 Shops as gold squares
+        // Residences are subtle, merchants are gold, and quest NPCs are pink.
+        mmCtx.fillStyle = 'rgba(190,178,145,.42)';
+        VILLAGE_DISTRICT_PLAN.houses.forEach(plot => {
+          const pt = toMM(plot);
+          mmCtx.fillRect(pt.x - 1, pt.y - 1, 2, 2);
+        });
         villageShopNodes.forEach(sn => {
           const pt = toMM(sn.def.pos);
           mmCtx.fillStyle = '#fde047';
-          mmCtx.fillRect(pt.x - 3, pt.y - 3, 6, 6);
+          mmCtx.fillRect(pt.x - 2.5, pt.y - 2.5, 5, 5);
+        });
+        questNpcNodes.forEach(node => {
+          const pt = toMM(node.group.position);
+          mmCtx.fillStyle = '#f0abfc';
+          mmCtx.beginPath(); mmCtx.arc(pt.x, pt.y, 2.2, 0, Math.PI * 2); mmCtx.fill();
         });
       } else if (state.currentZone === 'open_world') {
         mmCtx.fillStyle = '#1d4ed8';
@@ -3704,6 +3876,89 @@
         }
       }
       return false;
+    }
+
+    const CAMERA_MODE_LABELS = [
+      '🎥 دوربین: سوم‌شخص (پشت‌سر هیرو)',
+      '🎥 دوربین: نمای بالا (Top-Down)',
+      '🎥 دوربین: چرخش آزاد ۳ بعدی'
+    ];
+
+    function syncCameraModeUI() {
+      const button = document.getElementById('btn-cam-mode');
+      if (button) button.textContent = CAMERA_MODE_LABELS[state.cameraMode] || CAMERA_MODE_LABELS[0];
+      orbitControls.enabled = state.cameraMode === 2;
+      if (orbitControls.enabled && state.party[0] && state.party[0].mesh) {
+        const heroPos = state.party[0].mesh.position;
+        orbitControls.target.set(heroPos.x, heroPos.y + 2.2, heroPos.z);
+        orbitControls.update();
+      }
+    }
+
+    function testVillageCameraBoom(heroPos, yaw) {
+      villageCameraBoom.set(Math.sin(yaw), 0, Math.cos(yaw));
+      villageCameraCandidate.copy(heroPos).addScaledVector(villageCameraBoom, -VILLAGE_CAMERA.distance);
+      villageCameraCandidate.y = heroPos.y + VILLAGE_CAMERA.height;
+      const steps = 20;
+      for (let i = 1; i <= steps; i++) {
+        const fraction = i / steps;
+        villageCameraSample.lerpVectors(villageCameraPivot, villageCameraCandidate, fraction);
+        if (villageCameraSample.y < 12 && isBlockedByBuilding(villageCameraSample.x, villageCameraSample.z)) {
+          return (i - 1) / steps;
+        }
+      }
+      return 1;
+    }
+
+    function updateVillageThirdPersonCamera(dt, snap = false) {
+      const leader = state.party[0];
+      if (!leader || !leader.mesh) return;
+      const heroPos = leader.mesh.position;
+      const targetYaw = leader.mesh.rotation.y;
+      if (snap) {
+        villageCameraYaw = targetYaw;
+      } else if (villageCameraShouldAlign) {
+        const yawDelta = Math.atan2(
+          Math.sin(targetYaw - villageCameraYaw),
+          Math.cos(targetYaw - villageCameraYaw)
+        );
+        villageCameraYaw += yawDelta * (1 - Math.exp(-dt * 7));
+      }
+
+      villageCameraForward.set(Math.sin(villageCameraYaw), 0, Math.cos(villageCameraYaw));
+      villageCameraPivot.copy(heroPos);
+      villageCameraPivot.y += VILLAGE_CAMERA.targetHeight;
+      villageCameraTarget.copy(villageCameraPivot).addScaledVector(villageCameraForward, VILLAGE_CAMERA.lookAhead);
+
+      // Try the direct boom first, then left/right shoulder alternatives.
+      // Picking a clear side lane avoids both roof clipping and extreme
+      // close-ups in the denser parts of the 100-building village.
+      const directFraction = testVillageCameraBoom(heroPos, villageCameraYaw);
+      const avoidingObstacle = directFraction < 1;
+      let safeFraction = directFraction;
+      villageCameraDesired.copy(villageCameraCandidate);
+      if (safeFraction < .96) {
+        for (let i = 1; i < VILLAGE_CAMERA_SHOULDERS.length; i++) {
+          const fraction = testVillageCameraBoom(heroPos, villageCameraYaw + VILLAGE_CAMERA_SHOULDERS[i]);
+          if (fraction > safeFraction + .025) {
+            safeFraction = fraction;
+            villageCameraDesired.copy(villageCameraCandidate);
+          }
+          if (safeFraction >= .985) break;
+        }
+      }
+      if (safeFraction < 1) {
+        villageCameraDesired.lerpVectors(villageCameraPivot, villageCameraDesired, safeFraction);
+        if (safeFraction < .45) villageCameraDesired.y = Math.max(villageCameraDesired.y, heroPos.y + VILLAGE_CAMERA.closeHeight);
+        villageCameraTarget.copy(villageCameraPivot);
+      }
+
+      // Obstacle-side transitions snap between known-safe positions so the
+      // interpolation itself cannot cross a wall. Open-road follow stays soft.
+      const followAlpha = snap || avoidingObstacle || villageCameraAvoiding ? 1 : 1 - Math.exp(-dt * 10);
+      camera.position.lerp(villageCameraDesired, followAlpha);
+      camera.lookAt(villageCameraTarget);
+      villageCameraAvoiding = avoidingObstacle;
     }
 
     // =====================================================================
@@ -3760,13 +4015,30 @@
         if (keys['KeyA'] || keys['ArrowLeft']) mx -= 1;
         if (keys['KeyD'] || keys['ArrowRight']) mx += 1;
 
+        const rawInputLength = Math.hypot(mx, mz);
+        // Do not chase a continuously strafing hero: that would rotate the
+        // camera, then rotate the input again and force the player into a
+        // circle. Re-align smoothly as soon as the stick/key is released.
+        villageCameraShouldAlign = rawInputLength <= .05 || mz < -.2;
+
+        // In the village, up always moves away from the third-person camera
+        // and right follows the screen, even after the camera swings around.
+        if (state.currentZone === 'village' && state.cameraMode === 0) {
+          const inputX = mx;
+          const inputZ = mz;
+          const c = Math.cos(villageCameraYaw);
+          const s = Math.sin(villageCameraYaw);
+          mx = -c * inputX - s * inputZ;
+          mz = s * inputX - c * inputZ;
+        }
+
         const len = Math.hypot(mx, mz);
         if (len > 0.05) {
           mx /= Math.max(1, len);
           mz /= Math.max(1, len);
           const speed = 24;
-          const tryX = THREE.MathUtils.clamp(leader.mesh.position.x + mx * speed * dt, -88, 88);
-          const tryZ = THREE.MathUtils.clamp(leader.mesh.position.z + mz * speed * dt, -46, 46);
+          const tryX = THREE.MathUtils.clamp(leader.mesh.position.x + mx * speed * dt, -130, 130);
+          const tryZ = THREE.MathUtils.clamp(leader.mesh.position.z + mz * speed * dt, -130, 130);
 
           // Slide along X and Z independently against village house/shop colliders
           if (!isBlockedByBuilding(tryX, leader.mesh.position.z)) {
@@ -3788,9 +4060,10 @@
           leader.mesh.position.z
         );
 
-        // Check Proximity to any of the 6 Village Shops!
+        // Proximity actions for twenty shops and twenty stationary quest NPCs.
         const ctxBtn = document.getElementById('context-action-btn');
         activeShopNear = null;
+        activeQuestNear = null;
         if (state.currentZone === 'village') {
           let bestDist = 11.5;
           villageShopNodes.forEach(sn => {
@@ -3800,8 +4073,19 @@
               activeShopNear = sn.def;
             }
           });
+          let bestQuestDist = 8.5;
+          questNpcNodes.forEach(node => {
+            const d = leader.mesh.position.distanceTo(node.group.position);
+            if (d < bestQuestDist) {
+              bestQuestDist = d;
+              activeQuestNear = node.def;
+            }
+          });
         }
-        if (activeShopNear) {
+        if (activeQuestNear) {
+          ctxBtn.style.display = 'block';
+          ctxBtn.textContent = `❗ گفتگو با ${activeQuestNear.name}`;
+        } else if (activeShopNear) {
           ctxBtn.style.display = 'block';
           ctxBtn.textContent = `🏪 ورود به ${activeShopNear.title}`;
         } else {
@@ -3821,8 +4105,10 @@
         }
 
         // Camera Follow Modes
-        if (state.cameraMode === 0) {
-          // Cinematic street-level follow: facades, lanterns and shop interiors stay visible.
+        if (state.cameraMode === 0 && state.currentZone === 'village') {
+          updateVillageThirdPersonCamera(dt);
+        } else if (state.cameraMode === 0) {
+          // Keep the original close follow outside the village.
           const targetCam = new THREE.Vector3(leader.mesh.position.x, leader.mesh.position.y + 17, leader.mesh.position.z + 24);
           camera.position.lerp(targetCam, 0.14);
           camera.lookAt(leader.mesh.position.x, leader.mesh.position.y + 3, leader.mesh.position.z - 3);
@@ -3836,18 +4122,20 @@
         }
       }
 
-      // 2. Villager NPCs walking in the alleys
+      // 2. NPCs: quest givers stay fixed; optional ambient villagers can walk.
       villagersNPCs.forEach(v => {
-        const target = v.points[v.targetIdx];
-        const dist = v.group.position.distanceTo(target);
-        if (dist < 1.0) {
-          v.targetIdx = (v.targetIdx + 1) % v.points.length;
-        } else {
-          const dir = target.clone().sub(v.group.position).normalize();
-          v.group.position.addScaledVector(dir, 5.5 * dt);
-          v.group.rotation.y = Math.atan2(dir.x, dir.z);
+        if (!v.static) {
+          const target = v.points[v.targetIdx];
+          const dist = v.group.position.distanceTo(target);
+          if (dist < 1.0) {
+            v.targetIdx = (v.targetIdx + 1) % v.points.length;
+          } else {
+            const dir = target.clone().sub(v.group.position).normalize();
+            v.group.position.addScaledVector(dir, 5.5 * dt);
+            v.group.rotation.y = Math.atan2(dir.x, dir.z);
+          }
         }
-        v.labelRef.pos.set(v.group.position.x, 4.4, v.group.position.z);
+        v.labelRef.pos.set(v.group.position.x, v.static ? 4.65 : 4.4, v.group.position.z);
       });
 
       // 3. Connected Online Teammates Follow
@@ -3978,6 +4266,11 @@
       const sh = stage.clientHeight;
       floatingLabels.forEach(item => {
         if (item.el.style.display === 'none') return;
+        const heroMesh = state.party[0] && state.party[0].mesh;
+        if (item.maxDistance && heroMesh && item.pos.distanceTo(heroMesh.position) > item.maxDistance) {
+          item.el.style.visibility = 'hidden';
+          return;
+        }
         const pr = item.pos.clone().project(camera);
         if (pr.z > 1) {
           item.el.style.visibility = 'hidden';
