@@ -353,6 +353,36 @@ export function createBlacksmithForgeBuilder(THREE) {
         stone.rotation.set(range(-.015, .015), range(-.025, .025), range(-.015, .015));
       });
     }
+
+    // Individually laid, slightly chipped ashlar veneer. These are real
+    // meshes, not a flat wall texture; the doorway remains completely open.
+    [-1, 1].forEach(side => {
+      for (let row = 0; row < 7; row++) for (let col = 0; col < 8; col++) {
+        const stone = box(architecture, .22 + range(0, .06), .42 + range(0, .08), .82 + range(0, .16), materials.stoneBlock,
+          side * 4.99, .98 + row * .51, -3.45 + col * .98 + (row % 2) * .08);
+        stone.rotation.set(range(-.018, .018), range(-.025, .025), range(-.018, .018));
+      }
+    });
+    for (let row = 0; row < 7; row++) for (let col = 0; col < 9; col++) {
+      const stone = box(architecture, .91 + range(0, .16), .42 + range(0, .08), .22 + range(0, .06), materials.stoneBlock,
+        -4.25 + col * 1.06 + (row % 2) * .09, .98 + row * .51, -4.02);
+      stone.rotation.set(range(-.018, .018), range(-.025, .025), range(-.018, .018));
+    }
+    [-1, 1].forEach(side => {
+      for (let row = 0; row < 7; row++) for (let col = 0; col < 3; col++) {
+        const stone = box(architecture, .68 + range(0, .14), .39 + range(0, .08), .18 + range(0, .09), materials.stoneBlock,
+          side * (2.02 + col * .82 + (row % 2) * .08), .98 + row * .51, 4.04);
+        stone.rotation.set(range(-.018, .018), range(-.025, .025), range(-.018, .018));
+      }
+      for (let row = 0; row < 7; row++) {
+        box(architecture, .55, .44, row % 2 ? .3 : .42, materials.stoneBlock, side * 4.86, 1.02 + row * .51, 4.12);
+      }
+    });
+    for (let col = 0; col < 5; col++) {
+      const stone = box(architecture, .78, .48, .28, materials.stoneBlock, -1.7 + col * .85, 4.2, 4.08);
+      stone.rotation.y = range(-.02, .02);
+    }
+
     [-1, 1].forEach(x => [-1, 1].forEach(z => {
       box(architecture, .32, 4.65, .34, materials.woodDark, x * 4.56, 2.55, z * 3.98);
       for (let i = 0; i < 3; i++) box(architecture, .37, .13, .39, materials.iron, x * 4.56, 1.05 + i * 1.45, z * 3.98);
@@ -389,6 +419,10 @@ export function createBlacksmithForgeBuilder(THREE) {
         }
       }
       for (let i = 0; i < 7; i++) beam(roof, new THREE.Vector3(side * .12, 7.35, -4.2 + i * 1.4), new THREE.Vector3(side * 5.32, 4.39, -4.2 + i * 1.4), .18, materials.woodDark);
+      const gutter = cylinder(roof, .11, .11, 9.45, materials.iron, side * 5.22, 4.38, 0, 12);
+      gutter.rotation.x = Math.PI / 2;
+      const downspout = cylinder(roof, .075, .075, 4.25, materials.iron, side * 5.22, 2.25, -4.12, 10);
+      for (let i = 0; i < 4; i++) box(roof, .28, .09, .12, materials.iron, side * 5.22, .65 + i * 1.05, -4.12);
     });
     for (let i = 0; i < 10; i++) {
       const cap = cylinder(roof, .215, .215, 1.06, materials.roofTile, 0, 7.72, -4.45 + i * .99, 12);
@@ -411,10 +445,10 @@ export function createBlacksmithForgeBuilder(THREE) {
     mesh(door, new THREE.TorusGeometry(.17, .032, 7, 16), materials.steel, 2.31, 1.58, .27);
 
     makeSign(architecture);
-    makeWindow(architecture, -3.15, 2.38, 4.11);
-    makeWindow(architecture, 3.15, 2.38, 4.11);
-    makeWindow(architecture, -4.99, 2.5, -.9, -Math.PI / 2);
-    makeWindow(architecture, 4.99, 2.5, -.9, Math.PI / 2);
+    makeWindow(architecture, -3.15, 2.38, 4.19);
+    makeWindow(architecture, 3.15, 2.38, 4.19);
+    makeWindow(architecture, -5.14, 2.5, -.9, -Math.PI / 2);
+    makeWindow(architecture, 5.14, 2.5, -.9, Math.PI / 2);
 
     // Stone chimney with soot-dark outlet.
     box(architecture, 1.22, 4.9, 1.22, materials.stoneDark, -3, 7.15, -1.8);
