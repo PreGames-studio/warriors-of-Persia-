@@ -1,9 +1,10 @@
-const CACHE_NAME = 'warriors-of-persia-3d-v3-persian-village';
+const CACHE_NAME = 'warriors-of-persia-3d-v4-mia';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './icon.png',
+  './assets/hero/mia_hero.png',
   './potion-shop.css',
   './potion-shop.js',
   './village-theme.css',

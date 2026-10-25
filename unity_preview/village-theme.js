@@ -170,6 +170,19 @@ export function createPersianVillageKit(THREE) {
         ctx.save(); ctx.translate(s - 32, y); ctx.rotate(Math.PI / 4); ctx.strokeRect(-10, -10, 20, 20); ctx.restore();
       }
     }),
+    miaHair: canvasTexture(512, (ctx, s) => {
+      let localSeed = 91823;
+      const rnd = () => ((localSeed = (localSeed * 1664525 + 1013904223) >>> 0) / 4294967296);
+      ctx.fillStyle = '#241914'; ctx.fillRect(0, 0, s, s);
+      for (let i = 0; i < 950; i++) {
+        const x = rnd() * s, y = rnd() * s;
+        ctx.strokeStyle = `rgba(${72 + Math.floor(rnd() * 55)},${46 + Math.floor(rnd() * 34)},${31 + Math.floor(rnd() * 25)},${.08 + rnd() * .2})`;
+        ctx.lineWidth = .45 + rnd() * 1.15;
+        ctx.beginPath(); ctx.moveTo(x, y);
+        ctx.bezierCurveTo(x + rnd() * 7 - 3.5, y + 18, x + rnd() * 9 - 4.5, y + 42, x + rnd() * 8 - 4, y + 55 + rnd() * 45);
+        ctx.stroke();
+      }
+    }),
     awning: canvasTexture(256, (ctx, s) => {
       ctx.fillStyle = '#b7a986'; ctx.fillRect(0, 0, s, s);
       for (let x = 0; x < s; x += 64) { ctx.fillStyle = '#4d5548'; ctx.fillRect(x, 0, 32, s); }
@@ -489,37 +502,46 @@ export function createPersianVillageKit(THREE) {
 
   function buildHero(member, roleObj) {
     const group = new THREE.Group();
-    group.name = 'Persian immortal — articulated forged-armour hero';
+    const isMia = Boolean(member.isLocal);
+    group.name = isMia ? 'Mia — articulated swordswoman from the supplied reference' : 'Persian immortal — articulated forged-armour hero';
+    group.userData.characterId = isMia ? 'mia' : 'immortal';
     const shared = medievalForge.getHeroMaterials();
     const darkTint = new THREE.Color(0x9a9b96);
     const armor = shared.forged.clone();
-    armor.name = 'Hero forged steel • shared original 2K maps';
-    armor.color.set(roleObj.color).lerp(darkTint, .68);
-    armor.metalness = .68;
-    armor.roughness = .9;
+    armor.name = isMia ? 'Mia dark engraved steel • original 2K maps' : 'Hero forged steel • shared original 2K maps';
+    armor.color.set(isMia ? 0x626c73 : roleObj.color).lerp(darkTint, isMia ? .28 : .68);
+    armor.metalness = isMia ? .74 : .68;
+    armor.roughness = isMia ? .64 : .9;
     armor.emissive.set(0x151719); armor.emissiveIntensity = .12;
     const blackened = shared.forged.clone();
-    blackened.color.set(0x858c90);
-    blackened.metalness = .62; blackened.roughness = .9;
+    blackened.color.set(isMia ? 0x59636a : 0x858c90);
+    blackened.metalness = .62; blackened.roughness = isMia ? .7 : .9;
     blackened.emissive.set(0x101214); blackened.emissiveIntensity = .12;
-    const leather = surface(textures.heroLeather, { repeat: [1.6, 1.6], color: 0xd4b08a, roughness: .9, bump: .055 });
+    const leather = surface(textures.heroLeather, { repeat: [1.6, 1.6], color: isMia ? 0xc5a58d : 0xd4b08a, roughness: .9, bump: .055 });
     leather.emissive.set(0x1c0e06); leather.emissiveIntensity = .16;
-    const cloth = surface(textures.heroCape, { color: 0xd3b1a8, roughness: .96, bump: .025, side: THREE.DoubleSide });
+    const cloth = surface(textures.heroCape, { color: isMia ? 0xb94b55 : 0xd3b1a8, roughness: .96, bump: .025, side: THREE.DoubleSide });
     cloth.emissive.set(0x1a0809); cloth.emissiveIntensity = .14;
+    const scarfCloth = new THREE.MeshStandardMaterial({ color: 0x7d1f2b, roughness: .96, bumpMap: textures.heroCape, bumpScale: .018, side: THREE.DoubleSide });
+    const hair = surface(textures.miaHair, { color: 0xb9a99d, roughness: .86, bump: .02 });
+    const hairHighlight = surface(textures.miaHair, { color: 0xd0b69f, roughness: .82, bump: .018 });
+    const eyeWhite = new THREE.MeshStandardMaterial({ color: 0xd8d5ce, roughness: .58 });
+    const iris = new THREE.MeshStandardMaterial({ color: 0x91a7b2, roughness: .42 });
+    const lips = new THREE.MeshStandardMaterial({ color: 0x8f514d, roughness: .72 });
     const steel = shared.steel.clone();
     steel.color.set(0xb7c0c4); steel.metalness = .72; steel.roughness = .28;
     const gold = shared.gold.clone();
-    gold.color.set(0xd0a24f); gold.metalness = .62; gold.roughness = .38;
+    gold.color.set(isMia ? 0x9f917d : 0xd0a24f); gold.metalness = .62; gold.roughness = .38;
     gold.emissive.set(0x2b1a08); gold.emissiveIntensity = .12;
     const heroSkin = materials.skin.clone();
-    heroSkin.color.set(0xc58b66); heroSkin.emissive.set(0x1c0d08); heroSkin.emissiveIntensity = .1;
+    heroSkin.color.set(isMia ? 0xc58f78 : 0xc58b66); heroSkin.emissive.set(0x1c0d08); heroSkin.emissiveIntensity = .1;
+    const miaDetails = { sashes: [] };
 
     const rig = new THREE.Group();
     group.add(rig);
     if (member.isLocal) {
       // Short-range cinematic fill, like the forge's warm light on armour.
       // It casts no extra shadow map and is created only for the local hero.
-      const armourFill = new THREE.PointLight(0xffb27a, 12, 8, 2);
+      const armourFill = new THREE.PointLight(0xffc4a3, isMia ? 5 : 12, 8, 2);
       armourFill.position.set(1.6, 3.2, 2.1);
       armourFill.castShadow = false;
       group.add(armourFill);
@@ -551,11 +573,20 @@ export function createPersianVillageKit(THREE) {
     const torso = new THREE.Group();
     torso.position.set(0, 1.67, 0);
     rig.add(torso);
-    addCylinder(torso, .49, .61, 1.02, blackened, 0, .55, 0, 16);
-    const armorMesh = addMesh(torso, new THREE.SphereGeometry(.66, 20, 14), armor, 0, .72, .02);
-    armorMesh.scale.set(1, .82, .65);
-    addBox(torso, .92, .08, .09, gold, 0, .25, .48);
-    addBox(torso, .78, .055, .08, gold, 0, 1.03, .39);
+    addCylinder(torso, isMia ? .43 : .49, isMia ? .54 : .61, 1.02, blackened, 0, .55, 0, 16);
+    const armorMesh = addMesh(torso, new THREE.SphereGeometry(.66, 24, 16), armor, 0, .72, .02);
+    armorMesh.scale.set(isMia ? .88 : 1, .82, isMia ? .58 : .65);
+    addBox(torso, isMia ? .82 : .92, .055, .065, gold, 0, .25, .48);
+    addBox(torso, isMia ? .69 : .78, .045, .065, gold, 0, 1.03, .39);
+    if (isMia) {
+      // Fine silver engraving follows the reference breastplate without replacing its 2K metal maps.
+      [-1, 1].forEach(side => {
+        const etchedLine = addBox(torso, .025, .62, .025, steel, side * .22, .72, .405);
+        etchedLine.rotation.z = side * -.24;
+        const collarRivet = addMesh(torso, new THREE.SphereGeometry(.035, 8, 6), gold, side * .31, 1.03, .38);
+        collarRivet.scale.z = .55;
+      });
+    }
 
     // Instanced chainmail rings: detailed close-up silhouette in one draw call.
     const mailRows = 6, mailCols = 9;
@@ -581,6 +612,7 @@ export function createPersianVillageKit(THREE) {
     // Persian sun / immortal emblem on the breastplate.
     const emblem = new THREE.Group();
     emblem.position.set(0, .74, .49);
+    emblem.visible = !isMia;
     torso.add(emblem);
     addMesh(emblem, new THREE.TorusGeometry(.17, .025, 7, 20), gold, 0, 0, 0);
     addMesh(emblem, new THREE.SphereGeometry(.07, 10, 7), gold, 0, 0, .015);
@@ -589,11 +621,20 @@ export function createPersianVillageKit(THREE) {
       const ray = addBox(emblem, .035, .13, .035, gold, Math.sin(a) * .26, Math.cos(a) * .26, 0);
       ray.rotation.z = -a;
     }
+    if (isMia) {
+      // Crossed stitched-leather equipment straps and small metal buckles from the reference.
+      [-1, 1].forEach(side => {
+        const strap = addBox(torso, .105, 1.04, .055, leather, side * .12, .69, .455);
+        strap.rotation.z = side * .48;
+        const buckle = addMesh(torso, new THREE.TorusGeometry(.075, .014, 6, 12), gold, side * .28, .48, .5);
+        buckle.scale.y = .82;
+      });
+    }
 
     // Articulated legs: thigh, knee, greave and foot each have their own pivot.
     function buildLeg(side) {
       const upper = new THREE.Group();
-      upper.position.set(side * .28, 1.52, 0);
+      upper.position.set(side * (isMia ? .25 : .28), 1.52, 0);
       rig.add(upper);
       addCylinder(upper, .19, .23, .6, leather, 0, -.3, 0, 10);
       addCylinder(upper, .21, .24, .42, blackened, 0, -.24, .015, 10);
@@ -617,10 +658,10 @@ export function createPersianVillageKit(THREE) {
     // Arms with layered pauldrons and elbow pivots. Weapons follow the hands.
     function buildArm(side) {
       const upper = new THREE.Group();
-      upper.position.set(side * .67, 2.65, 0);
+      upper.position.set(side * (isMia ? .61 : .67), 2.65, 0);
       rig.add(upper);
-      const pauldron = addMesh(upper, new THREE.SphereGeometry(.35, 14, 9), armor, side * .03, -.02, 0);
-      pauldron.scale.set(1.2, .62, .9);
+      const pauldron = addMesh(upper, new THREE.SphereGeometry(isMia ? .31 : .35, 18, 12), armor, side * .03, -.02, 0);
+      pauldron.scale.set(isMia ? 1.08 : 1.2, .62, .9);
       addBox(upper, .48, .08, .4, gold, side * .04, -.15, .01);
       addCylinder(upper, .14, .19, .52, leather, 0, -.34, 0, 10);
       const elbow = new THREE.Group();
@@ -634,34 +675,88 @@ export function createPersianVillageKit(THREE) {
     }
     const leftArm = buildArm(-1), rightArm = buildArm(1);
 
-    // Neck, face, short beard and a forged helmet with cheek guards and plume.
-    addCylinder(rig, .19, .22, .28, heroSkin, 0, 2.91, 0, 12);
+    // Mia: uncovered face, grey-blue eyes, dark tied-back hair and loose strands.
+    // The previous bearded/helmeted head remains only for non-local party avatars.
+    addCylinder(rig, isMia ? .16 : .19, isMia ? .18 : .22, .28, heroSkin, 0, 2.91, 0, 12);
     const head = new THREE.Group();
     head.position.set(0, 3.2, .01);
     rig.add(head);
-    const face = addMesh(head, new THREE.SphereGeometry(.38, 18, 12), heroSkin, 0, 0, 0);
-    face.scale.set(1, 1.08, .95);
-    addMesh(head, new THREE.SphereGeometry(.07, 9, 6), heroSkin, 0, -.03, .37);
-    [-1, 1].forEach(side => addMesh(head, new THREE.SphereGeometry(.025, 7, 5), materials.recess, side * .13, .07, .35, false));
-    const beard = addMesh(head, new THREE.ConeGeometry(.27, .43, 12), materials.darkMetal, 0, -.28, .22);
-    beard.rotation.z = Math.PI;
-    const helmet = addMesh(head, new THREE.SphereGeometry(.43, 18, 11, 0, Math.PI * 2, 0, Math.PI * .64), armor, 0, .13, 0);
-    helmet.scale.y = .92;
-    const helmetBand = addMesh(head, new THREE.TorusGeometry(.4, .035, 7, 22), gold, 0, .12, 0);
-    helmetBand.rotation.x = Math.PI / 2;
-    addBox(head, .07, .4, .065, gold, 0, -.01, .41);
-    [-1, 1].forEach(side => {
-      const cheek = addBox(head, .16, .38, .09, blackened, side * .31, -.14, .13);
-      cheek.rotation.z = side * -.13;
-    });
-    addMesh(head, new THREE.ConeGeometry(.12, .46, 10), cloth, 0, .67, -.04);
+    const face = addMesh(head, new THREE.SphereGeometry(.38, 24, 16), heroSkin, 0, 0, 0);
+    face.scale.set(isMia ? .9 : 1, 1.08, isMia ? .9 : .95);
+    addMesh(head, new THREE.SphereGeometry(isMia ? .052 : .07, 10, 7), heroSkin, 0, -.03, isMia ? .345 : .37);
+    if (isMia) {
+      [-1, 1].forEach(side => {
+        const ear = addMesh(head, new THREE.SphereGeometry(.065, 10, 7), heroSkin, side * .34, -.015, 0);
+        ear.scale.set(.55, 1, .55);
+        const white = addMesh(head, new THREE.SphereGeometry(.041, 10, 7), eyeWhite, side * .112, .065, .327, false);
+        white.scale.set(1.25, .68, .42);
+        addMesh(head, new THREE.SphereGeometry(.018, 9, 6), iris, side * .112, .064, .35, false);
+        addMesh(head, new THREE.SphereGeometry(.008, 7, 5), materials.recess, side * .112, .064, .365, false);
+        const brow = addBox(head, .105, .018, .018, hair, side * .112, .135, .327);
+        brow.rotation.z = side * -.1;
+        const sideLock = addCylinder(head, .022, .04, .5, hair, side * .285, -.08, .15, 8);
+        sideLock.rotation.z = side * .12;
+        const looseStrand = addCylinder(head, .01, .018, .39, hairHighlight, side * .22, -.055, .3, 7);
+        looseStrand.rotation.z = side * -.15;
+      });
+      addBox(head, .105, .024, .022, lips, 0, -.15, .325);
+      const hairCap = addMesh(head, new THREE.SphereGeometry(.405, 24, 14, 0, Math.PI * 2, 0, Math.PI * .47), hair, 0, .105, -.025);
+      hairCap.scale.set(.94, 1.02, .94);
+      const bun = addMesh(head, new THREE.SphereGeometry(.18, 16, 11), hair, 0, .25, -.33);
+      bun.scale.set(1.05, 1.12, .82);
+      const bunCoil = addMesh(head, new THREE.TorusGeometry(.115, .022, 7, 18), hairHighlight, 0, .25, -.455);
+      bunCoil.rotation.z = .25;
+      for (let i = 0; i < 3; i++) {
+        const scarf = addMesh(rig, new THREE.TorusGeometry(.25 + i * .018, .065, 8, 24), scarfCloth, 0, 2.79 + i * .075, .005);
+        scarf.rotation.x = Math.PI / 2;
+        scarf.rotation.z = i * .35;
+      }
+      const scarfTail = new THREE.Group();
+      scarfTail.position.set(-.19, 2.83, .38);
+      scarfTail.rotation.z = -.16;
+      rig.add(scarfTail);
+      addBox(scarfTail, .19, .64, .045, scarfCloth, 0, -.3, 0);
+      [-1, 1].forEach((side, index) => {
+        const sash = new THREE.Group();
+        sash.name = `MiaCrimsonSash${index + 1}`;
+        sash.position.set(side * .31, 1.58, .43);
+        sash.rotation.z = side * .1;
+        rig.add(sash);
+        addMesh(sash, new THREE.PlaneGeometry(.25, 1.12, 1, 5), scarfCloth, 0, -.54, 0, false);
+        miaDetails.sashes.push(sash);
+      });
+      const scabbard = new THREE.Group();
+      scabbard.name = 'MiaBackScabbard';
+      scabbard.position.set(-.35, 2.35, -.42);
+      scabbard.rotation.z = .34;
+      rig.add(scabbard);
+      addBox(scabbard, .15, 1.62, .11, leather, 0, -.58, 0);
+      addBox(scabbard, .2, .12, .15, gold, 0, .23, 0);
+      addBox(scabbard, .17, .08, .13, steel, 0, -1.41, 0);
+      addCylinder(scabbard, .065, .065, .42, leather, 0, .47, 0, 10);
+      addMesh(scabbard, new THREE.SphereGeometry(.09, 10, 7), gold, 0, .7, 0);
+    } else {
+      [-1, 1].forEach(side => addMesh(head, new THREE.SphereGeometry(.025, 7, 5), materials.recess, side * .13, .07, .35, false));
+      const beard = addMesh(head, new THREE.ConeGeometry(.27, .43, 12), materials.darkMetal, 0, -.28, .22);
+      beard.rotation.z = Math.PI;
+      const helmet = addMesh(head, new THREE.SphereGeometry(.43, 18, 11, 0, Math.PI * 2, 0, Math.PI * .64), armor, 0, .13, 0);
+      helmet.scale.y = .92;
+      const helmetBand = addMesh(head, new THREE.TorusGeometry(.4, .035, 7, 22), gold, 0, .12, 0);
+      helmetBand.rotation.x = Math.PI / 2;
+      addBox(head, .07, .4, .065, gold, 0, -.01, .41);
+      [-1, 1].forEach(side => {
+        const cheek = addBox(head, .16, .38, .09, blackened, side * .31, -.14, .13);
+        cheek.rotation.z = side * -.13;
+      });
+      addMesh(head, new THREE.ConeGeometry(.12, .46, 10), cloth, 0, .67, -.04);
+    }
 
-    // Segmented cloth cape with a painted Persian-gold border.
+    // Segmented crimson cloth cape from Mia's reference, retaining the original texture resolution.
     const cape = new THREE.Group();
     cape.position.set(0, 2.67, -.43);
     rig.add(cape);
     const capeGeometry = new THREE.PlaneGeometry(1.28, 1.85, 6, 8);
-    const capeMesh = addMesh(cape, capeGeometry, cloth, 0, -.925, 0, false);
+    const capeMesh = addMesh(cape, capeGeometry, isMia ? scarfCloth : cloth, 0, -.925, 0, false);
     const capeBase = capeGeometry.attributes.position.array.slice();
 
     // Ridged steel sword, leather grip and golden guard attached to right hand.
@@ -686,8 +781,10 @@ export function createPersianVillageKit(THREE) {
       return new THREE.ExtrudeGeometry(shape, { depth: .065, bevelEnabled: true, bevelSize: .018, bevelThickness: .018, bevelSegments: 1 });
     }
     const shield = new THREE.Group();
+    shield.name = 'HeroShield';
     shield.position.set(-.12, -.34, .27);
     shield.rotation.y = -.18;
+    shield.visible = !isMia; // Mia's reference carries a sword and back scabbard, not a shield.
     leftArm.elbow.add(shield);
     addMesh(shield, shieldGeometry(1.06), gold, 0, 0, 0);
     addMesh(shield, shieldGeometry(.91), blackened, 0, 0, .075);
@@ -722,6 +819,9 @@ export function createPersianVillageKit(THREE) {
       rig.position.y = Math.sin(phase * 2) * .035 * move + Math.sin(time * 1.7) * .008 * (1 - move);
       rig.position.x = swing * .018 * move;
       cape.rotation.x = -.035 - move * .055;
+      miaDetails.sashes.forEach((sash, index) => {
+        sash.rotation.x = -.025 - move * .065 + Math.sin(phase * 1.15 + index * 1.7) * .035 * move;
+      });
 
       const positions = capeGeometry.attributes.position;
       for (let i = 0; i < positions.count; i++) {

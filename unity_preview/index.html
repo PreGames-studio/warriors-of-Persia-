@@ -212,9 +212,22 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 6px;
       margin-bottom: 4px;
     }
+    .hero-portrait {
+      width: 44px;
+      height: 50px;
+      flex: 0 0 44px;
+      object-fit: cover;
+      object-position: 50% 16%;
+      border: 1px solid #b38a52;
+      border-radius: 6px;
+      background: #111827;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, .55);
+    }
     .hero-name-txt {
+      flex: 1;
       font-size: 11px;
       font-weight: 700;
       color: #fde047;
@@ -1170,7 +1183,8 @@
     <!-- HERO STATS HUD (TOP-RIGHT) -->
     <div class="hero-hud-card">
       <div class="hero-hud-header">
-        <span class="hero-name-txt" id="hud-hero-name">قهرمان ۱ (شما) — جنگجو</span>
+        <img class="hero-portrait" id="hud-mia-portrait" src="./assets/hero/mia_hero.png" alt="میا، شمشیرزن پارسی" />
+        <span class="hero-name-txt" id="hud-hero-name">میا (شما) — شمشیرزن</span>
         <span class="hero-lvl-badge" id="hud-hero-lvl">Lv. 1</span>
       </div>
       <div class="stat-bar-row">
@@ -1682,7 +1696,7 @@
       party: [
         {
           slot: 0,
-          name: 'قهرمان ۱ (شما)',
+          name: 'میا (شما)',
           roleIndex: 0,
           isLocal: true,
           isOnline: true,
@@ -1795,7 +1809,7 @@
 
       state.party = data.party.map((m, idx) => ({
         slot: idx,
-        name: m.name || (idx === 0 ? 'قهرمان ۱ (شما)' : `بازیکن ${idx + 1}`),
+        name: idx === 0 ? 'میا (شما)' : (m.name || `بازیکن ${idx + 1}`),
         roleIndex: Number(m.roleIndex) || 0,
         isLocal: idx === 0,
         isOnline: m.isOnline !== false,
@@ -2144,7 +2158,7 @@
       const g = built.group;
       g.userData.armorMesh = built.armorMesh;
       const lbl = addWorldLabel(
-        `${member.name} (${roleObj.title})`,
+        `${member.name} (${member.isLocal ? 'شمشیرزن' : roleObj.title})`,
         new THREE.Vector3(0, 5.4, 0),
         member.isLocal ? '#8fd0a8' : '#7db9bd'
       );
@@ -2763,7 +2777,7 @@
     function updateHeroStatsHUD() {
       const leader = state.party[0];
       const roleObj = ROLES[leader.roleIndex] || ROLES[0];
-      document.getElementById('hud-hero-name').textContent = `${leader.name} — ${roleObj.title}`;
+      document.getElementById('hud-hero-name').textContent = `${leader.name} — ${leader.isLocal ? 'شمشیرزن' : roleObj.title}`;
       document.getElementById('hud-hero-lvl').textContent = `Lv. ${leader.level}`;
 
       document.getElementById('bar-hp').style.width = `${(leader.hp / leader.hpMax) * 100}%`;
