@@ -177,17 +177,24 @@ export function createPersianVillageKit(THREE) {
     }),
     sky: canvasTexture(1024, (ctx, s) => {
       const gradient = ctx.createLinearGradient(0, 0, 0, s);
-      gradient.addColorStop(0, '#030b12');
-      gradient.addColorStop(.45, '#0b2025');
-      gradient.addColorStop(.72, '#264038');
-      gradient.addColorStop(1, '#8a6941');
+      gradient.addColorStop(0, '#2f7fc4');
+      gradient.addColorStop(.42, '#65b1e2');
+      gradient.addColorStop(.72, '#9fd2ee');
+      gradient.addColorStop(1, '#d3e5e7');
       ctx.fillStyle = gradient; ctx.fillRect(0, 0, s, s);
-      for (let i = 0; i < 430; i++) {
-        const y = random() * s * .63;
-        const a = .18 + random() * .62;
-        ctx.fillStyle = `rgba(235,225,184,${a})`;
-        const r = random() < .06 ? 1.5 : .65;
-        ctx.beginPath(); ctx.arc(random() * s, y, r, 0, Math.PI * 2); ctx.fill();
+      // Soft deterministic cloud banks; the texture keeps its original 1K size.
+      let cloudSeed = 91427;
+      const rnd = () => ((cloudSeed = (cloudSeed * 1664525 + 1013904223) >>> 0) / 4294967296);
+      for (let i = 0; i < 24; i++) {
+        const x = rnd() * s, y = (.12 + rnd() * .48) * s;
+        const radius = 24 + rnd() * 48;
+        ctx.save(); ctx.translate(x, y); ctx.scale(2.2 + rnd() * 1.4, .7 + rnd() * .35);
+        const cloud = ctx.createRadialGradient(0, 0, radius * .08, 0, 0, radius);
+        cloud.addColorStop(0, `rgba(255,255,250,${.2 + rnd() * .2})`);
+        cloud.addColorStop(.52, 'rgba(248,252,250,.13)');
+        cloud.addColorStop(1, 'rgba(240,248,250,0)');
+        ctx.fillStyle = cloud; ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
       }
     })
   };
@@ -214,7 +221,7 @@ export function createPersianVillageKit(THREE) {
     bronze: new THREE.MeshStandardMaterial({ color: 0x9f7a3c, roughness: .38, metalness: .72 }),
     darkMetal: new THREE.MeshStandardMaterial({ color: 0x262b27, roughness: .48, metalness: .68 }),
     recess: new THREE.MeshStandardMaterial({ color: 0x080d0b, roughness: 1 }),
-    window: new THREE.MeshStandardMaterial({ color: 0xe8bd69, emissive: 0xc77b28, emissiveIntensity: 1.25, roughness: .55 }),
+    window: new THREE.MeshStandardMaterial({ color: 0xe8bd69, emissive: 0xc77b28, emissiveIntensity: .45, roughness: .55 }),
     water: new THREE.MeshStandardMaterial({ color: 0x2a9b91, emissive: 0x0a4c47, emissiveIntensity: .65, roughness: .18, metalness: .2, transparent: true, opacity: .82 }),
     leaf: new THREE.MeshStandardMaterial({ color: 0x173d2b, roughness: .92 }),
     leafLight: new THREE.MeshStandardMaterial({ color: 0x28543a, roughness: .9 }),
@@ -692,9 +699,9 @@ export function createPersianVillageKit(THREE) {
     // metres travelled, not by key-down time, and eases back to a breathing idle.
     let travel = 0, time = 0;
     const damp = (current, target, alpha) => current + (target - current) * alpha;
-    group.userData.updateLocomotion = (dt, speed) => {
+    group.userData.updateLocomotion = (dt, speed, distance = speed * dt) => {
       time += dt;
-      travel += Math.max(0, speed) * dt;
+      travel += Math.max(0, distance);
       const phase = travel * 1.85;
       const move = THREE.MathUtils.clamp(speed / 2.4, 0, 1);
       const alpha = 1 - Math.exp(-dt * 13);
@@ -841,25 +848,25 @@ export function createPersianVillageKit(THREE) {
   }
 
   function addSky(group) {
-    const skyMaterial = new THREE.MeshBasicMaterial({ map: textures.sky, side: THREE.BackSide, fog: false, depthWrite: false });
+    const skyMaterial = new THREE.MeshBasicMaterial({ map: textures.sky, side: THREE.BackSide, fog: false, depthWrite: false, toneMapped: false });
     const sky = addMesh(group, new THREE.SphereGeometry(280, 32, 18), skyMaterial, 0, 0, 0, false);
+    sky.name = 'Daylight sky';
     sky.renderOrder = -100;
-    const mountainMaterial = new THREE.MeshStandardMaterial({ color: 0x15251f, roughness: 1 });
+    const mountainMaterial = new THREE.MeshStandardMaterial({ color: 0x748473, roughness: 1 });
     [[-75, -62, 24, 29], [-42, -72, 29, 35], [0, -78, 32, 30], [43, -72, 25, 34], [76, -60, 24, 27]].forEach(([x, z, r, h], i) => {
       const peak = addMesh(group, new THREE.ConeGeometry(r * 1.35, h * 1.25, 5), mountainMaterial, x * 1.85, h * 1.25 / 2 - 2, z * 1.85, false);
       peak.rotation.y = i * .73;
     });
 
-    const moonCanvas = document.createElement('canvas'); moonCanvas.width = moonCanvas.height = 128;
-    const ctx = moonCanvas.getContext('2d');
-    const glow = ctx.createRadialGradient(64, 64, 8, 64, 64, 62);
-    glow.addColorStop(0, 'rgba(255,239,190,1)'); glow.addColorStop(.38, 'rgba(244,222,165,.9)'); glow.addColorStop(1, 'rgba(244,215,145,0)');
+    const sunCanvas = document.createElement('canvas'); sunCanvas.width = sunCanvas.height = 128;
+    const ctx = sunCanvas.getContext('2d');
+    const glow = ctx.createRadialGradient(64, 64, 5, 64, 64, 62);
+    glow.addColorStop(0, 'rgba(255,253,225,1)'); glow.addColorStop(.2, 'rgba(255,242,185,.95)'); glow.addColorStop(.48, 'rgba(255,222,142,.34)'); glow.addColorStop(1, 'rgba(255,214,128,0)');
     ctx.fillStyle = glow; ctx.fillRect(0, 0, 128, 128);
-    ctx.fillStyle = '#f3dfae'; ctx.beginPath(); ctx.arc(64, 64, 24, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#0a1b20'; ctx.beginPath(); ctx.arc(75, 56, 23, 0, Math.PI * 2); ctx.fill();
-    const moonTexture = new THREE.CanvasTexture(moonCanvas); moonTexture.colorSpace = THREE.SRGBColorSpace;
-    const moon = new THREE.Sprite(new THREE.SpriteMaterial({ map: moonTexture, transparent: true, depthWrite: false, fog: false }));
-    moon.position.set(-72, 64, -125); moon.scale.set(17, 17, 1); group.add(moon);
+    const sunTexture = new THREE.CanvasTexture(sunCanvas); sunTexture.colorSpace = THREE.SRGBColorSpace;
+    const sun = new THREE.Sprite(new THREE.SpriteMaterial({ map: sunTexture, transparent: true, depthWrite: false, fog: false, toneMapped: false }));
+    sun.name = 'Day sun';
+    sun.position.set(88, 105, -132); sun.scale.set(22, 22, 1); group.add(sun);
   }
 
   function addStringLights(group, z, y) {
@@ -910,7 +917,7 @@ export function createPersianVillageKit(THREE) {
       positions[i * 3 + 2] = (random() - .5) * 92;
     }
     const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    const dust = new THREE.Points(geometry, new THREE.PointsMaterial({ color: 0xe7c579, size: .16, transparent: true, opacity: .48, depthWrite: false, blending: THREE.AdditiveBlending }));
+    const dust = new THREE.Points(geometry, new THREE.PointsMaterial({ color: 0xffe0a3, size: .13, transparent: true, opacity: .25, depthWrite: false, blending: THREE.NormalBlending }));
     decorations.add(dust); animated.dust = dust;
     mergeStaticGroup(decorations);
     group.add(decorations);
@@ -918,11 +925,19 @@ export function createPersianVillageKit(THREE) {
 
   function applyLighting(zone, scene, hemi, directional, renderer) {
     if (zone === 'village') {
-      scene.background = new THREE.Color(0x071512);
-      scene.fog = new THREE.FogExp2(0x10241f, .0045);
-      hemi.color.setHex(0x9db9ad); hemi.groundColor.setHex(0x49372a); hemi.intensity = 1.08;
-      directional.color.setHex(0xffddb0); directional.intensity = 1.6; directional.position.set(-38, 72, 30);
-      renderer.toneMappingExposure = 1.12;
+      scene.background = new THREE.Color(0x91bfd6);
+      scene.fog = new THREE.FogExp2(0xc4dbe5, .0022);
+      // The original PBR albedos are intentionally dark; strong sky fill makes
+      // their detail readable in daylight without resizing or replacing them.
+      hemi.color.setHex(0xd8efff); hemi.groundColor.setHex(0xb39a73); hemi.intensity = 6.2;
+      directional.color.setHex(0xfff0cf); directional.intensity = 5.8; directional.position.set(42, 68, 28);
+      renderer.toneMappingExposure = 1.26;
+    } else if (zone === 'open_world') {
+      scene.background = new THREE.Color(0x91bfd6);
+      scene.fog = new THREE.FogExp2(0xbcd4d6, .002);
+      hemi.color.setHex(0xd8efff); hemi.groundColor.setHex(0xa8906c); hemi.intensity = 3.4;
+      directional.color.setHex(0xfff0cf); directional.intensity = 3.8; directional.position.set(42, 68, 28);
+      renderer.toneMappingExposure = 1.1;
     } else {
       hemi.color.setHex(0xfffbeb); hemi.groundColor.setHex(0x334155); hemi.intensity = .95;
       directional.color.setHex(0xfff7ed); directional.intensity = 1.5; directional.position.set(-40, 85, 45);

@@ -1881,6 +1881,8 @@
 
     const orbitControls = new OrbitControls(camera, renderer.domElement);
     orbitControls.enableDamping = true;
+    orbitControls.dampingFactor = .08;
+    orbitControls.rotateSpeed = .75;
     orbitControls.enabled = false;
 
     // Village camera: a true over-the-shoulder view that rotates behind the
@@ -1894,14 +1896,16 @@
       closeHeight: 5.4
     });
     let villageCameraYaw = Math.PI;
+    let villageCameraShoulderOffset = 0;
     let villageCameraShouldAlign = true;
-    let villageCameraAvoiding = false;
+    let villageCameraLookTargetReady = false;
     const villageCameraForward = new THREE.Vector3();
     const villageCameraPivot = new THREE.Vector3();
     const villageCameraDesired = new THREE.Vector3();
     const villageCameraCandidate = new THREE.Vector3();
     const villageCameraBoom = new THREE.Vector3();
     const villageCameraTarget = new THREE.Vector3();
+    const villageCameraLookTarget = new THREE.Vector3();
     const villageCameraSample = new THREE.Vector3();
     const VILLAGE_CAMERA_SHOULDERS = [0, -.61, .61, -1.05, 1.05, -1.57, 1.57];
 
@@ -2272,7 +2276,11 @@
       state.dungeonTier = tier;
       portalCooldown = 2.2;
       heroMoveSpeed = 0;
+      heroAnimationSpeed = 0;
+      heroVelocity.set(0, 0, 0);
+      heroTargetVelocity.set(0, 0, 0);
       heroMoveDirection.set(0, 0, 0);
+      villageCameraLookTargetReady = false;
       stage.dataset.zone = zoneId;
       villageKit.reset();
       villageKit.applyLighting(zoneId, scene, hemiLight, dirLight, renderer);
@@ -2298,7 +2306,7 @@
       let spawnPoint = new THREE.Vector3(0, 0, 0);
 
       if (zoneId === 'village') {
-        // Cinematic blue-hour lighting is applied by the Persian village art kit.
+        // Bright daylight, soft sky fill and a warm sun are applied by the village art kit.
         // 1. Expanded village ground: 100 plots plus perimeter quest NPCs.
         const ground = new THREE.Mesh(new THREE.BoxGeometry(270, 3, 270), villageKit.materials.ground);
         ground.position.set(0, -1.5, 0);
@@ -2379,8 +2387,8 @@
         villageKit.populate(mapRoot, VILLAGE_SHOPS_3D);
         spawnPoint.set(0, 0, 10);
       } else if (zoneId === 'open_world') {
-        scene.background = new THREE.Color(0x132032);
-        scene.fog = new THREE.FogExp2(0x132032, 0.0020);
+        scene.background = new THREE.Color(0x91bfd6);
+        scene.fog = new THREE.FogExp2(0xbcd4d6, .002);
 
         const west = new THREE.Mesh(new THREE.BoxGeometry(102, 3, 140), MATS.plainsGrass);
         west.position.set(-58, -1.5, 0);
@@ -3719,6 +3727,8 @@
       state.cameraMode = (state.cameraMode + 1) % 3;
       if (state.cameraMode === 0 && state.party[0] && state.party[0].mesh) {
         villageCameraYaw = state.party[0].mesh.rotation.y;
+        villageCameraShoulderOffset = 0;
+        if (state.currentZone === 'village') updateVillageThirdPersonCamera(1, true);
       }
       syncCameraModeUI();
     });
@@ -3754,7 +3764,10 @@
     let joyVec = { x: 0, y: 0 };
     let joyActive = false;
     let heroMoveSpeed = 0;
+    let heroAnimationSpeed = 0;
     const heroMoveDirection = new THREE.Vector3();
+    const heroVelocity = new THREE.Vector3();
+    const heroTargetVelocity = new THREE.Vector3();
 
     function updateJoystick(cxClient, cyClient) {
       const rect = joyZone.getBoundingClientRect();
@@ -3906,19 +3919,23 @@
       }
     }
 
-    function testVillageCameraBoom(heroPos, yaw) {
-      villageCameraBoom.set(Math.sin(yaw), 0, Math.cos(yaw));
-      villageCameraCandidate.copy(heroPos).addScaledVector(villageCameraBoom, -VILLAGE_CAMERA.distance);
-      villageCameraCandidate.y = heroPos.y + VILLAGE_CAMERA.height;
+    function testVillageCameraPath(endPoint) {
       const steps = 20;
       for (let i = 1; i <= steps; i++) {
         const fraction = i / steps;
-        villageCameraSample.lerpVectors(villageCameraPivot, villageCameraCandidate, fraction);
+        villageCameraSample.lerpVectors(villageCameraPivot, endPoint, fraction);
         if (villageCameraSample.y < 12 && isBlockedByBuilding(villageCameraSample.x, villageCameraSample.z)) {
           return (i - 1) / steps;
         }
       }
       return 1;
+    }
+
+    function testVillageCameraBoom(heroPos, yaw) {
+      villageCameraBoom.set(Math.sin(yaw), 0, Math.cos(yaw));
+      villageCameraCandidate.copy(heroPos).addScaledVector(villageCameraBoom, -VILLAGE_CAMERA.distance);
+      villageCameraCandidate.y = heroPos.y + VILLAGE_CAMERA.height;
+      return testVillageCameraPath(villageCameraCandidate);
     }
 
     function updateVillageThirdPersonCamera(dt, snap = false) {
@@ -3928,48 +3945,65 @@
       const targetYaw = leader.mesh.rotation.y;
       if (snap) {
         villageCameraYaw = targetYaw;
+        villageCameraShoulderOffset = 0;
       } else if (villageCameraShouldAlign) {
         const yawDelta = Math.atan2(
           Math.sin(targetYaw - villageCameraYaw),
           Math.cos(targetYaw - villageCameraYaw)
         );
-        villageCameraYaw += yawDelta * (1 - Math.exp(-dt * 7));
+        villageCameraYaw += yawDelta * (1 - Math.exp(-dt * 5.2));
       }
 
-      villageCameraForward.set(Math.sin(villageCameraYaw), 0, Math.cos(villageCameraYaw));
       villageCameraPivot.copy(heroPos);
       villageCameraPivot.y += VILLAGE_CAMERA.targetHeight;
-      villageCameraTarget.copy(villageCameraPivot).addScaledVector(villageCameraForward, VILLAGE_CAMERA.lookAhead);
 
-      // Try the direct boom first, then left/right shoulder alternatives.
-      // Picking a clear side lane avoids both roof clipping and extreme
-      // close-ups in the denser parts of the 100-building village.
+      // Select a clear boom, then damp its shoulder angle as well as its
+      // position. The collision-safe result is checked again after damping,
+      // so smoothing can never carry the camera through a building.
       const directFraction = testVillageCameraBoom(heroPos, villageCameraYaw);
-      const avoidingObstacle = directFraction < 1;
-      let safeFraction = directFraction;
-      villageCameraDesired.copy(villageCameraCandidate);
-      if (safeFraction < .96) {
+      let bestFraction = directFraction;
+      let bestYaw = villageCameraYaw;
+      if (bestFraction < .985) {
         for (let i = 1; i < VILLAGE_CAMERA_SHOULDERS.length; i++) {
-          const fraction = testVillageCameraBoom(heroPos, villageCameraYaw + VILLAGE_CAMERA_SHOULDERS[i]);
-          if (fraction > safeFraction + .025) {
-            safeFraction = fraction;
-            villageCameraDesired.copy(villageCameraCandidate);
+          const candidateYaw = villageCameraYaw + VILLAGE_CAMERA_SHOULDERS[i];
+          const fraction = testVillageCameraBoom(heroPos, candidateYaw);
+          const score = fraction - Math.abs(VILLAGE_CAMERA_SHOULDERS[i]) * .035;
+          const bestScore = bestFraction - Math.abs(bestYaw - villageCameraYaw) * .035;
+          if (score > bestScore + .02) {
+            bestFraction = fraction;
+            bestYaw = candidateYaw;
           }
-          if (safeFraction >= .985) break;
         }
       }
+      const targetOffset = Math.atan2(Math.sin(bestYaw - villageCameraYaw), Math.cos(bestYaw - villageCameraYaw));
+      const offsetDelta = Math.atan2(Math.sin(targetOffset - villageCameraShoulderOffset), Math.cos(targetOffset - villageCameraShoulderOffset));
+      villageCameraShoulderOffset += offsetDelta * (snap ? 1 : 1 - Math.exp(-dt * 5.5));
+
+      const actualYaw = villageCameraYaw + villageCameraShoulderOffset;
+      const safeFraction = testVillageCameraBoom(heroPos, actualYaw);
+      villageCameraDesired.copy(villageCameraCandidate);
       if (safeFraction < 1) {
         villageCameraDesired.lerpVectors(villageCameraPivot, villageCameraDesired, safeFraction);
         if (safeFraction < .45) villageCameraDesired.y = Math.max(villageCameraDesired.y, heroPos.y + VILLAGE_CAMERA.closeHeight);
-        villageCameraTarget.copy(villageCameraPivot);
       }
+      villageCameraForward.set(Math.sin(actualYaw), 0, Math.cos(actualYaw));
+      villageCameraTarget.copy(villageCameraPivot).addScaledVector(
+        villageCameraForward,
+        VILLAGE_CAMERA.lookAhead * THREE.MathUtils.smoothstep(safeFraction, .25, .95)
+      );
 
-      // Obstacle-side transitions snap between known-safe positions so the
-      // interpolation itself cannot cross a wall. Open-road follow stays soft.
-      const followAlpha = snap || avoidingObstacle || villageCameraAvoiding ? 1 : 1 - Math.exp(-dt * 10);
-      camera.position.lerp(villageCameraDesired, followAlpha);
-      camera.lookAt(villageCameraTarget);
-      villageCameraAvoiding = avoidingObstacle;
+      camera.position.lerp(villageCameraDesired, snap ? 1 : 1 - Math.exp(-dt * 7.5));
+      const followedPathFraction = testVillageCameraPath(camera.position);
+      if (followedPathFraction < 1) {
+        camera.position.lerpVectors(villageCameraPivot, camera.position, Math.max(.035, followedPathFraction));
+      }
+      if (snap || !villageCameraLookTargetReady) {
+        villageCameraLookTarget.copy(villageCameraTarget);
+        villageCameraLookTargetReady = true;
+      } else {
+        villageCameraLookTarget.lerp(villageCameraTarget, 1 - Math.exp(-dt * 9));
+      }
+      camera.lookAt(villageCameraLookTarget);
     }
 
     // =====================================================================
@@ -4032,7 +4066,7 @@
         // Do not chase a continuously strafing hero: that would rotate the
         // camera, then rotate the input again and force the player into a
         // circle. Re-align smoothly as soon as the stick/key is released.
-        villageCameraShouldAlign = rawInputLength <= .05 || mz < -.2;
+        villageCameraShouldAlign = rawInputLength <= .07 || mz < -.2;
 
         // In the village, up always moves away from the third-person camera
         // and right follows the screen, even after the camera swings around.
@@ -4046,19 +4080,35 @@
         }
 
         const len = Math.hypot(mx, mz);
-        const inputStrength = Math.min(1, len);
         const walkingSpeed = state.currentZone === 'village' ? 4.4 : 6.0;
-        const targetSpeed = len > .05 ? walkingSpeed * inputStrength : 0;
-        const acceleration = targetSpeed > heroMoveSpeed ? 6.5 : 10;
-        heroMoveSpeed += (targetSpeed - heroMoveSpeed) * (1 - Math.exp(-dt * acceleration));
-        if (heroMoveSpeed < .005) heroMoveSpeed = 0;
-        if (len > .05) {
-          heroMoveDirection.set(mx / Math.max(1, len), 0, mz / Math.max(1, len));
+        const deadZone = .07;
+        const inputStrength = len > deadZone ? Math.min(1, (len - deadZone) / (1 - deadZone)) : 0;
+        const invLen = len > 0 ? 1 / len : 0;
+        heroTargetVelocity.set(
+          mx * invLen * walkingSpeed * inputStrength,
+          0,
+          mz * invLen * walkingSpeed * inputStrength
+        );
+        const currentSpeed = heroVelocity.length();
+        const targetSpeed = heroTargetVelocity.length();
+        let acceleration = targetSpeed > currentSpeed ? 8.5 : 12;
+        if (currentSpeed > .05 && targetSpeed > .05) {
+          const alignment = heroVelocity.dot(heroTargetVelocity) / (currentSpeed * targetSpeed);
+          if (alignment < .25) acceleration = 7;
+          else if (alignment < .85) acceleration = Math.min(acceleration, 8.5);
+        }
+        heroVelocity.lerp(heroTargetVelocity, 1 - Math.exp(-dt * acceleration));
+        if (targetSpeed === 0 && heroVelocity.lengthSq() < .0016) heroVelocity.set(0, 0, 0);
+        heroMoveSpeed = heroVelocity.length();
+        if (heroMoveSpeed > .015) {
+          heroMoveDirection.copy(heroVelocity).multiplyScalar(1 / heroMoveSpeed);
+        } else if (targetSpeed === 0) {
+          heroMoveDirection.set(0, 0, 0);
         }
 
-        if (heroMoveSpeed > 0 && heroMoveDirection.lengthSq() > 0) {
-          const tryX = THREE.MathUtils.clamp(leader.mesh.position.x + heroMoveDirection.x * heroMoveSpeed * dt, -130, 130);
-          const tryZ = THREE.MathUtils.clamp(leader.mesh.position.z + heroMoveDirection.z * heroMoveSpeed * dt, -130, 130);
+        if (heroMoveSpeed > .001 && heroMoveDirection.lengthSq() > 0) {
+          const tryX = THREE.MathUtils.clamp(leader.mesh.position.x + heroVelocity.x * dt, -130, 130);
+          const tryZ = THREE.MathUtils.clamp(leader.mesh.position.z + heroVelocity.z * dt, -130, 130);
 
           // Slide along X and Z independently against village house/shop colliders.
           if (!isBlockedByBuilding(tryX, leader.mesh.position.z)) {
@@ -4070,14 +4120,20 @@
             leader.mesh.position.z = tryZ;
           }
 
-          const targetYaw = Math.atan2(heroMoveDirection.x, heroMoveDirection.z);
-          const yawDelta = Math.atan2(Math.sin(targetYaw - leader.mesh.rotation.y), Math.cos(targetYaw - leader.mesh.rotation.y));
-          leader.mesh.rotation.y += yawDelta * (1 - Math.exp(-dt * 14));
+          if (heroMoveSpeed > .08) {
+            const targetYaw = Math.atan2(heroVelocity.x, heroVelocity.z);
+            const yawDelta = Math.atan2(Math.sin(targetYaw - leader.mesh.rotation.y), Math.cos(targetYaw - leader.mesh.rotation.y));
+            leader.mesh.rotation.y += yawDelta * (1 - Math.exp(-dt * 10.5));
+          }
         }
         leader.mesh.position.y = (state.currentZone === 'open_world' && leader.mesh.position.x > 7) ? 1.2 : 0;
-        const actualSpeed = Math.hypot(leader.mesh.position.x - previousHeroX, leader.mesh.position.z - previousHeroZ) / Math.max(dt, .001);
-        leader.mesh.userData.locomotionSpeed = actualSpeed;
-        if (leader.mesh.userData.updateLocomotion) leader.mesh.userData.updateLocomotion(dt, actualSpeed);
+        const actualDistance = Math.hypot(leader.mesh.position.x - previousHeroX, leader.mesh.position.z - previousHeroZ);
+        const actualSpeed = actualDistance / Math.max(dt, .001);
+        heroAnimationSpeed += (actualSpeed - heroAnimationSpeed) * (1 - Math.exp(-dt * 12));
+        if (actualSpeed < .01 && heroMoveSpeed < .02 && heroAnimationSpeed < .025) heroAnimationSpeed = 0;
+        leader.mesh.userData.locomotionSpeed = heroAnimationSpeed;
+        leader.mesh.userData.actualSpeed = actualSpeed;
+        if (leader.mesh.userData.updateLocomotion) leader.mesh.userData.updateLocomotion(dt, heroAnimationSpeed, actualDistance);
 
         leader.mesh.userData.labelRef.pos.set(
           leader.mesh.position.x,
@@ -4135,12 +4191,12 @@
         } else if (state.cameraMode === 0) {
           // Keep the original close follow outside the village.
           const targetCam = new THREE.Vector3(leader.mesh.position.x, leader.mesh.position.y + 17, leader.mesh.position.z + 24);
-          camera.position.lerp(targetCam, 0.14);
+          camera.position.lerp(targetCam, 1 - Math.exp(-dt * 9));
           camera.lookAt(leader.mesh.position.x, leader.mesh.position.y + 3, leader.mesh.position.z - 3);
         } else if (state.cameraMode === 1) {
           // High Top-Down View
           const targetCam = new THREE.Vector3(leader.mesh.position.x, leader.mesh.position.y + 44, leader.mesh.position.z + 32);
-          camera.position.lerp(targetCam, 0.12);
+          camera.position.lerp(targetCam, 1 - Math.exp(-dt * 7.5));
           camera.lookAt(leader.mesh.position.x, leader.mesh.position.y + 1.5, leader.mesh.position.z);
         } else {
           orbitControls.update();
