@@ -1151,28 +1151,11 @@
 </head>
 <body>
 
-  <!-- TOP NAVIGATION BAR -->
+  <!-- TOP BAR: only the two persistent player actions remain visible. -->
   <div class="app-topbar">
-    <div class="brand-group">
-      <span class="brand-badge">⚔️ جنگجویان پارس 3D</span>
-      <span class="zone-pill" id="top-zone-title">🏛️ روستای امن (کوچه‌ها و بازار)</span>
-    </div>
-
-    <div class="nav-group">
-      <button class="top-btn active" data-travel="village" data-tier="1">🏛️ روستای امن (بازار)</button>
-      <button class="top-btn" data-travel="open_world" data-tier="1">🌍 جهان باز</button>
-      <button class="top-btn" data-travel="dungeon" data-tier="1">🟣 دانجن ۱</button>
-      <button class="top-btn" data-travel="dungeon" data-tier="3">🔥 دانجن ۲</button>
-    </div>
-
-    <div class="nav-group">
-      <button class="top-btn" id="btn-open-party">👥 تیم (<span id="party-online-count">1</span>/5)</button>
+    <div class="nav-group topbar-actions">
       <button class="top-btn emerald" id="btn-open-inventory">🎒 کیف (<span id="badge-inv-count">1</span>)</button>
-      <button class="top-btn gold" id="btn-open-blacksmith">⚒️ آهنگری کاوه</button>
-      <button class="top-btn emerald" id="btn-open-apothecary" title="ورود به فروشگاه معجون‌های حکیم">🧪 عطاری حکیم</button>
-      <button class="top-btn gold" id="btn-open-shop">🏪 بازار روستا</button>
       <button class="top-btn emerald" id="btn-manual-save" title="ذخیره فوری لول، سکه و تجهیزات">💾 ذخیره</button>
-      <button class="top-btn active" id="btn-open-downloads">⬇ دانلود APK</button>
     </div>
   </div>
 
@@ -2362,23 +2345,25 @@
     function updateTopZoneBanner() {
       const pill = document.getElementById('top-zone-title');
       const mmTag = document.getElementById('minimap-zone-tag');
+      let zoneTitle;
       if (state.currentZone === 'village') {
-        pill.textContent = '🏛️ روستای امن (کوچه‌ها و ۶ مغازه بازار)';
+        zoneTitle = '🏛️ روستای امن (کوچه‌ها و ۶ مغازه بازار)';
         mmTag.textContent = 'Village Bazaar';
       } else if (state.currentZone === 'open_world') {
-        pill.textContent = '🌍 جهان باز (دشت، رودخانه و کوهستان)';
+        zoneTitle = '🌍 جهان باز (دشت، رودخانه و کوهستان)';
         mmTag.textContent = 'OpenWorld';
       } else {
-        pill.textContent = `⚔️ دانجن سطح ${state.dungeonTier} (باس و غنائم)`;
+        zoneTitle = `⚔️ دانجن سطح ${state.dungeonTier} (باس و غنائم)`;
         mmTag.textContent = `Dungeon Lv.${state.dungeonTier}`;
       }
+      if (pill) pill.textContent = zoneTitle;
 
       document.querySelectorAll('[data-travel]').forEach(btn => {
         const match = btn.dataset.travel === state.currentZone && Number(btn.dataset.tier) === state.dungeonTier;
         btn.classList.toggle('active', match);
       });
 
-      showToast(`ورود به: ${pill.textContent}`, state.currentZone === 'village' ? '#4ade80' : '#38bdf8');
+      showToast(`ورود به: ${zoneTitle}`, state.currentZone === 'village' ? '#4ade80' : '#38bdf8');
     }
 
     // =====================================================================
@@ -2388,7 +2373,8 @@
       const container = document.getElementById('party-list-container');
       container.innerHTML = '';
       const onlineCount = state.party.filter(p => p.isOnline).length;
-      document.getElementById('party-online-count').textContent = onlineCount;
+      const onlineCountEl = document.getElementById('party-online-count');
+      if (onlineCountEl) onlineCountEl.textContent = onlineCount;
       document.getElementById('btn-add-ally').disabled = state.party.length >= 5;
 
       state.party.forEach((m, idx) => {
@@ -2759,9 +2745,9 @@
       const leader = state.party[0];
       showToast(`💾 بازی با موفقیت ذخیره شد! (سطح ${leader.level} | ${formatCommaGold(state.coins)} سکه طلا)`, '#4ade80');
     });
-    document.getElementById('btn-open-blacksmith').addEventListener('click', () => openBlacksmithShop());
-    document.getElementById('btn-open-apothecary').addEventListener('click', () => openApothecaryShop());
-    document.getElementById('btn-open-shop').addEventListener('click', () => openShopModal(activeShopNear));
+    document.getElementById('btn-open-blacksmith')?.addEventListener('click', () => openBlacksmithShop());
+    document.getElementById('btn-open-apothecary')?.addEventListener('click', () => openApothecaryShop());
+    document.getElementById('btn-open-shop')?.addEventListener('click', () => openShopModal(activeShopNear));
     document.getElementById('context-action-btn').addEventListener('click', () => {
       if (activeShopNear && activeShopNear.id === 'blacksmith') {
         openBlacksmithShop();
@@ -3541,11 +3527,11 @@
       refreshInventoryModal();
       document.getElementById('modal-inventory').classList.add('open');
     });
-    document.getElementById('btn-open-party').addEventListener('click', () => {
+    document.getElementById('btn-open-party')?.addEventListener('click', () => {
       renderPartyHUD();
       document.getElementById('modal-party').classList.add('open');
     });
-    document.getElementById('btn-open-downloads').addEventListener('click', () => {
+    document.getElementById('btn-open-downloads')?.addEventListener('click', () => {
       document.getElementById('modal-downloads').classList.add('open');
     });
     document.querySelectorAll('[data-close]').forEach(btn => {
