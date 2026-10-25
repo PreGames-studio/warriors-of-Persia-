@@ -102,7 +102,15 @@ body { background: #050a08; }
 .stat-bar-text { font-size: 8px; letter-spacing: .02em; }
 .economy-row { border-top-color: rgba(190, 159, 91, .2); }
 
-.minimap-card { top: 12px; left: 12px; width: 154px; padding: 7px; }
+.minimap-card {
+  top: 12px;
+  left: 12px;
+  width: 154px;
+  padding: 7px;
+  opacity: .8;
+  transform: scale(.8);
+  transform-origin: top left;
+}
 .minimap-title { color: #c2b28e; }
 #minimap-canvas { border: 1px solid #5d6348; border-radius: 3px; background: #0a120e; }
 .cam-switch-btn {
@@ -113,31 +121,6 @@ body { background: #050a08; }
   border-radius: 3px;
   background: linear-gradient(180deg, #263b2b, #15241a);
 }
-
-#village-guide-bar {
-  top: 12px;
-  max-width: calc(100% - 420px);
-  padding: 4px 6px;
-  gap: 4px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  border: 1px solid rgba(186, 153, 84, .46);
-  border-radius: 5px;
-  background: rgba(8, 16, 12, .82);
-  box-shadow: 0 7px 22px rgba(0, 0, 0, .35), inset 0 0 12px rgba(156, 128, 67, .05);
-  backdrop-filter: blur(9px);
-}
-#village-guide-bar::-webkit-scrollbar { display: none; }
-.alley-chip {
-  min-height: 26px;
-  padding: 3px 9px;
-  color: #d4c7a4;
-  border: 1px solid #625638;
-  border-radius: 3px;
-  background: linear-gradient(180deg, rgba(40, 47, 34, .95), rgba(20, 28, 21, .95));
-  font-size: 9px;
-}
-.alley-chip:hover { color: #f3e4b9; border-color: #c0a15d; background: #3d422c; }
 
 .world-label-3d {
   padding: 4px 9px;
@@ -202,7 +185,6 @@ body { background: #050a08; }
 }
 
 @media (max-width: 1000px) {
-  #village-guide-bar { max-width: calc(100% - 390px); }
   .hero-hud-card { width: 204px; }
   .minimap-card { width: 142px; }
 }
@@ -211,11 +193,9 @@ body { background: #050a08; }
   .top-btn { min-height: 27px; padding-top: 3px; padding-bottom: 3px; }
   .hero-hud-card { top: 7px; right: 7px; padding: 6px 8px; }
   .minimap-card { top: 7px; left: 7px; padding: 5px; }
-  #village-guide-bar { top: 7px; }
   .joystick-zone { width: 100px; height: 100px; bottom: 10px; }
 }
 @media (max-width: 720px) {
-  #village-guide-bar { display: none !important; }
   .minimap-card { width: 128px; }
   #minimap-canvas { width: 116px; height: 70px; }
   .hero-hud-card { width: 188px; }

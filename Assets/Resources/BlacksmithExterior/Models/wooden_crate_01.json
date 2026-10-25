@@ -1,0 +1,20 @@
+{
+  "source": "https://polyhaven.com/a/wooden_crate_01",
+  "license": "CC0-1.0",
+  "sourcePack": "https://github.com/Eruldin/Gambling-with-the-devil/tree/asset-scan/env-table/assets_external/env-table/polyhaven/wooden_crate_01",
+  "triangles": 6576,
+  "boundsMin": [
+    -0.4126364588737488,
+    -0.00793334562331438,
+    -0.2128141224384308
+  ],
+  "boundsMax": [
+    0.4126364588737488,
+    0.3416849374771118,
+    0.1961396187543869
+  ],
+  "materials": [
+    "wooden_crate_01"
+  ],
+  "coordinateConversion": "glTF (x,y,z) -> Unity (x,y,-z), reversed winding"
+}

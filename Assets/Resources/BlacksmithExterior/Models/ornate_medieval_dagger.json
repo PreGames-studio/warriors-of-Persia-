@@ -1,0 +1,20 @@
+{
+  "source": "https://polyhaven.com/a/ornate_medieval_dagger",
+  "license": "CC0-1.0",
+  "sourcePack": "https://github.com/Eruldin/Gambling-with-the-devil/tree/asset-scan/env-table/assets_external/env-table/polyhaven/ornate_medieval_dagger",
+  "triangles": 6290,
+  "boundsMin": [
+    -0.040217939764261246,
+    -0.07869891822338104,
+    -0.012485486455261707
+  ],
+  "boundsMax": [
+    0.07993163913488388,
+    0.27025094628334045,
+    0.012474235147237778
+  ],
+  "materials": [
+    "ornate_medieval_dagger"
+  ],
+  "coordinateConversion": "glTF (x,y,z) -> Unity (x,y,-z), reversed winding"
+}

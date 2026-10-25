@@ -1,0 +1,20 @@
+{
+  "source": "https://polyhaven.com/a/Barrel_01",
+  "license": "CC0-1.0",
+  "sourcePack": "https://github.com/Eruldin/Gambling-with-the-devil/tree/asset-scan/env-table/assets_external/env-table/polyhaven/Barrel_01",
+  "triangles": 2682,
+  "boundsMin": [
+    -0.2815175950527191,
+    -0.006614277604967356,
+    -0.28151771426200867
+  ],
+  "boundsMax": [
+    0.28151753544807434,
+    0.8733857274055481,
+    0.28151750564575195
+  ],
+  "materials": [
+    "Barrel_01"
+  ],
+  "coordinateConversion": "glTF (x,y,z) -> Unity (x,y,-z), reversed winding"
+}

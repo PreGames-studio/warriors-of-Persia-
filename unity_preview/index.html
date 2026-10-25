@@ -316,37 +316,6 @@
       cursor: pointer;
     }
 
-    /* Quick Alley / Shop Teleport Chips inside Village */
-    #village-guide-bar {
-      position: absolute;
-      top: 42px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 4px;
-      z-index: 22;
-      background: rgba(15, 23, 42, 0.78);
-      padding: 3px 8px;
-      border-radius: 999px;
-      border: 1px solid rgba(250, 204, 21, 0.4);
-    }
-    .alley-chip {
-      background: rgba(30, 41, 59, 0.9);
-      color: #fef08a;
-      border: 1px solid #ca8a04;
-      border-radius: 999px;
-      padding: 2px 7px;
-      font-family: 'Vazirmatn', sans-serif;
-      font-size: 9.5px;
-      font-weight: 700;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-    .alley-chip:hover {
-      background: #a16207;
-      color: #fff;
-    }
-
     /* ================= VIRTUAL JOYSTICK (BOTTOM-LEFT) ================= */
     .joystick-zone {
       position: absolute;
@@ -1182,28 +1151,11 @@
 </head>
 <body>
 
-  <!-- TOP NAVIGATION BAR -->
+  <!-- TOP BAR: only the two persistent player actions remain visible. -->
   <div class="app-topbar">
-    <div class="brand-group">
-      <span class="brand-badge">⚔️ جنگجویان پارس 3D</span>
-      <span class="zone-pill" id="top-zone-title">🏛️ روستای امن (کوچه‌ها و بازار)</span>
-    </div>
-
-    <div class="nav-group">
-      <button class="top-btn active" data-travel="village" data-tier="1">🏛️ روستای امن (بازار)</button>
-      <button class="top-btn" data-travel="open_world" data-tier="1">🌍 جهان باز</button>
-      <button class="top-btn" data-travel="dungeon" data-tier="1">🟣 دانجن ۱</button>
-      <button class="top-btn" data-travel="dungeon" data-tier="3">🔥 دانجن ۲</button>
-    </div>
-
-    <div class="nav-group">
-      <button class="top-btn" id="btn-open-party">👥 تیم (<span id="party-online-count">1</span>/5)</button>
+    <div class="nav-group topbar-actions">
       <button class="top-btn emerald" id="btn-open-inventory">🎒 کیف (<span id="badge-inv-count">1</span>)</button>
-      <button class="top-btn gold" id="btn-open-blacksmith">⚒️ آهنگری کاوه</button>
-      <button class="top-btn emerald" id="btn-open-apothecary" title="ورود به فروشگاه معجون‌های حکیم">🧪 عطاری حکیم</button>
-      <button class="top-btn gold" id="btn-open-shop">🏪 بازار روستا</button>
       <button class="top-btn emerald" id="btn-manual-save" title="ذخیره فوری لول، سکه و تجهیزات">💾 ذخیره</button>
-      <button class="top-btn active" id="btn-open-downloads">⬇ دانلود APK</button>
     </div>
   </div>
 
@@ -1214,16 +1166,6 @@
     <div id="popups-layer"></div>
 
     <div id="toast-banner">به روستای پارسی خوش آمدید! در کوچه‌ها قدم بزنید و مغازه‌ها را ببینید.</div>
-
-    <!-- QUICK ALLEY & SHOP JUMP BAR (Visible in Village) -->
-    <div id="village-guide-bar">
-      <button class="alley-chip" data-alley="plaza">💧 میدان چشمه</button>
-      <button class="alley-chip" data-alley="bazaar_north">🏮 کوچه بازار شمالی</button>
-      <button class="alley-chip" data-alley="alley_smith">⚒️ راسته آهنگران</button>
-      <button class="alley-chip" data-alley="alley_herbs">🧪 کوچه عطاران</button>
-      <button class="alley-chip" data-alley="alley_carpet">🧶 گذر قالی‌بافان</button>
-      <button class="alley-chip" data-alley="alley_tea">🍵 کوچه چایخانه</button>
-    </div>
 
     <!-- HERO STATS HUD (TOP-RIGHT) -->
     <div class="hero-hud-card">
@@ -1969,13 +1911,32 @@
     function buildShopBuilding3D(shopDef) {
       const g = villageKit.buildShop(shopDef);
 
-      // Collider for the back building (leaving the front rug & counter walkable!)
-      addColliderBox(shopDef.pos.x, shopDef.pos.z - 1.5, 5.2, 3.2);
+      if (shopDef.id === 'blacksmith') {
+        // Exterior-only: the purchase UI replaces interior traversal. Keep the
+        // visible door animated, but do not let the player enter an empty shell.
+        const angle = shopDef.rotY || 0;
+        const c = Math.cos(angle), s = Math.sin(angle);
+        const addLocalWall = (x, z, halfW, halfD) => {
+          const worldX = shopDef.pos.x + x * c + z * s;
+          const worldZ = shopDef.pos.z - x * s + z * c;
+          const quarterTurn = Math.abs(s) > .7;
+          addColliderBox(worldX, worldZ, quarterTurn ? halfD : halfW, quarterTurn ? halfW : halfD);
+        };
+        addLocalWall(-4.75, 0, .23, 3.85);
+        addLocalWall(4.75, 0, .23, 3.85);
+        addLocalWall(0, -3.85, 4.78, .23);
+        addLocalWall(-3.18, 3.85, 1.6, .23);
+        addLocalWall(3.18, 3.85, 1.6, .23);
+        addLocalWall(0, 3.85, 1.6, .23);
+      } else {
+        // Collider for the back building (leaving the front rug & counter walkable!)
+        addColliderBox(shopDef.pos.x, shopDef.pos.z - 1.5, 5.2, 3.2);
+      }
 
       // World Label above Shop (Clickable to enter shop!)
       addWorldLabel(
         shopDef.title,
-        new THREE.Vector3(shopDef.pos.x, 9.2, shopDef.pos.z),
+        new THREE.Vector3(shopDef.pos.x, shopDef.id === 'blacksmith' ? 11.2 : 9.2, shopDef.pos.z),
         '#d8b66a',
         () => {
           if (shopDef.id === 'blacksmith') openBlacksmithShop();
@@ -2159,8 +2120,6 @@
       vfxRingsList = [];
       floatingLabels = [];
       labelsLayer.innerHTML = '';
-
-      document.getElementById('village-guide-bar').style.display = (zoneId === 'village') ? 'flex' : 'none';
 
       let spawnPoint = new THREE.Vector3(0, 0, 0);
 
@@ -2388,51 +2347,26 @@
     function updateTopZoneBanner() {
       const pill = document.getElementById('top-zone-title');
       const mmTag = document.getElementById('minimap-zone-tag');
+      let zoneTitle;
       if (state.currentZone === 'village') {
-        pill.textContent = '🏛️ روستای امن (کوچه‌ها و ۶ مغازه بازار)';
+        zoneTitle = '🏛️ روستای امن (کوچه‌ها و ۶ مغازه بازار)';
         mmTag.textContent = 'Village Bazaar';
       } else if (state.currentZone === 'open_world') {
-        pill.textContent = '🌍 جهان باز (دشت، رودخانه و کوهستان)';
+        zoneTitle = '🌍 جهان باز (دشت، رودخانه و کوهستان)';
         mmTag.textContent = 'OpenWorld';
       } else {
-        pill.textContent = `⚔️ دانجن سطح ${state.dungeonTier} (باس و غنائم)`;
+        zoneTitle = `⚔️ دانجن سطح ${state.dungeonTier} (باس و غنائم)`;
         mmTag.textContent = `Dungeon Lv.${state.dungeonTier}`;
       }
+      if (pill) pill.textContent = zoneTitle;
 
       document.querySelectorAll('[data-travel]').forEach(btn => {
         const match = btn.dataset.travel === state.currentZone && Number(btn.dataset.tier) === state.dungeonTier;
         btn.classList.toggle('active', match);
       });
 
-      showToast(`ورود به: ${pill.textContent}`, state.currentZone === 'village' ? '#4ade80' : '#38bdf8');
+      showToast(`ورود به: ${zoneTitle}`, state.currentZone === 'village' ? '#4ade80' : '#38bdf8');
     }
-
-    // Quick Alley Teleport Chips inside Village
-    const ALLEY_TARGETS = {
-      plaza:        { x: 0,   z: 10,  msg: '💧 میدان مرکزی چشمه شفا' },
-      bazaar_north: { x: -16, z: -13, msg: '🏮 کوچه بازار شمالی — روبه‌روی جواهرفروشی جمشید' },
-      alley_smith:  { x: -30, z: -18, msg: '⚒️ راسته آهنگران — روبه‌روی آهنگری کاوه' },
-      alley_herbs:  { x: 16,  z: -13, msg: '🧪 کوچه عطاران — روبه‌روی عطاری حکیم و ستاره‌شناس' },
-      alley_carpet: { x: -28, z: 15,  msg: '🧶 کوچه قالی‌بافان — روبه‌روی سرای قالی و ابریشم' },
-      alley_tea:    { x: 26,  z: 15,  msg: '🍵 کوچه چایخانه — روبه‌روی چایخانه پهلوانان' }
-    };
-
-    document.querySelectorAll('[data-alley]').forEach(chip => {
-      chip.addEventListener('click', () => {
-        if (state.currentZone !== 'village') loadZone3D('village', 1);
-        const t = ALLEY_TARGETS[chip.dataset.alley];
-        if (t && state.party[0].mesh) {
-          state.party[0].mesh.position.set(t.x, 0, t.z);
-          playTone(540, 0.14, 'sine');
-          showToast(t.msg, '#fde047');
-          if (chip.dataset.alley === 'alley_smith') {
-            openBlacksmithShop();
-          } else if (chip.dataset.alley === 'alley_herbs') {
-            openApothecaryShop();
-          }
-        }
-      });
-    });
 
     // =====================================================================
     // PARTY MANAGEMENT
@@ -2441,7 +2375,8 @@
       const container = document.getElementById('party-list-container');
       container.innerHTML = '';
       const onlineCount = state.party.filter(p => p.isOnline).length;
-      document.getElementById('party-online-count').textContent = onlineCount;
+      const onlineCountEl = document.getElementById('party-online-count');
+      if (onlineCountEl) onlineCountEl.textContent = onlineCount;
       document.getElementById('btn-add-ally').disabled = state.party.length >= 5;
 
       state.party.forEach((m, idx) => {
@@ -2812,9 +2747,9 @@
       const leader = state.party[0];
       showToast(`💾 بازی با موفقیت ذخیره شد! (سطح ${leader.level} | ${formatCommaGold(state.coins)} سکه طلا)`, '#4ade80');
     });
-    document.getElementById('btn-open-blacksmith').addEventListener('click', () => openBlacksmithShop());
-    document.getElementById('btn-open-apothecary').addEventListener('click', () => openApothecaryShop());
-    document.getElementById('btn-open-shop').addEventListener('click', () => openShopModal(activeShopNear));
+    document.getElementById('btn-open-blacksmith')?.addEventListener('click', () => openBlacksmithShop());
+    document.getElementById('btn-open-apothecary')?.addEventListener('click', () => openApothecaryShop());
+    document.getElementById('btn-open-shop')?.addEventListener('click', () => openShopModal(activeShopNear));
     document.getElementById('context-action-btn').addEventListener('click', () => {
       if (activeShopNear && activeShopNear.id === 'blacksmith') {
         openBlacksmithShop();
@@ -3594,11 +3529,11 @@
       refreshInventoryModal();
       document.getElementById('modal-inventory').classList.add('open');
     });
-    document.getElementById('btn-open-party').addEventListener('click', () => {
+    document.getElementById('btn-open-party')?.addEventListener('click', () => {
       renderPartyHUD();
       document.getElementById('modal-party').classList.add('open');
     });
-    document.getElementById('btn-open-downloads').addEventListener('click', () => {
+    document.getElementById('btn-open-downloads')?.addEventListener('click', () => {
       document.getElementById('modal-downloads').classList.add('open');
     });
     document.querySelectorAll('[data-close]').forEach(btn => {
@@ -4030,7 +3965,10 @@
         }
       }
 
-      if (state.currentZone === 'village') villageKit.update(elapsed, dt);
+      if (state.currentZone === 'village') {
+        const heroMesh = state.party[0] && state.party[0].mesh;
+        villageKit.update(elapsed, dt, heroMesh ? heroMesh.position : null);
+      }
       renderer.render(scene, camera);
       updateBlacksmith3DScene(dt, elapsed);
       drawMinimap();

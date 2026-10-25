@@ -23,7 +23,9 @@ public static class MobileProjectSettings
         PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.Android, "com.pregamesstudio.warriorsofpersia");
         PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel23;
         PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
-        PlayerSettings.colorSpace = ColorSpace.Gamma;
+        // Built-in mobile supports Linear on the project's ARM64 / API23+
+        // target; it keeps PBR light and warm forge emission physically coherent.
+        PlayerSettings.colorSpace = ColorSpace.Linear;
     }
 }
 #endif

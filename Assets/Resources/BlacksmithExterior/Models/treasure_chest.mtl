@@ -1,0 +1,8 @@
+newmtl treasure_chest
+Kd 1.0 1.0 1.0
+Ka 0.0 0.0 0.0
+Ks 0.35 0.35 0.35
+Ns 64
+illum 2
+map_Kd ../Textures/Imported/treasure_chest_albedo.jpg
+map_Bump ../Textures/Imported/treasure_chest_normal.jpg

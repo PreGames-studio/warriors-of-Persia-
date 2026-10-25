@@ -1,0 +1,8 @@
+newmtl Barrel_01
+Kd 1.0 1.0 1.0
+Ka 0.0 0.0 0.0
+Ks 0.35 0.35 0.35
+Ns 64
+illum 2
+map_Kd ../Textures/Imported/Barrel_01_albedo.jpg
+map_Bump ../Textures/Imported/Barrel_01_normal.jpg

@@ -1,8 +1,11 @@
+import { createBlacksmithForgeBuilder } from './blacksmith-forge.js';
+
 /**
  * Procedural Persian village art kit.
  * Real walkable 3D geometry, local canvas textures and mobile-friendly lights.
  */
 export function createPersianVillageKit(THREE) {
+  const medievalForge = createBlacksmithForgeBuilder(THREE);
   let seed = 937421;
   const random = () => {
     seed = (seed * 1664525 + 1013904223) >>> 0;
@@ -541,6 +544,7 @@ export function createPersianVillageKit(THREE) {
   }
 
   function buildShop(shopDef) {
+    if (shopDef.id === 'blacksmith') return medievalForge.build(shopDef);
     const group = new THREE.Group();
     group.position.set(shopDef.pos.x, 0, shopDef.pos.z); group.rotation.y = shopDef.rotY || 0;
     const awningMaterial = surface(textures.awning, { repeat: [3, 1], color: new THREE.Color(shopDef.roofColor).lerp(new THREE.Color(0xb9ab83), .28), roughness: .94, bump: .02 });
@@ -679,6 +683,7 @@ export function createPersianVillageKit(THREE) {
   }
 
   function reset() {
+    medievalForge.reset();
     animated.lamps.length = 0;
     animated.waters.length = 0;
     animated.orbs.length = 0;
@@ -733,7 +738,8 @@ export function createPersianVillageKit(THREE) {
     }
   }
 
-  function update(elapsed, dt) {
+  function update(elapsed, dt, heroPosition = null) {
+    medievalForge.update(elapsed, dt, heroPosition);
     animated.lamps.forEach(({ glow, light, phase, baseIntensity }) => {
       const flicker = 1 + Math.sin(elapsed * 7 + phase) * .035 + Math.sin(elapsed * 13.7 + phase) * .018;
       glow.scale.setScalar(flicker);
