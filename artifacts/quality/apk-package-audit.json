@@ -129,17 +129,13 @@
       "sha256": "f5f5685730ba4d723c9698a4917b189adfe26eadcf4a370c17f7dd0cfcfb0b32"
     }
   ],
-  "unsignedApk": "/tmp/WarriorsOfPersia_3D_HQ_8K-unsigned.apk",
-  "unsignedBytes": 208920109,
-  "unsignedSha256": "f95cce5baec380413ebcd3e98f5fa34b595b156de2ca19e9f6698a13208f61ea",
   "htmlBytes": 10253796,
-  "inlineScriptForNodeCheck": "/tmp/WarriorsOfPersia_3D_HQ_8K-unsigned.inline.js",
   "resourcesArscDataOffsetMod4": 0,
   "signed": true,
-  "signedApk": "/tmp/WarriorsOfPersia_3D_HQ_8K.apk",
-  "signedBytes": 208930506,
-  "signedSha256": "6854c6338140440cf236d636a817084a4069a63d2404c94c78e4477460cf1221",
-  "signature": "apksigner 33.0.2; v1/v2/v3 verification passed",
+  "signedApk": "https://github.com/PreGames-studio/warriors-of-Persia-/releases/download/hq8k-424be3dbcca8-r2/WarriorsOfPersia_3D_HQ_8K.apk",
+  "signedBytes": 208934602,
+  "signedSha256": "2bb1a7e90469f15cfebdcd4280b5605e6c6bc3362274a07350093387e2bb0b2c",
+  "signature": "Android build-tools 37 apksigner; v1/v2/v3 verification passed after zipalign",
   "signingCertificateSubject": "CN=Warriors of Persia, O=PreGames Studio, C=US",
   "previousSigningKeyAvailable": false,
   "desktopSmoke": {
@@ -176,7 +172,8 @@
     "textureWarningCount": 0,
     "otherWarnings": [
       "warning: [.WebGL-0x1ec4001a4400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): Running out of reserved outsideRenderPass queueSerial. ending renderPass now."
-    ]
+    ],
+    "appliesToR2Content": true
   },
   "physicalDeviceTest": {
     "performed": false,
@@ -187,6 +184,36 @@
     "mapCount": 15,
     "allMapsStoredIndependently": true,
     "allHashesDimensionsAndVp8lPassed": true,
-    "resourcesArscDataOffsetMod4": 0
+    "resourcesArscDataOffsetMod4": 0,
+    "allStoredEntriesAligned": true
+  },
+  "initialPackaging": {
+    "unsignedApk": "/tmp/WarriorsOfPersia_3D_HQ_8K-unsigned.apk",
+    "unsignedBytes": 208920109,
+    "unsignedSha256": "f95cce5baec380413ebcd3e98f5fa34b595b156de2ca19e9f6698a13208f61ea",
+    "inlineScriptForNodeCheck": "/tmp/WarriorsOfPersia_3D_HQ_8K-unsigned.inline.js"
+  },
+  "releaseTag": "hq8k-424be3dbcca8-r2",
+  "releaseMimeType": "application/vnd.android.package-archive",
+  "allStoredEntriesAligned": true,
+  "zipalign": {
+    "passed": true,
+    "scope": "every stored entry; resources.arsc and all 15 stored WebP maps included",
+    "verifiedBeforeAndAfterSigning": true
+  },
+  "emulatorInstall": {
+    "performed": true,
+    "cleanInstall": true,
+    "android": "11",
+    "abi": "x86_64",
+    "adbExitCode": 0,
+    "result": "Success",
+    "releaseDownloadRoundTrip": "byte-identical PASS"
+  },
+  "signingKeyBackupRecovered": true,
+  "supersedes": {
+    "releaseTag": "hq8k-424be3dbcca8",
+    "sha256": "6854c6338140440cf236d636a817084a4069a63d2404c94c78e4477460cf1221",
+    "reason": "11 stored WebP entries failed zipalign; old release removed after r2 install and round-trip passed"
   }
 }

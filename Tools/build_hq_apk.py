@@ -3,7 +3,8 @@
 
 The large APK is intentionally written outside Git. The source 2K textures and
 base APK are not modified. WebP files are packed as files instead of base64 so
-there is no 33% data-URI inflation. Sign the unsigned output with apksigner.
+there is no 33% data-URI inflation. Stored entries are aligned before the
+unsigned output is signed with apksigner.
 """
 from __future__ import annotations
 
@@ -67,6 +68,24 @@ def local_data_offset(apk: Path, name: str):
             fields = struct.unpack("<IHHHHHIIIHH", header)
             name_len, extra_len = fields[-2:]
             return info.header_offset + 30 + name_len + extra_len
+
+
+def align_stored_entry(target: ZipFile, info: ZipInfo):
+    """Pad a stored local header so its data starts at an Android-safe offset."""
+    if info.compress_type != ZIP_STORED:
+        return
+    alignment = 4096 if info.filename.endswith(".so") else 4
+    base = target.fp.tell() + 30 + len(info.filename.encode("utf-8")) + len(info.extra)
+    padding = (-base) % alignment
+    total = padding
+    if total and total < 4:
+        # An extra field needs a four-byte header. Add one whole alignment
+        # period when the payload alone would leave too little room for it.
+        total += alignment
+    if total:
+        # D935 is the conventional zipalign padding extra-field ID.
+        info.extra += struct.pack("<HH", 0xD935, total - 4) + bytes(total - 4)
+    assert (base + total) % alignment == 0
 
 
 def main():
@@ -172,6 +191,7 @@ def main():
                 continue
             info = copy.copy(original)
             data = html_bytes if name == "assets/index.html" else source.read(name)
+            align_stored_entry(target, info)
             target.writestr(info, data, compress_type=original.compress_type, compresslevel=9)
         for record in asset_manifest["maps"]:
             family, kind = record["family"], record["map"]
@@ -180,6 +200,7 @@ def main():
             info = ZipInfo(record["path"], date_time=(2026, 10, 25, 0, 0, 0))
             info.compress_type = ZIP_STORED
             info.external_attr = 0o100644 << 16
+            align_stored_entry(target, info)
             target.writestr(info, raw)
         info = ZipInfo("assets/pbr_hq/manifest.json", date_time=(2026, 10, 25, 0, 0, 0))
         info.compress_type = ZIP_DEFLATED
@@ -194,7 +215,10 @@ def main():
         packed_html = built.read("assets/index.html").decode("utf-8")
         assert packed_html == html
         assert built.read("assets/pbr_hq/manifest.json") == manifest_bytes
-    assert local_data_offset(args.output, "resources.arsc") % 4 == 0
+        for info in built.infolist():
+            if info.compress_type == ZIP_STORED:
+                alignment = 4096 if info.filename.endswith(".so") else 4
+                assert local_data_offset(args.output, info.filename) % alignment == 0, info.filename
 
     script_match = re.search(r'<script data-build="[^"]+">(.*?)</script>', html, re.S)
     assert script_match
@@ -209,6 +233,7 @@ def main():
         "htmlBytes": len(html_bytes),
         "inlineScriptForNodeCheck": str(script_path),
         "resourcesArscDataOffsetMod4": local_data_offset(args.output, "resources.arsc") % 4,
+        "allStoredEntriesAligned": True,
         "signed": False,
     }
     args.manifest.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n")
