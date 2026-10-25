@@ -368,12 +368,14 @@ export function createBlacksmithForgeBuilder(THREE) {
   // keeping houses, merchants, the hero and the reference forge consistent.
   const DISTRICT_BUILDING_SCALE = 1.25;
 
-  function makeDistrictPrototype(merchant = false) {
+  function makeDistrictPrototype(merchant = false, floors = 1) {
     ensureMaterials();
-    const key = merchant ? 'merchant' : 'residence';
+    const floorCount = merchant ? 1 : Math.max(1, Math.min(3, Math.round(floors)));
+    const key = merchant ? 'merchant' : `residence_${floorCount}`;
     if (districtPrototypes.has(key)) return districtPrototypes.get(key);
     const root = new THREE.Group();
-    root.name = merchant ? 'PBR merchant house prototype' : 'PBR residence prototype';
+    root.name = merchant ? 'PBR merchant house prototype' : `PBR ${floorCount}-storey residence prototype`;
+    root.userData.floors = floorCount;
 
     box(root, 8.95, .18, 7.15, materials.stone, 0, .09, 0);
     box(root, 8.65, 3.72, 6.7, materials.stone, 0, 2.02, 0);
@@ -423,31 +425,76 @@ export function createBlacksmithForgeBuilder(THREE) {
     makeWindow(root, -4.52, 2.35, -.95, -Math.PI / 2);
     makeWindow(root, 4.52, 2.35, -.95, Math.PI / 2);
 
-    // Individually laid slate tiles, ridge caps and exposed rafters.
+    // Additional storeys are real wall volumes with their own ashlar, timber
+    // frame and windows. Nothing is created by stretching the whole building.
+    const storeyHeight = 3.85;
+    for (let level = 1; level < floorCount; level++) {
+      const baseY = level * storeyHeight;
+      box(root, 8.65, 3.72, 6.7, materials.stone, 0, baseY + 2.02, 0);
+      for (let row = 0; row < 5; row++) {
+        for (let col = 0; col < 8; col++) {
+          const x = -3.78 + col * 1.08 + (row % 2) * .08;
+          const y = baseY + .55 + row * .57;
+          box(root, .98, .43, .18, materials.stoneBlock, x, y, 3.42);
+          box(root, .98, .43, .18, materials.stoneBlock, x, y, -3.42);
+        }
+        for (let col = 0; col < 6; col++) {
+          const z = -2.72 + col * 1.08 + (row % 2) * .08;
+          const y = baseY + .55 + row * .57;
+          box(root, .18, .43, .98, materials.stoneBlock, 4.42, y, z);
+          box(root, .18, .43, .98, materials.stoneBlock, -4.42, y, z);
+        }
+      }
+      [-1, 1].forEach(side => {
+        [-1, 1].forEach(front => {
+          box(root, .3, 4.35, .3, materials.woodDark, side * 4.16, baseY + 2.35, front * 3.48);
+          box(root, .38, .13, .38, materials.iron, side * 4.16, baseY + 1.05, front * 3.48);
+          box(root, .38, .13, .38, materials.iron, side * 4.16, baseY + 3.55, front * 3.48);
+        });
+        box(root, .28, .28, 7.25, materials.woodDark, side * 4.18, baseY + 4.35, 0);
+        box(root, .34, .22, 7.1, materials.woodDark, side * 4.3, baseY + .32, 0);
+        box(root, 8.85, .22, .34, materials.woodDark, 0, baseY + .32, side * 3.5);
+        beam(root, new THREE.Vector3(side * 3.95, baseY + .9, 3.58), new THREE.Vector3(side * 1.7, baseY + 3.55, 3.58), .2, materials.woodDark);
+      });
+      box(root, 8.65, .3, .3, materials.woodDark, 0, baseY + 4.35, 3.5);
+      box(root, 8.65, .3, .3, materials.woodDark, 0, baseY + 4.35, -3.5);
+      makeWindow(root, -2.35, baseY + 2.35, 3.58);
+      makeWindow(root, 2.35, baseY + 2.35, 3.58);
+      makeWindow(root, -2.35, baseY + 2.35, -3.58, Math.PI);
+      makeWindow(root, 2.35, baseY + 2.35, -3.58, Math.PI);
+      makeWindow(root, -4.52, baseY + 2.35, -.95, -Math.PI / 2);
+      makeWindow(root, 4.52, baseY + 2.35, -.95, Math.PI / 2);
+    }
+
+    // Individually laid slate tiles, ridge caps, chimney and exposed rafters
+    // move as one roof assembly to the top of the actual final storey.
+    const roof = new THREE.Group();
+    roof.position.y = (floorCount - 1) * storeyHeight;
+    root.add(roof);
     [-1, 1].forEach(side => {
-      const substrate = box(root, 4.95, .22, 7.55, materials.roof, side * 2.12, 5.38, 0);
+      const substrate = box(roof, 4.95, .22, 7.55, materials.roof, side * 2.12, 5.38, 0);
       substrate.rotation.z = -side * 29 * Math.PI / 180;
       for (let row = 0; row < 5; row++) {
         const t = (row + .4) / 5;
         for (let col = 0; col < 7; col++) {
-          const tile = box(root, .82, .1, 1.02, materials.roofTile,
+          const tile = box(roof, .82, .1, 1.02, materials.roofTile,
             side * (.12 + t * 4.35), 7.22 - t * 2.48 + row * .006,
             -3.35 + col * 1.08 + (row % 2) * .06);
           tile.rotation.z = -side * 29 * Math.PI / 180;
         }
       }
       for (let i = 0; i < 5; i++) {
-        beam(root, new THREE.Vector3(side * .1, 7.12, -3.25 + i * 1.62),
+        beam(roof, new THREE.Vector3(side * .1, 7.12, -3.25 + i * 1.62),
           new THREE.Vector3(side * 4.42, 4.48, -3.25 + i * 1.62), .15, materials.woodDark);
       }
-      box(root, .24, .25, 7.7, materials.woodDark, side * 4.4, 4.48, 0);
+      box(roof, .24, .25, 7.7, materials.woodDark, side * 4.4, 4.48, 0);
     });
     for (let i = 0; i < 7; i++) {
-      const cap = cylinder(root, .19, .19, 1.08, materials.roofTile, 0, 7.48, -3.45 + i * 1.08, 10);
+      const cap = cylinder(roof, .19, .19, 1.08, materials.roofTile, 0, 7.48, -3.45 + i * 1.08, 10);
       cap.rotation.x = Math.PI / 2;
     }
-    box(root, .85, 3.2, .85, materials.stoneDark, -2.45, 6.25, -1.45);
-    for (let i = 0; i < 4; i++) box(root, 1.0, .18, 1.0, materials.stoneBlock, -2.45, 7.85 + i * .2, -1.45);
+    box(roof, .85, 3.2, .85, materials.stoneDark, -2.45, 6.25, -1.45);
+    for (let i = 0; i < 4; i++) box(roof, 1.0, .18, 1.0, materials.stoneBlock, -2.45, 7.85 + i * .2, -1.45);
 
     if (merchant) {
       // A shallow merchant awning and street counter distinguish the twenty
@@ -515,6 +562,7 @@ export function createBlacksmithForgeBuilder(THREE) {
       batch.computeBoundingSphere();
       batch.userData.buildingCount = plots.length;
       batch.userData.buildingKind = kind;
+      batch.userData.floors = prototype.userData.floors || 1;
       parent.add(batch);
     });
   }
@@ -524,11 +572,17 @@ export function createBlacksmithForgeBuilder(THREE) {
     root.name = 'Expanded village • shared PBR architecture';
     const houses = plots.filter(plot => plot.kind !== 'shop');
     const shops = plots.filter(plot => plot.kind === 'shop');
-    appendInstancedPrototype(root, makeDistrictPrototype(false), houses, 'Residence');
+    const floorCounts = { 1: 0, 2: 0, 3: 0 };
+    [1, 2, 3].forEach(floors => {
+      const matching = houses.filter(plot => (plot.floors || 1) === floors);
+      floorCounts[floors] = matching.length;
+      appendInstancedPrototype(root, makeDistrictPrototype(false, floors), matching, 'Residence');
+    });
     appendInstancedPrototype(root, makeDistrictPrototype(true), shops, 'Merchant');
     root.userData.buildingCount = plots.length;
     root.userData.residenceCount = houses.length;
     root.userData.merchantCount = shops.length;
+    root.userData.floorCounts = floorCounts;
     return root;
   }
 
