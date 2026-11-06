@@ -1,0 +1,42 @@
+name: Export r5 visual smoke evidence
+
+on:
+  push:
+    branches:
+      - arena/09857712-warriors-of-persia
+    paths:
+      - '.github/workflows/export-r5-smoke.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download the successful r5 smoke artifact
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/wop-r5-evidence
+          gh run download 42178622644 -n mia-daylight-r5-smoke -D /tmp/wop-r5-evidence
+          test -s /tmp/wop-r5-evidence/wop-r5-smoke.png
+          test -s /tmp/wop-r5-evidence/wop-r5-smoke.json
+          mkdir -p artifacts/quality
+          cp /tmp/wop-r5-evidence/wop-r5-smoke.png artifacts/quality/mia-daylight-r5-smoke.png
+          cp /tmp/wop-r5-evidence/wop-r5-smoke.json artifacts/quality/mia-daylight-r5-smoke.json
+      - name: Commit the evidence to this session branch
+        run: |
+          set -euo pipefail
+          git config user.name 'Arena Agent'
+          git config user.email 'arena-agent@users.noreply.github.com'
+          git add artifacts/quality/mia-daylight-r5-smoke.png artifacts/quality/mia-daylight-r5-smoke.json
+          if git diff --cached --quiet; then
+            echo 'Evidence already present.'
+            exit 0
+          fi
+          git commit -m 'Add r5 offline visual smoke evidence'
+          git push origin arena/09857712-warriors-of-persia
