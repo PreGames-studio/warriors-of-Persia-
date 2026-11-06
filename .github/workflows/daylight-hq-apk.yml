@@ -69,7 +69,7 @@ jobs:
           "$BT/zipalign" -c -p -v 4 "$FINAL" >> "$STATIC" 2>&1
           "$BT/aapt" dump badging "$FINAL" >> "$STATIC" 2>&1
           "$BT/apksigner" verify --verbose "$FINAL" >> "$STATIC" 2>&1
-          FINAL="$FINAL" python3 - <<'PY'
+          FINAL="$FINAL" python3 - <<'PY' > /tmp/wop-daylight-content-audit.log 2>&1
           import hashlib, json, os, sys
           from zipfile import ZipFile
           sys.path.insert(0, 'Tools')
@@ -106,6 +106,7 @@ jobs:
           open('/tmp/wop-daylight-final.size', 'w').write(str(len(raw)) + '\n')
           print('FINAL_CONTENT_AUDIT_PASS: 15 original HQ maps, dimensions, syntax markers and alignment')
           PY
+          cat /tmp/wop-daylight-content-audit.log
           sha256sum "$FINAL" | tee -a "$STATIC"
           cat /tmp/wop-daylight-final.size | tee -a "$STATIC"
 
@@ -179,3 +180,14 @@ jobs:
               echo '- Emulator install:'; echo '```text'; cat /tmp/wop-daylight-adb.txt; echo '```'
             fi
           } >> "$GITHUB_STEP_SUMMARY"
+          if ! test -f /tmp/wop-daylight-released; then
+            for LOG in /tmp/wop-daylight-static.txt /tmp/wop-daylight-content-audit.log; do
+              if test -f "$LOG"; then
+                tail -n 40 "$LOG" | while IFS= read -r LINE; do
+                  LINE=${LINE//%/%25}
+                  LINE=${LINE//$'\r'/%0D}
+                  echo "::error::CI diagnostic: $LINE"
+                done
+              fi
+            done
+          fi
