@@ -53,6 +53,36 @@ NEW_TEXTURE_LOADER = """function E(N, Z, w = [1, 1], z = !1) {
       return J.colorSpace = Z ? s.SRGBColorSpace : s.NoColorSpace, J.anisotropy = 4, J.wrapS = J.wrapT = z ? s.ClampToEdgeWrapping : s.RepeatWrapping, J.repeat.set(w[0], w[1]), l.base.image ? J.needsUpdate = !0 : l.waiting.push(J), J;
     }"""
 
+# The base APK contains the esbuild version of blacksmith-forge.js. Keep this
+# patch in lockstep with the readable source: only house stone/wood/roof receive
+# daylight calibration; metal and cobble retain their original response.
+OLD_PBR_RETURN = "return J.normalScale.set(0.78, 0.78), J;"
+DAYLIGHT_PBR_RETURN = """return (N === \"stone\" || N === \"wood\" || N === \"roof\") && (
+        J.color.multiplyScalar(4),
+        J.emissive.setHex(16777215),
+        J.emissiveMap = J.map,
+        J.emissiveIntensity = 1
+      ), J.normalScale.set(0.78, 0.78), J;"""
+DAYLIGHT_MANIFEST = {
+    "village": "daylight; no night color grade",
+    "families": ["stone", "wood", "roof"],
+    "materialColorMultiplier": 4,
+    "albedoEmissiveFill": 1,
+    "excludedFamilies": ["metal", "cobble"],
+    "textureBytesModified": False,
+    "textureResolutionModified": False,
+    "shadowsDisabled": False,
+}
+
+
+def apply_daylight_house_patch(html: str):
+    """Apply the tested house-brightness fix to the bundled base/r2 HTML."""
+    assert html.count(OLD_PBR_RETURN) == 1, "Unexpected base PBR bundle"
+    assert DAYLIGHT_PBR_RETURN not in html, "Daylight patch is already applied"
+    patched = html.replace(OLD_PBR_RETURN, DAYLIGHT_PBR_RETURN, 1)
+    assert patched.count(DAYLIGHT_PBR_RETURN) == 1
+    return patched
+
 
 def sha256(data: bytes):
     return hashlib.sha256(data).hexdigest()
@@ -138,6 +168,7 @@ def main():
     # Include source bytes in the build identity, not only their paths.
     digest = hashlib.sha256(bundle_seed)
     digest.update(NEW_TEXTURE_LOADER.encode("utf-8"))
+    digest.update(DAYLIGHT_PBR_RETURN.encode("utf-8"))
     for family in FAMILIES:
         root = args.root8k if family == "metal" else args.root4k
         for kind in KINDS:
@@ -151,11 +182,12 @@ def main():
     assert html.count(OLD_TEXTURE_LOADER) == 1
     html = html.replace(OLD_TEXTURE_LOADER, NEW_TEXTURE_LOADER, 1)
     assert OLD_TEXTURE_LOADER not in html and html.count(NEW_TEXTURE_LOADER) == 1
+    html = apply_daylight_house_patch(html)
     html = re.sub(r'(<meta name="wop-build" content=")[^"]+(")',
                   rf'\g<1>{build_id}\g<2>', html, count=1)
     html = re.sub(r'data-build="[^"]+"', f'data-build="{build_id}"', html)
     quality_meta = (f'<meta name="wop-texture-quality" content="metal-8k;others-4k;lossless-vp8l;'
-                    f'{build_id}" />')
+                    f'daylight-houses-c4-e1;{build_id}" />')
     html = html.replace('<meta name="apple-mobile-web-app-capable"',
                         quality_meta + '\n  <meta name="apple-mobile-web-app-capable"', 1)
     html_bytes = html.encode("utf-8")
@@ -170,6 +202,7 @@ def main():
         "quality": {"metal": "native 8192x8192", "stone/wood/roof/cobble": "native 4096x4096"},
         "encoding": "lossless WebP VP8L; files packed without base64",
         "runtimeOptimization": "shared THREE.Source per PBR URI; per-material repeat preserved; no resolution or mipmap reduction",
+        "houseLighting": copy.deepcopy(DAYLIGHT_MANIFEST),
         "maps": [],
     }
     for family in FAMILIES:

@@ -1,0 +1,181 @@
+name: Build and install-test daylight HQ APK
+
+on:
+  push:
+    branches:
+      - arena/09857712-warriors-of-persia
+    paths:
+      - '.github/workflows/daylight-hq-apk.yml'
+      - 'Tools/build_hq_apk.py'
+      - 'Tools/patch_hq_daylight.py'
+      - 'unity_preview/blacksmith-forge.js'
+
+permissions:
+  contents: write
+
+jobs:
+  daylight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      OLD_TAG: hq8k-424be3dbcca8-r2
+      NEW_TAG: hq8k-daylight-r3
+      APK_NAME: WarriorsOfPersia_3D_HQ_8K.apk
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download and authenticate the tested r2 input
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/wop-r2
+          gh release download "$OLD_TAG" --repo ${{ github.repository }} \
+            --pattern "$APK_NAME" --dir /tmp/wop-r2 --clobber
+          echo "2bb1a7e90469f15cfebdcd4280b5605e6c6bc3362274a07350093387e2bb0b2c  /tmp/wop-r2/$APK_NAME" | sha256sum -c -
+
+      - name: Patch daylight houses and preserve every HQ texture byte
+        run: |
+          set -euo pipefail
+          python3 Tools/patch_hq_daylight.py \
+            --source-apk "/tmp/wop-r2/$APK_NAME" \
+            --output /tmp/wop-daylight-unsigned.apk \
+            --manifest /tmp/wop-daylight-audit.json
+          node --check /tmp/wop-daylight-unsigned.inline.js
+          node --check unity_preview/blacksmith-forge.js
+
+      - name: Align, sign, and audit the final APK
+        run: |
+          set -euo pipefail
+          BT=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          STATIC=/tmp/wop-daylight-static.txt
+          : > "$STATIC"
+          "$BT/zipalign" -p -f 4 /tmp/wop-daylight-unsigned.apk /tmp/wop-daylight-aligned.apk >> "$STATIC" 2>&1
+          "$BT/zipalign" -c -p -v 4 /tmp/wop-daylight-aligned.apk >> "$STATIC" 2>&1
+          umask 077
+          mkdir -p /tmp/wop-daylight-signing /tmp/wop-daylight-final
+          PASS=$(openssl rand -hex 32)
+          keytool -genkeypair -keystore /tmp/wop-daylight-signing/wop-release.keystore \
+            -storetype PKCS12 -storepass "$PASS" -keypass "$PASS" -alias wop \
+            -keyalg RSA -keysize 2048 -sigalg SHA256withRSA -validity 10000 \
+            -dname 'CN=Warriors of Persia, O=PreGames Studio, C=US' >> "$STATIC" 2>&1
+          WOP_STORE_PASS="$PASS" WOP_KEY_PASS="$PASS" "$BT/apksigner" sign \
+            --ks /tmp/wop-daylight-signing/wop-release.keystore --ks-key-alias wop \
+            --ks-pass env:WOP_STORE_PASS --key-pass env:WOP_KEY_PASS \
+            --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true \
+            --out "/tmp/wop-daylight-final/$APK_NAME" /tmp/wop-daylight-aligned.apk
+          unset PASS WOP_STORE_PASS WOP_KEY_PASS
+          FINAL="/tmp/wop-daylight-final/$APK_NAME"
+          "$BT/zipalign" -c -p -v 4 "$FINAL" >> "$STATIC" 2>&1
+          "$BT/aapt" dump badging "$FINAL" >> "$STATIC" 2>&1
+          "$BT/apksigner" verify --verbose "$FINAL" >> "$STATIC" 2>&1
+          FINAL="$FINAL" python3 - <<'PY'
+          import hashlib, json, os, sys
+          from zipfile import ZipFile
+          sys.path.insert(0, 'Tools')
+          from build_hq_apk import local_data_offset, sha256
+          final = os.environ['FINAL']
+          with ZipFile(final) as apk:
+              assert apk.testzip() is None
+              manifest = json.loads(apk.read('assets/pbr_hq/manifest.json'))
+              assert manifest['build'].startswith('hq8k-daylight-')
+              assert manifest['houseLighting']['materialColorMultiplier'] == 4
+              assert len(manifest['maps']) == 15
+              for record in manifest['maps']:
+                  raw = apk.read(record['path'])
+                  assert sha256(raw) == record['sha256']
+                  assert len(raw) == record['bytes']
+                  assert raw[:4] == b'RIFF' and raw[8:12] == b'WEBP'
+                  chunk = raw.index(b'VP8L')
+                  bits = int.from_bytes(raw[chunk + 9:chunk + 13], 'little')
+                  width = (bits & 0x3fff) + 1
+                  height = ((bits >> 14) & 0x3fff) + 1
+                  expected = 8192 if record['family'] == 'metal' else 4096
+                  assert (width, height) == (expected, expected), record['path']
+              for info in apk.infolist():
+                  if info.compress_type == 0:
+                      alignment = 4096 if info.filename.endswith('.so') else 4
+                      assert local_data_offset(final, info.filename) % alignment == 0, info.filename
+              html = apk.read('assets/index.html').decode()
+              assert manifest['build'] in html
+              assert 'daylight-houses-c4-e1' in html
+              assert 'J.color.multiplyScalar(4)' in html
+              assert 'J.emissiveIntensity = 1' in html
+          raw = open(final, 'rb').read()
+          open('/tmp/wop-daylight-final.sha256', 'w').write(hashlib.sha256(raw).hexdigest() + '\n')
+          open('/tmp/wop-daylight-final.size', 'w').write(str(len(raw)) + '\n')
+          print('FINAL_CONTENT_AUDIT_PASS: 15 original HQ maps, dimensions, syntax markers and alignment')
+          PY
+          sha256sum "$FINAL" | tee -a "$STATIC"
+          cat /tmp/wop-daylight-final.size | tee -a "$STATIC"
+
+      - name: Install r3 on a clean Android 11 emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: x86_64
+          script: |
+            set +e
+            adb shell getprop ro.build.version.release > /tmp/wop-daylight-android.txt 2>&1
+            adb shell getprop ro.product.cpu.abi > /tmp/wop-daylight-abi.txt 2>&1
+            adb install "/tmp/wop-daylight-final/$APK_NAME" > /tmp/wop-daylight-adb.txt 2>&1
+            echo $? > /tmp/wop-daylight-adb.status
+            exit 0
+
+      - name: Require successful emulator installation
+        run: |
+          set -euo pipefail
+          cat /tmp/wop-daylight-adb.txt
+          test "$(cat /tmp/wop-daylight-adb.status)" = "0"
+          grep -q 'Success' /tmp/wop-daylight-adb.txt
+
+      - name: Publish r3 as Latest and verify the download round trip
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          REPO=${{ github.repository }}
+          FINAL="/tmp/wop-daylight-final/$APK_NAME"
+          if gh release view "$NEW_TAG" --repo "$REPO" >/dev/null 2>&1; then
+            gh release upload "$NEW_TAG" "$FINAL" --repo "$REPO" --clobber
+          else
+            gh release create "$NEW_TAG" "$FINAL" --repo "$REPO" \
+              --target "${{ github.sha }}" \
+              --title "Warriors of Persia — Mia HQ 8K Daylight r3" \
+              --notes "Daylight house materials. Verification details are being finalized."
+          fi
+          VERIFY=/tmp/wop-daylight-roundtrip
+          rm -rf "$VERIFY" && mkdir -p "$VERIFY"
+          gh release download "$NEW_TAG" --repo "$REPO" --pattern "$APK_NAME" --dir "$VERIFY" --clobber
+          cmp "$FINAL" "$VERIFY/$APK_NAME"
+          HASH=$(cat /tmp/wop-daylight-final.sha256)
+          BYTES=$(cat /tmp/wop-daylight-final.size)
+          gh release edit "$NEW_TAG" --repo "$REPO" --notes "Daylight village with brighter house stone/wood/roof materials. All 15 original HQ WebP maps preserved byte-for-byte: metal 8K, stone/wood/roof/cobble 4K. No texture resize, replacement or re-encode. ZIP alignment, v1/v2/v3 signatures, final content audit and clean Android 11 emulator adb install passed. Release download round-trip passed. Size: $BYTES bytes. SHA-256: $HASH. New signing key: uninstall any previously installed Warriors of Persia build first."
+          gh release delete "$OLD_TAG" --repo "$REPO" --cleanup-tag --yes
+          echo RELEASE_ROUND_TRIP_PASS > /tmp/wop-daylight-released
+          echo "Published $NEW_TAG: $BYTES bytes, SHA-256 $HASH"
+
+      - name: Write verification summary
+        if: always()
+        run: |
+          {
+            echo '## Daylight HQ APK verification'
+            echo
+            if test -f /tmp/wop-daylight-released; then
+              echo '**Published and download round-trip passed.**'
+            else
+              echo '**Release was not confirmed; the previous r2 release was retained unless the publish step explicitly completed.**'
+            fi
+            echo
+            echo '- Build: `hq8k-daylight-r3`'
+            echo '- House material patch: stone/wood/roof 4x + albedo fill 1; metal/cobble excluded.'
+            echo '- Texture requirement: all 15 hashes and native dimensions preserved.'
+            echo
+            if test -f /tmp/wop-daylight-final.sha256; then
+              echo "- SHA-256: $(cat /tmp/wop-daylight-final.sha256)"
+              echo "- Bytes: $(cat /tmp/wop-daylight-final.size)"
+            fi
+            if test -f /tmp/wop-daylight-adb.txt; then
+              echo '- Emulator install:'; echo '```text'; cat /tmp/wop-daylight-adb.txt; echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

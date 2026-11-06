@@ -58,6 +58,16 @@ export function createBlacksmithForgeBuilder(THREE) {
       roughness: 1,
       metalness: 1
     });
+    // The architecture albedos are intentionally very dark. Calibrate their
+    // material response for the daylight village instead of bringing back the
+    // old night grade. The original texture bytes, resolution, normal detail,
+    // shadows, metal 8K maps and cobble response are left untouched.
+    if (stem === 'stone' || stem === 'wood' || stem === 'roof') {
+      material.color.multiplyScalar(4);
+      material.emissive.setHex(0xffffff);
+      material.emissiveMap = material.map;
+      material.emissiveIntensity = 1;
+    }
     material.normalScale.set(.78, .78);
     return material;
   }
