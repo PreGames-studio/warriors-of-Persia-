@@ -119,26 +119,6 @@ jobs:
           sha256sum "$FINAL" | tee -a "$STATIC"
           cat /tmp/wop-r5-final.size | tee -a "$STATIC"
 
-      - name: Install r5 on a clean Android 11 emulator
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 30
-          arch: x86_64
-          script: |
-            set +e
-            adb shell getprop ro.build.version.release > /tmp/wop-r5-android.txt 2>&1
-            adb shell getprop ro.product.cpu.abi > /tmp/wop-r5-abi.txt 2>&1
-            adb install "/tmp/wop-r5-final/$APK_NAME" > /tmp/wop-r5-adb.txt 2>&1
-            echo $? > /tmp/wop-r5-adb.status
-            exit 0
-
-      - name: Require successful emulator installation
-        run: |
-          set -euo pipefail
-          cat /tmp/wop-r5-adb.txt
-          test "$(cat /tmp/wop-r5-adb.status)" = "0"
-          grep -q 'Success' /tmp/wop-r5-adb.txt
-
       - name: Install the temporary offline-smoke browser
         run: npm install --prefix /tmp/wop-r5-browser playwright-core@1.65.0 @sparticuz/chromium@153.0.0 pngjs@7.0.0
 
@@ -178,6 +158,26 @@ jobs:
             /tmp/wop-r5-smoke.json
           if-no-files-found: ignore
           retention-days: 7
+
+      - name: Install r5 on a clean Android 11 emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: x86_64
+          script: |
+            set +e
+            adb shell getprop ro.build.version.release > /tmp/wop-r5-android.txt 2>&1
+            adb shell getprop ro.product.cpu.abi > /tmp/wop-r5-abi.txt 2>&1
+            adb install "/tmp/wop-r5-final/$APK_NAME" > /tmp/wop-r5-adb.txt 2>&1
+            echo $? > /tmp/wop-r5-adb.status
+            exit 0
+
+      - name: Require successful emulator installation
+        run: |
+          set -euo pipefail
+          cat /tmp/wop-r5-adb.txt
+          test "$(cat /tmp/wop-r5-adb.status)" = "0"
+          grep -q 'Success' /tmp/wop-r5-adb.txt
 
       - name: Publish a draft and verify its download round trip
         env:
