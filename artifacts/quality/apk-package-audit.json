@@ -1,6 +1,13 @@
 {
-  "build": "attila-sample-r4",
-  "baseApkSha256": "cf0f450844c41091bbe63ef777cb8ac0fa66385f0f2ce7ba1d329ab49defb722",
+  "build": "hq8k-mia-daylight-87a1d72a0d92",
+  "releaseTag": "mia-daylight-r5",
+  "sourceCommit": "3e10ba961e4a21a813c3d23211e35cbc00efa7d7",
+  "workflowRunId": 42178622644,
+  "inputRelease": {
+    "tag": "hq8k-daylight-r3",
+    "sha256": "156f181e52d846063b12b553a42d408032ce9321123739917c829f344c83e6c3",
+    "reason": "known Mia-only base; retained as rollback"
+  },
   "quality": {
     "metal": "native 8192x8192",
     "stone/wood/roof/cobble": "native 4096x4096"
@@ -129,33 +136,34 @@
       "sha256": "f5f5685730ba4d723c9698a4917b189adfe26eadcf4a370c17f7dd0cfcfb0b32"
     }
   ],
-  "resourcesArscDataOffsetMod4": 0,
+  "signedBytes": 208930573,
+  "signedSha256": "d1fa203a2107bbf7048fa71b40ff53e1b2865e5ff245eabfc3fe503a7b595b5d",
+  "signedApk": "https://github.com/PreGames-studio/warriors-of-Persia-/releases/download/mia-daylight-r5/WarriorsOfPersia_3D_HQ_8K.apk",
+  "latestRelease": "https://github.com/PreGames-studio/warriors-of-Persia-/releases/latest/download/WarriorsOfPersia_3D_HQ_8K.apk",
+  "latestRedirectVerified": true,
+  "latestRedirectTarget": "https://github.com/PreGames-studio/warriors-of-Persia-/releases/download/mia-daylight-r5/WarriorsOfPersia_3D_HQ_8K.apk",
+  "releaseMimeType": "application/vnd.android.package-archive",
   "signed": true,
-  "signedApk": "https://github.com/PreGames-studio/warriors-of-Persia-/releases/download/attila-sample-r4/WarriorsOfPersia_3D_HQ_8K.apk",
-  "signedBytes": 210767987,
-  "signedSha256": "1f9665bedcedbef4a11096135fdb218597aa405793512303f578272d6553be8d",
   "signature": "Android SDK build-tools apksigner; v1/v2/v3 verification passed after zipalign",
   "signingCertificateSubject": "CN=Warriors of Persia, O=PreGames Studio, C=US",
+  "newSigningKeyGenerated": true,
   "previousSigningKeyAvailable": false,
-  "physicalDeviceTest": {
-    "performed": false,
-    "mobileReadyClaimed": false
+  "resourcesArscDataOffsetMod4": 0,
+  "allStoredEntriesAligned": true,
+  "zipalign": {
+    "passed": true,
+    "scope": "every stored entry; resources.arsc and all 15 stored WebP maps included",
+    "verifiedBeforeAndAfterSigning": true
   },
   "signedZipAudit": {
     "passed": true,
     "mapCount": 15,
     "allMapsStoredIndependently": true,
     "allHashesDimensionsAndVp8lPassed": true,
+    "allTextureBytesIdenticalToR3": true,
+    "downscaleOrReencode": false,
     "resourcesArscDataOffsetMod4": 0,
     "allStoredEntriesAligned": true
-  },
-  "releaseTag": "attila-sample-r4",
-  "releaseMimeType": "application/vnd.android.package-archive",
-  "allStoredEntriesAligned": true,
-  "zipalign": {
-    "passed": true,
-    "scope": "every stored entry; resources.arsc and all 15 stored WebP maps included",
-    "verifiedBeforeAndAfterSigning": true
   },
   "emulatorInstall": {
     "performed": true,
@@ -165,22 +173,36 @@
     "adbExitCode": 0,
     "result": "Success",
     "releaseDownloadRoundTrip": "byte-identical PASS",
-    "runId": 42169454931
+    "runId": 42178622644
   },
-  "supersedes": {
-    "releaseTag": "hq8k-daylight-r3",
-    "sha256": "156f181e52d846063b12b553a42d408032ce9321123739917c829f344c83e6c3",
-    "reason": "independent Attila sample added; r3 retained for rollback and r4 marked Latest only after install and download round-trip passed"
+  "runtimeCast": {
+    "heroes": [
+      "mia"
+    ],
+    "attilaRemoved": true,
+    "attilaRuntimeAssetsPresent": false,
+    "replacementCharacterAdded": false,
+    "miaAppearanceChanged": false
   },
   "houseLighting": {
-    "village": "daylight; no night color grade",
+    "village": "daylight; constant emissive fill independent of albedo pixels",
     "families": [
       "stone",
       "wood",
       "roof"
     ],
     "materialColorMultiplier": 4,
-    "albedoEmissiveFill": 1,
+    "emissiveMap": null,
+    "emissive": {
+      "stone": "0xbcc8d3",
+      "wood": "0xa8754f",
+      "roof": "0x91a9c7"
+    },
+    "emissiveIntensity": {
+      "stone": 0.85,
+      "wood": 0.78,
+      "roof": 0.85
+    },
     "excludedFamilies": [
       "metal",
       "cobble"
@@ -189,88 +211,41 @@
     "textureResolutionModified": false,
     "shadowsDisabled": false
   },
-  "newSigningKeyGenerated": true,
-  "latestRelease": "https://github.com/PreGames-studio/warriors-of-Persia-/releases/latest/download/WarriorsOfPersia_3D_HQ_8K.apk",
-  "latestRedirectVerified": true,
+  "offlineVisualSmoke": {
+    "passed": true,
+    "actualFinalHqApkContent": true,
+    "environment": "Chromium / SwiftShader / file:// content extracted from the signed r5 APK",
+    "runId": 42178622644,
+    "evidence": [
+      "artifacts/quality/mia-daylight-r5-smoke.png",
+      "artifacts/quality/mia-daylight-r5-smoke.json"
+    ],
+    "screenshotVisuallyReviewed": true,
+    "housesVisiblyBright": true,
+    "miaOnlyVisible": true,
+    "attilaVisible": false,
+    "attilaBundleMarker": false,
+    "javascriptErrors": [],
+    "resourceErrors": [],
+    "pbrResourceErrors": [],
+    "houseBandLuma": {
+      "region": {
+        "x": 150,
+        "y": 55,
+        "width": 660,
+        "height": 190
+      },
+      "mean": 130.56118499836862,
+      "darkPixelRatio": 0.08144338118022329
+    }
+  },
+  "physicalDeviceTest": {
+    "performed": false,
+    "mobileReadyClaimed": false
+  },
   "transport": {
-    "inputReleaseTag": "hq8k-daylight-r3",
-    "inputSha256": "156f181e52d846063b12b553a42d408032ce9321123739917c829f344c83e6c3",
-    "script": "Tools/build_attila_apk.py + Tools/bundle_attila.cjs",
-    "method": "current readable source bundled; GLB/atlas embedded for offline file://; all 15 WebP files copied byte-for-byte without re-encoding; original shop images supplied at their runtime paths"
+    "script": "Tools/patch_mia_daylight.py",
+    "method": "Mia-only r3 input; exact daylight module replacement; all 15 WebP files copied byte-for-byte without resizing or re-encoding"
   },
-  "r2DesktopSmokeHistorical": {
-    "passed": true,
-    "environment": "Chromium 153 / SwiftShader / file:// content extracted from signed APK",
-    "build": "hq8k-424be3dbcca8",
-    "miaVisible": true,
-    "canvasCount": 4,
-    "texturesRequestFinished": [
-      "cobble_albedo.webp",
-      "cobble_normal.webp",
-      "cobble_orm.webp",
-      "metal_albedo.webp",
-      "metal_normal.webp",
-      "metal_orm.webp",
-      "roof_albedo.webp",
-      "roof_normal.webp",
-      "roof_orm.webp",
-      "stone_albedo.webp",
-      "stone_normal.webp",
-      "stone_orm.webp",
-      "wood_albedo.webp",
-      "wood_normal.webp",
-      "wood_orm.webp"
-    ],
-    "pageOrConsoleErrors": [],
-    "requestFailures": [],
-    "glInfo": {
-      "maxTextureSize": 8192,
-      "error": 0,
-      "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
-    },
-    "contextLossCount": 0,
-    "textureWarningCount": 0,
-    "otherWarnings": [
-      "warning: [.WebGL-0x1ec4001a4400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): Running out of reserved outsideRenderPass queueSerial. ending renderPass now."
-    ],
-    "appliesToR2Content": true,
-    "appliesToR3FinalApk": false
-  },
-  "daylightPatchSmoke": {
-    "passed": true,
-    "environment": "Chromium 153 / SwiftShader / file:// Mia base bundle with the exact r3 material patch",
-    "scope": "daylight material change only; this is not a smoke test of the final HQ APK",
-    "miaVisible": true,
-    "housesVisiblyBrighter": true,
-    "pageOrConsoleErrors": [],
-    "inlineBundleNodeCheck": "passed"
-  },
-  "attila": {
-    "characterId": "attila",
-    "miaReplaced": false,
-    "source": "KayKit Adventurers Character Pack 1.0 — Knight.glb — Kay Lousberg",
-    "license": "CC0",
-    "sourceAnimationClips": 76,
-    "connectedStates": [
-      "Idle",
-      "Walking_A",
-      "Running_A",
-      "1H_Melee_Attack_Slice_Diagonal",
-      "Spellcast_Shoot"
-    ],
-    "atlasResolution": "1024x1024 lossless PNG; no resize",
-    "baseGlbSha256": "60428e3abc09ba83e595d256e3af8c5c976b46cdae599f0802fc82b4a3445168",
-    "saveMigration": "existing Mia/party preserved; Attila appended when absent",
-    "offlineTransport": "GLB and atlas embedded as base64; no fetch(file://) dependency"
-  },
-  "attilaOfflineBundleSmoke": {
-    "passed": true,
-    "environment": "Chromium / SwiftShader / file:// synthetic original-2K package; not the delivered HQ APK",
-    "visual": "Mia and Attila rendered together; Attila beside Mia and fully visible",
-    "javascriptErrors": 0,
-    "resourceErrorsAfterPackagePathFix": 0,
-    "followerMovementState": "Running_A",
-    "saveMigration": "passed",
-    "note": "The final r4 APK was content-audited and emulator-installed in CI; no physical-device visual or performance claim."
-  }
+  "rejectedAttilaReleaseAndTagRemoved": true
 }
