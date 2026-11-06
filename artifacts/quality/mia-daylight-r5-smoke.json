@@ -1,0 +1,48 @@
+{
+  "url": "file:///tmp/wop-r5-site/index.html",
+  "build": "hq8k-mia-daylight-87a1d72a0d92",
+  "lighting": "daylight;constant-emissive-fill;albedo-independent;textures-unchanged;hq8k-mia-daylight-87a1d72a0d92",
+  "bodyText": "🎒 کیف (\n1\n)\n💾 ذخیره\n💧 میدان چشمه شفا (مرکز روستا)\n💎 جواهر و کریستال‌فروشی جمشید\n⚒️ آهنگری و زره‌سازی کاوه\n🧪 عطاری و معجون‌سازی حکیم\n🔮 مکتب جادو و ستاره‌شناس\n🗡️ سلاح‌فروشی رستم\n🕯️ شمع‌فروشی روشن\n🥖 نانوایی تنور\n🧵 خیاطی پارس\n🧿 تلسم‌فروشی آریا\n🍯 عسل‌فروشی زاگرس\n🧴 روغن‌فروشی ارغوان\n🐎 مرکب‌فروشی شهریار\n🏺 سفال‌فروشی کاسپین\n➡️ دروازه خروج به جهان باز (میدان شکار)\nمیا (شما) (شمشیرزن)\nورود به: 🏛️ روستای امن (۱۰۰ خانه • ۲۰ فروشگاه • ۲۰ NPC)\nمیا (شما) — شمشیرزن\nLv. 1\nHP: 160 / 160\nMANA: 100 / 100\nXP: 0 / 100\n🪙 سکه: 12450\n💎 کریستال: 2\n⚔️ قدرت: 24\nنقشه روستا و کوچه‌ها\n100 Homes\n🎥 دوربین: سوم‌شخص (پشت‌سر هیرو)\nضربه۱\n15 MP\nگوی۲\n25 MP\nموج۳\n40 MP\nطوفان۴\n60 MP\n⚔️\nحمله",
+  "attilaVisible": false,
+  "attilaBundleMarker": false,
+  "canvas": [
+    {
+      "id": "three-canvas",
+      "width": 960,
+      "height": 556,
+      "visible": true
+    },
+    {
+      "id": "minimap-canvas",
+      "width": 136,
+      "height": 82,
+      "visible": true
+    },
+    {
+      "id": "blacksmith-3d-canvas",
+      "width": 300,
+      "height": 150,
+      "visible": false
+    },
+    {
+      "id": "ap-particles",
+      "width": 300,
+      "height": 150,
+      "visible": false
+    }
+  ],
+  "javascriptErrors": [],
+  "resourceErrors": [],
+  "pbrResourceErrors": [],
+  "screenshot": "/tmp/wop-r5-smoke.png",
+  "houseBandLuma": {
+    "region": {
+      "x": 150,
+      "y": 55,
+      "width": 660,
+      "height": 190
+    },
+    "mean": 130.56118499836862,
+    "darkPixelRatio": 0.08144338118022329
+  }
+}
