@@ -1697,7 +1697,6 @@
         {
           slot: 0,
           name: 'میا (شما)',
-          characterId: 'mia',
           roleIndex: 0,
           isLocal: true,
           isOnline: true,
@@ -1710,30 +1709,9 @@
           manaMax: 100,
           atk: 24,
           mesh: null
-        },
-        createAttilaMember(1)
+        }
       ]
     };
-
-    function createAttilaMember(slot = 1) {
-      return {
-        slot,
-        name: 'آتیلا',
-        characterId: 'attila',
-        roleIndex: 3,
-        isLocal: false,
-        isOnline: true,
-        level: 1,
-        xp: 0,
-        xpToNext: 100,
-        hp: 220,
-        hpMax: 220,
-        mana: 80,
-        manaMax: 80,
-        atk: 28,
-        mesh: null
-      };
-    }
 
     // Cinematic potion shop, sharing the same gold, inventory and persistent save state.
     const potionShop = createPotionShop({
@@ -1774,7 +1752,6 @@
         party: state.party.map(m => ({
           slot: m.slot,
           name: m.name,
-          characterId: m.characterId || (m.isLocal ? 'mia' : null),
           roleIndex: m.roleIndex,
           isLocal: m.isLocal,
           isOnline: m.isOnline,
@@ -1833,7 +1810,6 @@
       state.party = data.party.map((m, idx) => ({
         slot: idx,
         name: idx === 0 ? 'میا (شما)' : (m.name || `بازیکن ${idx + 1}`),
-        characterId: idx === 0 ? 'mia' : (m.characterId || null),
         roleIndex: Number(m.roleIndex) || 0,
         isLocal: idx === 0,
         isOnline: m.isOnline !== false,
@@ -1847,11 +1823,6 @@
         atk: Math.max(10, Number(m.atk) || 24),
         mesh: null
       }));
-      // Non-destructive save migration: Mia and every existing ally stay intact;
-      // older saves simply gain Attila in the first unused party slot.
-      if (!state.party.some(member => member.characterId === 'attila')) {
-        state.party.push(createAttilaMember(state.party.length));
-      }
 
       if (rebuild3D) {
         loadZone3D(state.currentZone, state.dungeonTier, state.savedHeroPos);
@@ -2549,7 +2520,7 @@
         if (!m.isOnline) return;
 
         const mesh = buildHeroUnit3D(m);
-        const angle = m.characterId === 'attila' ? 0 : idx * 1.35;
+        const angle = idx * 1.35;
         const offsetR = idx === 0 ? 0 : 4.5;
         mesh.position.set(refPos.x + Math.cos(angle) * offsetR, refPos.y, refPos.z + Math.sin(angle) * offsetR);
         mapRoot.add(mesh);
@@ -2616,10 +2587,8 @@
           const s = Number(btn.dataset.roleSlot);
           state.party[s].roleIndex = (state.party[s].roleIndex + 1) % ROLES.length;
           const newRole = ROLES[state.party[s].roleIndex];
-          if (state.party[s].mesh) {
-            if (state.party[s].mesh.userData.armorMesh) {
-              state.party[s].mesh.userData.armorMesh.material.color.setHex(newRole.color).lerp(new THREE.Color(0x9a9b96), .68);
-            }
+          if (state.party[s].mesh && state.party[s].mesh.userData.armorMesh) {
+            state.party[s].mesh.userData.armorMesh.material.color.setHex(newRole.color).lerp(new THREE.Color(0x9a9b96), .68);
             state.party[s].mesh.userData.labelRef.el.textContent = `${state.party[s].name} (${newRole.title})`;
           }
           renderPartyHUD();
@@ -2728,18 +2697,10 @@
       saveGameProgress();
     }
 
-    function playAttilaAction(kind) {
-      const attila = state.party.find(member => member.characterId === 'attila');
-      if (attila && attila.isOnline && attila.mesh && attila.mesh.userData.playAction) {
-        attila.mesh.userData.playAction(kind);
-      }
-    }
-
     function performBasicAttack() {
       const leader = state.party[0];
       if (!leader.mesh || state.basicAttackCd > 0) return;
       state.basicAttackCd = 0.42;
-      playAttilaAction('attack');
       playTone(320, 0.1, 'sawtooth');
       spawnGlowRingVFX(leader.mesh.position, 5.5, 0x38bdf8);
 
@@ -2764,7 +2725,6 @@
 
       leader.mana -= sk.manaCost;
       state.skillCooldowns[skillIdx] = sk.cooldown;
-      playAttilaAction('skill');
       updateHeroStatsHUD();
 
       const totalDmg = leader.atk * sk.mult;
@@ -4276,9 +4236,7 @@
       // 3. Connected Online Teammates Follow
       state.party.forEach((ally, idx) => {
         if (idx === 0 || !ally.isOnline || !ally.mesh || !leader.mesh) return;
-        const previousX = ally.mesh.position.x;
-        const previousZ = ally.mesh.position.z;
-        const formAngle = ally.characterId === 'attila' ? 0 : idx * 1.45;
+        const formAngle = idx * 1.45;
         const desiredPos = new THREE.Vector3(
           leader.mesh.position.x + Math.cos(formAngle) * 5.0,
           leader.mesh.position.y,
@@ -4288,10 +4246,6 @@
           const dir = desiredPos.clone().sub(ally.mesh.position).normalize();
           ally.mesh.position.addScaledVector(dir, 22 * dt);
           ally.mesh.rotation.y = Math.atan2(dir.x, dir.z);
-        }
-        const travelled = Math.hypot(ally.mesh.position.x - previousX, ally.mesh.position.z - previousZ);
-        if (ally.mesh.userData.updateLocomotion) {
-          ally.mesh.userData.updateLocomotion(dt, travelled / Math.max(dt, .001), travelled);
         }
         ally.mesh.userData.labelRef.pos.set(ally.mesh.position.x, ally.mesh.position.y + 5.4, ally.mesh.position.z);
       });

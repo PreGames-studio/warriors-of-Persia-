@@ -58,15 +58,15 @@ export function createBlacksmithForgeBuilder(THREE) {
       roughness: 1,
       metalness: 1
     });
-    // The architecture albedos are intentionally very dark. Calibrate their
-    // material response for the daylight village instead of bringing back the
-    // old night grade. The original texture bytes, resolution, normal detail,
-    // shadows, metal 8K maps and cobble response are left untouched.
+    // The architecture albedos are intentionally very dark. Keep their full
+    // resolution and detail, but add a constant daylight fill that does NOT
+    // depend on the albedo pixels or on an image having finished loading.
+    // The previous emissiveMap=map fill still became black with a dark map.
     if (stem === 'stone' || stem === 'wood' || stem === 'roof') {
       material.color.multiplyScalar(4);
-      material.emissive.setHex(0xffffff);
-      material.emissiveMap = material.map;
-      material.emissiveIntensity = 1;
+      material.emissive.setHex(stem === 'wood' ? 0xa8754f : stem === 'roof' ? 0x91a9c7 : 0xbcc8d3);
+      material.emissiveMap = null;
+      material.emissiveIntensity = stem === 'wood' ? .78 : .85;
     }
     material.normalScale.set(.78, .78);
     return material;
