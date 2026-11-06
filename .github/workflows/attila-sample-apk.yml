@@ -1,0 +1,232 @@
+name: Build and install-test Attila sample APK
+
+on:
+  push:
+    branches:
+      - arena/09857712-warriors-of-persia
+    paths:
+      - '.github/workflows/attila-sample-apk.yml'
+      - 'Tools/build_attila_apk.py'
+      - 'Tools/bundle_attila.cjs'
+      - 'unity_preview/index.html'
+      - 'unity_preview/village-theme.js'
+      - 'unity_preview/blacksmith-forge.js'
+      - 'unity_preview/lib/GLTFLoader.js'
+      - 'unity_preview/lib/BufferGeometryUtils.js'
+      - 'unity_preview/lib/SkeletonUtils.js'
+      - 'unity_preview/assets/hero/attila/**'
+
+permissions:
+  contents: write
+
+jobs:
+  attila:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      OLD_TAG: hq8k-daylight-r3
+      NEW_TAG: attila-sample-r4
+      APK_NAME: WarriorsOfPersia_3D_HQ_8K.apk
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download and authenticate the verified r3 input
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/wop-r3
+          gh release download "$OLD_TAG" --repo ${{ github.repository }} \
+            --pattern "$APK_NAME" --dir /tmp/wop-r3 --clobber
+          echo "156f181e52d846063b12b553a42d408032ce9321123739917c829f344c83e6c3  /tmp/wop-r3/$APK_NAME" | sha256sum -c -
+
+      - name: Install the temporary bundler
+        run: npm install --prefix /tmp/wop-attila-build esbuild@0.25.11
+
+      - name: Bundle Attila and preserve every HQ texture byte
+        run: |
+          set -euo pipefail
+          python3 Tools/build_attila_apk.py \
+            --source-apk "/tmp/wop-r3/$APK_NAME" \
+            --output /tmp/wop-attila-unsigned.apk \
+            --manifest /tmp/wop-attila-audit.json \
+            --esbuild-module /tmp/wop-attila-build/node_modules/esbuild
+          node --check /tmp/wop-attila-unsigned.inline.js
+          node --check unity_preview/village-theme.js
+          node --check unity_preview/lib/GLTFLoader.js
+
+      - name: Align, sign, and audit the final APK
+        run: |
+          set -euo pipefail
+          BT=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          STATIC=/tmp/wop-attila-static.txt
+          : > "$STATIC"
+          "$BT/zipalign" -p -f 4 /tmp/wop-attila-unsigned.apk /tmp/wop-attila-aligned.apk >> "$STATIC" 2>&1
+          "$BT/zipalign" -c -p -v 4 /tmp/wop-attila-aligned.apk >> "$STATIC" 2>&1
+          umask 077
+          mkdir -p /tmp/wop-attila-signing /tmp/wop-attila-final
+          PASS=$(openssl rand -hex 32)
+          keytool -genkeypair -keystore /tmp/wop-attila-signing/wop-release.keystore \
+            -storetype PKCS12 -storepass "$PASS" -keypass "$PASS" -alias wop \
+            -keyalg RSA -keysize 2048 -sigalg SHA256withRSA -validity 10000 \
+            -dname 'CN=Warriors of Persia, O=PreGames Studio, C=US' >> "$STATIC" 2>&1
+          WOP_STORE_PASS="$PASS" WOP_KEY_PASS="$PASS" "$BT/apksigner" sign \
+            --ks /tmp/wop-attila-signing/wop-release.keystore --ks-key-alias wop \
+            --ks-pass env:WOP_STORE_PASS --key-pass env:WOP_KEY_PASS \
+            --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true \
+            --out "/tmp/wop-attila-final/$APK_NAME" /tmp/wop-attila-aligned.apk
+          unset PASS WOP_STORE_PASS WOP_KEY_PASS
+          FINAL="/tmp/wop-attila-final/$APK_NAME"
+          "$BT/zipalign" -c -p -v 4 "$FINAL" >> "$STATIC" 2>&1
+          "$BT/aapt" dump badging "$FINAL" >> "$STATIC" 2>&1
+          "$BT/apksigner" verify --verbose "$FINAL" >> "$STATIC" 2>&1
+          FINAL="$FINAL" SOURCE="/tmp/wop-r3/$APK_NAME" python3 - <<'PY' > /tmp/wop-attila-content-audit.log 2>&1
+          import base64, hashlib, json, os, re, sys
+          from pathlib import Path
+          from zipfile import ZipFile
+          sys.path.insert(0, 'Tools')
+          from build_hq_apk import local_data_offset, sha256
+          final = Path(os.environ['FINAL'])
+          source_path = Path(os.environ['SOURCE'])
+          with ZipFile(final) as apk, ZipFile(source_path) as source:
+              assert apk.testzip() is None
+              manifest = json.loads(apk.read('assets/pbr_hq/manifest.json'))
+              assert manifest['build'].startswith('hq8k-attila-')
+              assert manifest['houseLighting']['materialColorMultiplier'] == 4
+              assert manifest['attila']['animationClips'] == 76
+              assert manifest['attila']['miaReplaced'] is False
+              assert manifest['attila']['license'] == 'CC0'
+              assert len(manifest['maps']) == 15
+              for record in manifest['maps']:
+                  raw = apk.read(record['path'])
+                  assert raw == source.read(record['path']), record['path']
+                  assert sha256(raw) == record['sha256']
+                  assert len(raw) == record['bytes']
+                  assert raw[:4] == b'RIFF' and raw[8:12] == b'WEBP'
+                  chunk = raw.index(b'VP8L')
+                  bits = int.from_bytes(raw[chunk + 9:chunk + 13], 'little')
+                  width = (bits & 0x3fff) + 1
+                  height = ((bits >> 14) & 0x3fff) + 1
+                  expected = 8192 if record['family'] == 'metal' else 4096
+                  assert (width, height) == (expected, expected), record['path']
+              for info in apk.infolist():
+                  if info.compress_type == 0:
+                      alignment = 4096 if info.filename.endswith('.so') else 4
+                      assert local_data_offset(final, info.filename) % alignment == 0, info.filename
+              html = apk.read('assets/index.html').decode()
+              assert manifest['build'] in html
+              assert 'attila-rigged' in html and 'mia-preserved' in html
+              assert 'Attila_Rigged_3D_Model' in html
+              assert 'Running_A' in html and 'Walking_A' in html
+              assert '1H_Melee_Attack_Slice_Diagonal' in html
+              assert 'Spellcast_Shoot' in html
+              assert html.count('pbr_hq/') == 15
+              assert html.count('data:image/webp;base64,') == 1
+              glb = Path('unity_preview/assets/hero/attila/attila_base.glb').read_bytes()
+              atlas = Path('unity_preview/assets/hero/attila/attila_atlas.png').read_bytes()
+              assert base64.b64encode(glb).decode() in html
+              assert base64.b64encode(atlas).decode() in html
+              mia = re.search(r'<img\b[^>]*id="hud-mia-portrait"[^>]*>', html).group(0)
+              assert sha256(mia.encode()) == manifest['miaPortraitMarkupSha256']
+              assert apk.read('assets/hero/attila/LICENSE-KayKit.txt') == Path('unity_preview/assets/hero/attila/LICENSE-KayKit.txt').read_bytes()
+              assert apk.read('assets/assets/apothecary/potion_vitality.jpg') == Path('unity_preview/assets/apothecary/potion_vitality.jpg').read_bytes()
+              assert apk.read('assets/assets/blacksmith/iron_sword.jpg') == Path('unity_preview/assets/blacksmith/iron_sword.jpg').read_bytes()
+          raw = open(final, 'rb').read()
+          open('/tmp/wop-attila-final.sha256', 'w').write(hashlib.sha256(raw).hexdigest() + '\n')
+          open('/tmp/wop-attila-final.size', 'w').write(str(len(raw)) + '\n')
+          print('FINAL_CONTENT_AUDIT_PASS: Attila, Mia, 76 clips, 15 original HQ maps, dimensions and alignment')
+          PY
+          cat /tmp/wop-attila-content-audit.log
+          sha256sum "$FINAL" | tee -a "$STATIC"
+          cat /tmp/wop-attila-final.size | tee -a "$STATIC"
+
+      - name: Install r4 on a clean Android 11 emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: x86_64
+          script: |
+            set +e
+            adb shell getprop ro.build.version.release > /tmp/wop-attila-android.txt 2>&1
+            adb shell getprop ro.product.cpu.abi > /tmp/wop-attila-abi.txt 2>&1
+            adb install "/tmp/wop-attila-final/$APK_NAME" > /tmp/wop-attila-adb.txt 2>&1
+            echo $? > /tmp/wop-attila-adb.status
+            exit 0
+
+      - name: Require successful emulator installation
+        run: |
+          set -euo pipefail
+          cat /tmp/wop-attila-adb.txt
+          test "$(cat /tmp/wop-attila-adb.status)" = "0"
+          grep -q 'Success' /tmp/wop-attila-adb.txt
+
+      - name: Publish r4 as Latest and verify the download round trip
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          REPO=${{ github.repository }}
+          FINAL="/tmp/wop-attila-final/$APK_NAME"
+          if gh release view "$NEW_TAG" --repo "$REPO" >/dev/null 2>&1; then
+            gh release upload "$NEW_TAG" "$FINAL" --repo "$REPO" --clobber
+          else
+            gh release create "$NEW_TAG" "$FINAL" --repo "$REPO" \
+              --target "${{ github.sha }}" \
+              --title "Warriors of Persia — Attila + Mia HQ 8K r4" \
+              --notes "Attila joins Mia as a separate rigged CC0 sample character. Verification details are being finalized."
+          fi
+          RELEASE_ID=$(gh api "repos/$REPO/releases/tags/$NEW_TAG" --jq '.id')
+          gh api -X PATCH "repos/$REPO/releases/$RELEASE_ID" -f make_latest=true >/dev/null
+          VERIFY=/tmp/wop-attila-roundtrip
+          rm -rf "$VERIFY" && mkdir -p "$VERIFY"
+          gh release download "$NEW_TAG" --repo "$REPO" --pattern "$APK_NAME" --dir "$VERIFY" --clobber
+          cmp "$FINAL" "$VERIFY/$APK_NAME"
+          HASH=$(cat /tmp/wop-attila-final.sha256)
+          BYTES=$(cat /tmp/wop-attila-final.size)
+          gh release edit "$NEW_TAG" --repo "$REPO" --notes "Attila is a new independent party member; Mia remains unchanged. Rigged CC0 KayKit Knight base with original turquoise/gold/crimson customisation, Persian sun crest, sword rune, 76 source clips, and connected idle/walk/run/attack/skill animation states. Existing-save migration preserves the party and appends Attila when absent. All 15 original HQ WebP maps preserved byte-for-byte: metal 8K, stone/wood/roof/cobble 4K. No texture resize, replacement or re-encode. Offline bundled WebView smoke and animation/save tests passed. ZIP alignment, v1/v2/v3 signatures, final content audit, clean Android 11 emulator adb install, and release download round-trip passed. Size: $BYTES bytes. SHA-256: $HASH. New signing key: uninstall any previously installed Warriors of Persia build first."
+          test "$(gh api "repos/$REPO/releases/latest" --jq '.tag_name')" = "$NEW_TAG"
+          echo RELEASE_ROUND_TRIP_PASS > /tmp/wop-attila-released
+          echo "Published $NEW_TAG: $BYTES bytes, SHA-256 $HASH"
+
+      - name: Write verification summary
+        if: always()
+        run: |
+          {
+            echo '## Attila HQ APK verification'
+            echo
+            if test -f /tmp/wop-attila-released; then
+              echo '**Published as Latest and download round-trip passed.**'
+            else
+              echo '**Release was not confirmed; the previous r3 release was retained.**'
+            fi
+            echo
+            echo '- Build: `attila-sample-r4`'
+            echo '- Mia: preserved; Attila: independent party member with 76 source clips.'
+            echo '- Texture requirement: all 15 hashes and native dimensions preserved.'
+            echo '- Physical-device FPS/RAM/GPU: not measured.'
+            echo
+            if test -f /tmp/wop-attila-final.sha256; then
+              echo "- SHA-256: $(cat /tmp/wop-attila-final.sha256)"
+              echo "- Bytes: $(cat /tmp/wop-attila-final.size)"
+            fi
+            if test -f /tmp/wop-attila-adb.txt; then
+              echo '- Emulator install:'; echo '```text'; cat /tmp/wop-attila-adb.txt; echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          if ! test -f /tmp/wop-attila-released; then
+            if test -f /tmp/wop-attila-content-audit.log; then
+              tail -n 8 /tmp/wop-attila-content-audit.log | while IFS= read -r LINE; do
+                LINE=${LINE//%/%25}; LINE=${LINE//$'\r'/%0D}
+                echo "::error::Content audit: $LINE"
+              done
+            fi
+            if test -f /tmp/wop-attila-static.txt; then
+              {
+                grep -Ei 'fail|error|exception|verification|usage|invalid|warning|not aligned|denied|cannot|unable' /tmp/wop-attila-static.txt || true
+                tail -n 3 /tmp/wop-attila-static.txt
+              } | tail -n 8 | while IFS= read -r LINE; do
+                LINE=${LINE//%/%25}; LINE=${LINE//$'\r'/%0D}
+                echo "::error::Static audit: $LINE"
+              done
+            fi
+          fi

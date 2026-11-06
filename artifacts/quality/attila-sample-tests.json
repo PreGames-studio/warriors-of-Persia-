@@ -1,0 +1,75 @@
+{
+  "date": "2026-11-06",
+  "scope": "Attila sample only; Mia retained; no map, camera, quality or engine-pipeline redesign",
+  "sourcePreview": {
+    "browser": "Chromium with SwiftShader; HTTP local source modules",
+    "party": [
+      {
+        "name": "میا (شما)",
+        "characterId": "mia",
+        "slot": 0
+      },
+      {
+        "name": "آتیلا",
+        "characterId": "attila",
+        "slot": 1
+      }
+    ],
+    "attilaLoaded": true,
+    "sourceAnimationClips": 76,
+    "miaHasAttilaModel": false,
+    "attackState": "1H_Melee_Attack_Slice_Diagonal",
+    "skillState": "Spellcast_Shoot",
+    "locomotionStates": {
+      "idle": "Idle",
+      "walk": "Walking_A",
+      "run": "Running_A",
+      "backToIdle": "Idle"
+    },
+    "saveMigration": {
+      "ok": true,
+      "party": [
+        {
+          "name": "میا (شما)",
+          "characterId": "mia",
+          "level": 4
+        },
+        {
+          "name": "آتیلا",
+          "characterId": "attila",
+          "level": 1
+        }
+      ],
+      "coins": 777
+    },
+    "javascriptErrors": []
+  },
+  "finalFormationMovement": {
+    "browser": "Chromium with SwiftShader; real follower frame wait",
+    "before": {
+      "x": 4.5,
+      "z": 10
+    },
+    "after": {
+      "x": 7.173,
+      "z": 10,
+      "state": "Running_A"
+    },
+    "distance": 2.673,
+    "errors": []
+  },
+  "offlineBundle": {
+    "input": "synthetic original-2K package for pipeline validation only; not a release and not a downsampled HQ build",
+    "build": "hq8k-attila-7caf9efed13e",
+    "transport": "file://, single IIFE bundle, embedded GLB and atlas, external original WebP images",
+    "nodeSyntaxCheck": "passed",
+    "visualSmoke": "Mia and Attila rendered together; Attila beside Mia and fully visible",
+    "resourceErrorsAfterPackagePathFix": 0,
+    "finalHqRelease": "pending CI build from verified r3; this synthetic package is not delivered"
+  },
+  "notTested": [
+    "physical Android device",
+    "Unity Editor/native Unity build",
+    "mobile FPS/RAM/GPU"
+  ]
+}

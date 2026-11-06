@@ -1,4 +1,7 @@
 import { createBlacksmithForgeBuilder } from './blacksmith-forge.js';
+import { GLTFLoader } from './lib/GLTFLoader.js';
+import { clone as cloneRiggedModel } from './lib/SkeletonUtils.js';
+import { ATTILA_GLB_BASE64, ATTILA_ATLAS_DATA_URI } from './assets/hero/attila/attila-assets.js';
 
 /**
  * Procedural Persian village art kit.
@@ -500,7 +503,164 @@ export function createPersianVillageKit(THREE) {
     return person;
   }
 
+  // Attila is a separate rigged character, not a recolour or replacement of Mia.
+  // The CC0 source rig is embedded for reliable offline Android file:// loading.
+  let attilaTemplatePromise = null;
+  function loadAttilaTemplate() {
+    if (!attilaTemplatePromise) {
+      const binary = atob(ATTILA_GLB_BASE64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const modelPromise = new Promise((resolve, reject) => {
+        new GLTFLoader().parse(bytes.buffer, '', resolve, reject);
+      });
+      const atlasPromise = new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => {
+          const texture = new THREE.Texture(image);
+          texture.flipY = false;
+          texture.colorSpace = THREE.SRGBColorSpace;
+          texture.anisotropy = 4;
+          texture.needsUpdate = true;
+          resolve(texture);
+        };
+        image.onerror = reject;
+        image.src = ATTILA_ATLAS_DATA_URI;
+      });
+      attilaTemplatePromise = Promise.all([modelPromise, atlasPromise]).then(([gltf, atlas]) => ({ gltf, atlas }));
+    }
+    return attilaTemplatePromise;
+  }
+
+  function addAttilaSunCrest(helmet) {
+    if (!helmet) return;
+    const gold = new THREE.MeshStandardMaterial({ color: 0xffd77c, metalness: .72, roughness: .27 });
+    const enamel = new THREE.MeshStandardMaterial({ color: 0x43e4dc, emissive: 0x087d83, emissiveIntensity: .65, metalness: .28, roughness: .3 });
+    const crest = new THREE.Group();
+    crest.name = 'Attila_Persian_Sun_Crest';
+    crest.position.set(0, .48, .69);
+    addMesh(crest, new THREE.TorusGeometry(.17, .027, 8, 24), gold, 0, 0, 0, false);
+    addMesh(crest, new THREE.SphereGeometry(.105, 12, 8), enamel, 0, 0, .006, false).scale.z = .35;
+    for (let i = 0; i < 12; i++) {
+      const angle = i * Math.PI / 6;
+      const ray = addMesh(crest, new THREE.ConeGeometry(.035, .13, 4), gold, Math.sin(angle) * .245, Math.cos(angle) * .245, 0, false);
+      ray.rotation.z = -angle;
+    }
+    // Small swept wings give the silhouette a distinct fantasy-MOBA read.
+    [-1, 1].forEach(side => {
+      for (let i = 0; i < 3; i++) {
+        const feather = addMesh(crest, new THREE.ConeGeometry(.045, .27 - i * .035, 5), gold,
+          side * (.23 + i * .095), -.025 - i * .055, -.015, false);
+        feather.rotation.z = side * (-.82 - i * .13);
+      }
+    });
+    helmet.add(crest);
+  }
+
+  function buildAttilaHero(member) {
+    const group = new THREE.Group();
+    group.userData.characterId = 'attila';
+    group.userData.isAttilaLoading = true;
+    const auraMaterial = new THREE.MeshBasicMaterial({ color: 0x5eead4, transparent: true, opacity: .72, side: THREE.DoubleSide, depthWrite: false });
+    const aura = addMesh(group, new THREE.TorusGeometry(.82, .035, 8, 40), auraMaterial, 0, .035, 0, false);
+    aura.rotation.x = Math.PI / 2;
+    const innerAura = addMesh(group, new THREE.TorusGeometry(.61, .013, 6, 32), new THREE.MeshBasicMaterial({ color: 0xfacc15, transparent: true, opacity: .54, depthWrite: false }), 0, .04, 0, false);
+    innerAura.rotation.x = Math.PI / 2;
+
+    let mixer = null;
+    let currentAction = null;
+    let actionTime = 0;
+    const actions = {};
+    const locomotionNames = { idle: 'Idle', walk: 'Walking_A', run: 'Running_A' };
+
+    function activateAction(name, fade = .16, once = false) {
+      const next = actions[name];
+      if (!next || (!once && currentAction === next)) return;
+      next.reset();
+      next.enabled = true;
+      next.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, once ? 1 : Infinity);
+      next.clampWhenFinished = once;
+      if (currentAction && currentAction !== next) currentAction.crossFadeTo(next, fade, false);
+      next.play();
+      currentAction = next;
+      group.userData.locomotionState = name;
+    }
+
+    group.userData.playAction = kind => {
+      if (!mixer) return;
+      const name = kind === 'skill' ? 'Spellcast_Shoot' : '1H_Melee_Attack_Slice_Diagonal';
+      activateAction(name, .09, true);
+      actionTime = Math.max(.35, actions[name].getClip().duration * .82);
+    };
+    group.userData.updateLocomotion = (dt, speed = 0) => {
+      aura.rotation.z += dt * .24;
+      innerAura.rotation.z -= dt * .31;
+      auraMaterial.opacity = .66 + Math.sin(performance.now() * .003) * .08;
+      if (!mixer) return;
+      if (actionTime > 0) actionTime -= dt;
+      else activateAction(speed > 6 ? locomotionNames.run : speed > .18 ? locomotionNames.walk : locomotionNames.idle);
+      mixer.update(dt);
+    };
+
+    loadAttilaTemplate().then(({ gltf, atlas }) => {
+      const model = cloneRiggedModel(gltf.scene);
+      model.name = 'Attila_Rigged_3D_Model';
+      model.scale.set(1.02, 1.13, 1.02);
+      model.traverse(object => {
+        if (['Badge_Shield', 'Rectangle_Shield', 'Round_Shield', 'Spike_Shield', '1H_Sword_Offhand', '2H_Sword'].includes(object.name)) {
+          object.visible = false;
+          return;
+        }
+        if (!object.isMesh) return;
+        object.castShadow = true;
+        object.receiveShadow = true;
+        const isCape = object.name === 'Knight_Cape';
+        const isHead = object.name === 'Knight_Head';
+        const isSword = object.name === '1H_Sword';
+        const tuned = object.material.clone();
+        tuned.map = atlas;
+        tuned.metalness = isCape || isHead ? 0 : isSword ? .78 : .38;
+        tuned.roughness = isCape ? .9 : isHead ? .72 : isSword ? .25 : .46;
+        if (isCape) tuned.side = THREE.DoubleSide;
+        if (!isCape && !isHead) {
+          tuned.emissive = new THREE.Color(isSword ? 0x102535 : 0x062b32);
+          tuned.emissiveIntensity = isSword ? .08 : .12;
+        }
+        tuned.needsUpdate = true;
+        object.material = tuned;
+      });
+      const head = model.getObjectByName('head');
+      if (head) head.scale.setScalar(.86);
+      addAttilaSunCrest(model.getObjectByName('Knight_Helmet'));
+      const sword = model.getObjectByName('1H_Sword');
+      if (sword) {
+        const runeMaterial = new THREE.MeshStandardMaterial({ color: 0x99fff6, emissive: 0x14b8a6, emissiveIntensity: 1.15, metalness: .2, roughness: .24 });
+        addMesh(sword, new THREE.BoxGeometry(.036, .72, .014), runeMaterial, 0, .55, .07, false);
+      }
+      group.add(model);
+      mixer = new THREE.AnimationMixer(model);
+      [
+        'Idle', 'Walking_A', 'Running_A',
+        '1H_Melee_Attack_Slice_Diagonal', 'Spellcast_Shoot'
+      ].forEach(name => {
+        const clip = THREE.AnimationClip.findByName(gltf.animations, name);
+        if (clip) actions[name] = mixer.clipAction(clip);
+      });
+      activateAction('Idle', 0);
+      group.userData.attilaModel = model;
+      group.userData.attilaAnimationCount = gltf.animations.length;
+      group.userData.isAttilaLoading = false;
+      group.userData.isAttilaLoaded = true;
+    }).catch(error => {
+      group.userData.isAttilaLoading = false;
+      group.userData.loadError = String(error && error.message || error);
+      console.error('Attila model could not be loaded', error);
+    });
+    return { group, armorMesh: null };
+  }
+
   function buildHero(member, roleObj) {
+    if (member.characterId === 'attila') return buildAttilaHero(member);
     const group = new THREE.Group();
     const isMia = Boolean(member.isLocal);
     group.name = isMia ? 'Mia — articulated swordswoman from the supplied reference' : 'Persian immortal — articulated forged-armour hero';
