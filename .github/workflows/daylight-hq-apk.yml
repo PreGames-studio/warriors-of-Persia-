@@ -181,13 +181,19 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
           if ! test -f /tmp/wop-daylight-released; then
-            for LOG in /tmp/wop-daylight-static.txt /tmp/wop-daylight-content-audit.log; do
-              if test -f "$LOG"; then
-                tail -n 40 "$LOG" | while IFS= read -r LINE; do
-                  LINE=${LINE//%/%25}
-                  LINE=${LINE//$'\r'/%0D}
-                  echo "::error::CI diagnostic: $LINE"
-                done
-              fi
-            done
+            if test -f /tmp/wop-daylight-content-audit.log; then
+              tail -n 8 /tmp/wop-daylight-content-audit.log | while IFS= read -r LINE; do
+                LINE=${LINE//%/%25}; LINE=${LINE//$'\r'/%0D}
+                echo "::error::Content audit: $LINE"
+              done
+            fi
+            if test -f /tmp/wop-daylight-static.txt; then
+              {
+                grep -Ei 'fail|error|exception|verification|usage|invalid|warning|not aligned|denied|cannot|unable' /tmp/wop-daylight-static.txt || true
+                tail -n 3 /tmp/wop-daylight-static.txt
+              } | tail -n 8 | while IFS= read -r LINE; do
+                LINE=${LINE//%/%25}; LINE=${LINE//$'\r'/%0D}
+                echo "::error::Static audit: $LINE"
+              done
+            fi
           fi
