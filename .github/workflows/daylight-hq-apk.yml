@@ -71,10 +71,11 @@ jobs:
           "$BT/apksigner" verify --verbose "$FINAL" >> "$STATIC" 2>&1
           FINAL="$FINAL" python3 - <<'PY' > /tmp/wop-daylight-content-audit.log 2>&1
           import hashlib, json, os, sys
+          from pathlib import Path
           from zipfile import ZipFile
           sys.path.insert(0, 'Tools')
           from build_hq_apk import local_data_offset, sha256
-          final = os.environ['FINAL']
+          final = Path(os.environ['FINAL'])
           with ZipFile(final) as apk:
               assert apk.testzip() is None
               manifest = json.loads(apk.read('assets/pbr_hq/manifest.json'))
