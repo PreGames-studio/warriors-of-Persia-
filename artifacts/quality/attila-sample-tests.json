@@ -65,7 +65,18 @@
     "nodeSyntaxCheck": "passed",
     "visualSmoke": "Mia and Attila rendered together; Attila beside Mia and fully visible",
     "resourceErrorsAfterPackagePathFix": 0,
-    "finalHqRelease": "pending CI build from verified r3; this synthetic package is not delivered"
+    "finalHqRelease": {
+      "status": "published and verified as Latest",
+      "tag": "attila-sample-r4",
+      "bytes": 210767987,
+      "sha256": "1f9665bedcedbef4a11096135fdb218597aa405793512303f578272d6553be8d",
+      "runId": 42169454931,
+      "android11EmulatorInstall": "Success",
+      "all15HqTextureHashesAndDimensionsPreserved": true,
+      "downloadRoundTrip": "byte-identical PASS",
+      "latestRedirectVerified": true,
+      "physicalDeviceTest": false
+    }
   },
   "notTested": [
     "physical Android device",
