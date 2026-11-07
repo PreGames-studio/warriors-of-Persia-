@@ -16,3 +16,7 @@ mono_crash.*.json
 Thumbs.db
 *.tmp
 *~
+
+# Native 4K/8K authoring output is large and must stay out of Git.
+artifacts/hq-pbr/
+__pycache__/
