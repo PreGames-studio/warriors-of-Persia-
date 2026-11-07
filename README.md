@@ -17,10 +17,10 @@
 
 **لینک دانلود مستقیم (فایل باینری APK):**
 
-- نسخهٔ همین انتشار:
-  `https://github.com/PreGames-studio/warriors-of-Persia-/releases/download/v1.0.1-install-fix/WarriorsOfPersia_3D.apk`
-- همیشه آخرین نسخهٔ منتشرشده:
-  `https://github.com/PreGames-studio/warriors-of-Persia-/releases/latest/download/WarriorsOfPersia_3D.apk`
+- نسخهٔ ثابت و برچسب‌خورده (توصیه‌شده):
+  `https://github.com/PreGames-studio/warriors-of-Persia-/raw/v1.0.1-install-fix/WarriorsOfPersia_3D.apk`
+- صفحهٔ فایل در همین شاخه:
+  `https://github.com/PreGames-studio/warriors-of-Persia-/raw/arena/c51908e6-warriors-of-persia/WarriorsOfPersia_3D.apk`
 
 نکته: از لینک‌های بالا استفاده کنید، نه از صفحهٔ نمایش فایل در GitHub؛ باز کردن فایل از صفحهٔ
 `blob` یک صفحهٔ HTML دانلود می‌کند و همان فایل هنگام نصب «بستهٔ نامعتبر» می‌دهد.
