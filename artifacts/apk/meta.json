@@ -1,4 +1,14 @@
 {
-  "WarriorsOfPersia_3D.apk": {"package": "com.pregames.warriorsofpersia", "version": "1.0.1 (code 2)"},
-  "WarriorsOfPersia_3D_hd.apk": {"package": "com.pregames.warriorsofpersia.hd", "version": "1.0.2 (code 2)"}
+  "WarriorsOfPersia_3D.apk": {
+    "package": "com.pregames.warriorsofpersia",
+    "version": "1.0.3 (code 3)",
+    "bytes": 20322489,
+    "sha256": "cd8e34730db6d13c4c5b74683375b35d526dc0489df9186a19021403f92d0fd4"
+  },
+  "WarriorsOfPersia_3D_hd.apk": {
+    "package": "com.pregames.warriorsofpersia.hd",
+    "version": "1.0.3 (code 3)",
+    "bytes": 20322498,
+    "sha256": "b411255da984686e570ea7d92a8eb57ffb0510b16f92f5b160c82ffeccd6809a"
+  }
 }

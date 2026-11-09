@@ -23,3 +23,6 @@ __pycache__/
 
 # Local mirror of the tracked APK, used only by Tools/serve_apk_downloads.py
 artifacts/apk/WarriorsOfPersia_3D.apk
+
+# aapt2 oracle for Tools/verify_apk.py: npm i aaptjs3
+node_modules/

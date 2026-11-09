@@ -1,0 +1,70 @@
+{
+  "path": "/tmp/build_hd.apk",
+  "bytes": 20322498,
+  "sha256": "b411255da984686e570ea7d92a8eb57ffb0510b16f92f5b160c82ffeccd6809a",
+  "verdict": "pass",
+  "problems": [],
+  "zipTest": "ok",
+  "entryCount": 7,
+  "storedEntryAlignmentMod4": {
+    "resources.arsc": 0
+  },
+  "manifest": {
+    "versionCode": 3,
+    "versionName": "1.0.3",
+    "installLocation": 0,
+    "package": "com.pregames.warriorsofpersia.hd"
+  },
+  "dexMagic": "dex\n035\u0000",
+  "v1": {
+    "checked": true,
+    "ok": true,
+    "problems": [],
+    "pkcs7Verified": true,
+    "entriesVerified": 4,
+    "declaredSchemes": "2"
+  },
+  "aapt2": {
+    "version": "2.20-15009934",
+    "badging": {
+      "cmd": "aapt2 dump badging artifacts/apk/WarriorsOfPersia_3D_hd.apk",
+      "exit": 0,
+      "stdout": "package: name='com.pregames.warriorsofpersia.hd' versionCode='3' versionName='1.0.3'\ninstall-location:'auto'\nminSdkVersion:'21'\ntargetSdkVersion:'28'\napplication: label='Warriors of Persia 3D' icon=''\nlaunchable-activity: name='com.pregames.warriorsofpersia.MainActivity'  label='Warriors of Persia 3D' icon=''\nfeature-group: label=''\n  uses-feature: name='android.hardware.faketouch'\n  uses-implied-feature: name='android.hardware.faketouch' reason='default feature for all apps'\n  uses-feature: name='android.hardware.screen.landscape'\n  uses-implied-feature: name='android.hardware.screen.landscape' reason='one or more activities have specified a landscape orientation'\nmain\nsupports-screens: 'small' 'normal' 'large' 'xlarge'\nsupports-any-density: 'true'\nlocales:\ndensities:\n",
+      "stderr": "",
+      "clean": true
+    },
+    "resources": {
+      "cmd": "aapt2 dump resources artifacts/apk/WarriorsOfPersia_3D_hd.apk",
+      "exit": 0,
+      "stdout": "Binary APK\n",
+      "stderr": "",
+      "clean": true
+    },
+    "xmltree": {
+      "cmd": "aapt2 dump xmltree artifacts/apk/WarriorsOfPersia_3D_hd.apk --file AndroidManifest.xml",
+      "exit": 0,
+      "stdout": "N: android=http://schemas.android.com/apk/res/android (line=2)\n  E: manifest (line=2)\n    A: http://schemas.android.com/apk/res/android:versionCode(0x0101021b)=3\n    A: http://schemas.android.com/apk/res/android:versionName(0x0101021c)=\"1.0.3\" (Raw: \"1.0.3\")\n    A: http://schemas.android.com/apk/res/android:installLocation(0x010102b7)=0\n    A: package=\"com.pregames.warriorsofpersia.hd\" (Raw: \"com.pregames.warriorsofpersia.hd\")\n      E: uses-sdk (line=6)\n        A: http://schemas.android.com/apk/res/android:minSdkVersion(0x0101020c)=21\n        A: http://schemas.android.com/apk/res/android:targetSdkVersion(0x01010270)=28\n      E: application (line=8)\n        A: http://schemas.android.com/apk/res/android:label(0x01010001)=\"Warriors of Persia 3D\" (Raw: \"Warriors of Persia 3D\")\n        A: http://schemas.android.com/apk/res/android:hardwareAccelerated(0x010102d3)=true\n          E: activity (line=11)\n            A: http://schemas.android.com/apk/res/android:theme(0x01010000)=@0x01030007\n            A: http://schemas.android.com/apk/res/android:label(0x01010001)=\"Warriors of Persia 3D\" (Raw: \"Warriors of Persia 3D\")\n            A: http://schemas.android.com/apk/res/android:name(0x01010003)=\"com.pregames.warriorsofpersia.MainActivity\" (Raw: \"com.pregames.warriorsofpersia.MainActivity\")\n            A: http://schemas.android.com/apk/res/android:screenOrientation(0x0101001e)=0\n            A: http://schemas.android.com/apk/res/android:configChanges(0x0101001f)=0x000004a0\n              E: intent-filter (line=17)\n                  E: action (line=18)\n                    A: http://schemas.android.com/apk/res/android:name(0x01010003)=\"android.intent.action.MAIN\" (Raw: \"android.intent.action.MAIN\")\n                  E: category (line=19)\n                    A: http://schemas.android.com/apk/res/android:name(0x01010003)=\"android.intent.category.LAUNCHER\" (Raw: \"android.intent.category.LAUNCHER\")\n",
+      "stderr": "",
+      "clean": true
+    }
+  },
+  "v2": {
+    "present": true,
+    "ok": true,
+    "problems": [],
+    "blockOffset": 20320530,
+    "pairIds": [
+      "0x7109871a"
+    ],
+    "contentDigest": "cf630178fc420383210c1d726233d864c77829779cc535d8ade3e67643ba65d6",
+    "declaredDigest": "cf630178fc420383210c1d726233d864c77829779cc535d8ade3e67643ba65d6",
+    "signatureVerified": true,
+    "certificateSubject": "CN=Warriors of Persia,O=PreGames Studio,C=US",
+    "certificateSha256": "d0cee9ad2772f6804970c6cdc7d46ca06f51b932ac68902dd1ae069a7ac8d1a7",
+    "certificateNotAfter": "2059-02-27T11:02:13+00:00",
+    "publicKeyMatchesCertificate": true
+  },
+  "indexHtmlBytes": 27751135,
+  "buildMarker": "mia-9495b9487f",
+  "note": "v1.0.3: the previous builds shipped a 576-byte hand-written resources.arsc that Android's ResTable parser rejects (corrupt ResTable_package: chunk is past the end of the document). It is now replaced by a structurally valid zero-package ResTable (Tools/apk_resources.py) and every build is gated on aapt2."
+}

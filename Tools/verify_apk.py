@@ -22,7 +22,10 @@ import argparse
 import base64
 import hashlib
 import json
+import os
+import shutil
 import struct
+import subprocess
 import sys
 import zipfile
 from pathlib import Path
@@ -295,7 +298,62 @@ def verify_v2(apk: bytes) -> dict:
     return result
 
 
-def audit(path: Path) -> dict:
+
+def find_aapt2() -> str | None:
+    """Locate an ``aapt2`` binary (Android's own resource/manifest parser).
+
+    ``aapt2`` uses the same ``ApkAssets``/``ResourceTypes`` code as the platform
+    package manager, so "aapt2 rejects it" is the closest thing to "Android will
+    reject it".  Install it with ``npm i aaptjs3`` or point ``$AAPT2`` at a copy.
+    """
+    candidates = [os.environ.get("AAPT2"), shutil.which("aapt2")]
+    repo = Path(__file__).resolve().parent.parent
+    candidates += [
+        repo / "node_modules/aaptjs3/bin/x64/linux/aapt2",
+        repo / "node_modules/aaptjs3/bin/x64/darwin/aapt2",
+        repo / "node_modules/aaptjs3/bin/x64/win32/aapt2.exe",
+    ]
+    for candidate in candidates:
+        if candidate and Path(candidate).is_file():
+            return str(candidate)
+    return None
+
+
+def verify_aapt2(path: Path, binary: str) -> dict:
+    """Run aapt2 over the APK exactly like the install-time parser would."""
+    result: dict = {"binary": binary, "ok": False, "problems": [], "commands": {}}
+    for label, args in (
+        ("badging", ["dump", "badging", str(path)]),
+        ("xmltree", ["dump", "xmltree", str(path), "--file", "AndroidManifest.xml"]),
+        ("resources", ["dump", "resources", str(path)]),
+    ):
+        try:
+            proc = subprocess.run(
+                [binary, *args], capture_output=True, text=True, timeout=120
+            )
+        except Exception as exc:  # noqa: BLE001
+            result["problems"].append(f"aapt2 {label} could not run: {exc}")
+            continue
+        output = (proc.stdout or "") + (proc.stderr or "")
+        result["commands"][label] = proc.returncode
+        # aapt2 historically returns 0 even when it logs a parse error.
+        if "corrupt" in output.lower() or "error:" in output.lower():
+            detail = [
+                line.strip() for line in output.splitlines()
+                if "corrupt" in line.lower() or "error:" in line.lower()
+            ]
+            result["problems"].append(f"aapt2 {label}: {'; '.join(detail[:3])}")
+        if label == "badging":
+            for line in output.splitlines():
+                if line.startswith("package:"):
+                    result["badging"] = line.strip()
+                elif line.startswith("launchable-activity:"):
+                    result["launchableActivity"] = line.strip()
+    result["ok"] = not result["problems"]
+    return result
+
+
+def audit(path: Path, use_aapt2: bool = True) -> dict:
     apk = path.read_bytes()
     report: dict = {
         "path": str(path),
@@ -351,6 +409,15 @@ def audit(path: Path) -> dict:
             report["v1"] = {"ok": False, "problems": [f"v1 verification error: {exc}"]}
         if not report["v1"].get("ok"):
             report["problems"].append("JAR signature (v1) verification failed")
+        if use_aapt2:
+            binary = find_aapt2()
+            if binary:
+                report["aapt2"] = verify_aapt2(path, binary)
+                if not report["aapt2"]["ok"]:
+                    report["problems"].append("aapt2 (Android resource parser) rejected the APK")
+            else:
+                report["aapt2"] = {"available": False}
+
         try:
             report["v2"] = verify_v2(apk)
         except Exception as exc:  # noqa: BLE001
@@ -375,9 +442,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("apk", type=Path)
     parser.add_argument("--json", type=Path, help="write the full report as JSON")
+    parser.add_argument("--no-aapt2", action="store_true", help="skip the aapt2 cross-check")
     args = parser.parse_args()
 
-    report = audit(args.apk)
+    report = audit(args.apk, use_aapt2=not args.no_aapt2)
     if args.json:
         args.json.parent.mkdir(parents=True, exist_ok=True)
         args.json.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n")
@@ -391,6 +459,7 @@ def main() -> int:
         "versionCode": report.get("manifest", {}).get("versionCode"),
         "v1": report.get("v1", {}).get("ok"),
         "v2": report.get("v2", {}).get("ok"),
+        "aapt2": (report.get("aapt2") or {}).get("ok"),
         "certificate": report.get("v2", {}).get("certificateSubject"),
         "buildMarker": report.get("buildMarker"),
     }

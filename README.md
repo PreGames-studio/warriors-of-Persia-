@@ -2,81 +2,71 @@
 
 > ⭐ **راهنمای سبک طراحی و علایق کارفرما:** جزئیات کامل نحوه طراحی مورد پسند (فروشگاه آهنگری سینمایی قرون‌وسطایی، رندرهای 8K/PBR آیتم‌ها، کوچه‌گردی سه‌بعدی در روستا و سیستم سیو دائمی) در فایل [**`DESIGN_PREFERENCES.md`**](./DESIGN_PREFERENCES.md) ذخیره شده است.
 
-## 🚑 اگر نصب باز هم «بستهٔ نامعتبر» داد
+## ✅ نسخهٔ ۱.۰.۳ — علتِ واقعیِ «بستهٔ نامعتبر» پیدا و برطرف شد
 
-دو سناریو باقی می‌ماند که هر دو در نسخهٔ زیر پوشش داده شده‌اند:
+تا نسخهٔ ۱.۰.۲ همهٔ بررسی‌ها (CRC، هم‌ترازی، امضای v1/v2، `keytool`، androguard) سبز بود،
+ولی نصب باز هم شکست می‌خورد؛ چون ایراد در **امضا** نبود، در خودِ `resources.arsc` بود.
+جدول منابعِ ۵۷۶ بایتی که دستی ساخته شده بود از نظر ساختاری خراب بود و پارسر منابعِ خودِ
+اندروید آن را رد می‌کند:
 
-| سناریو | راه‌حل |
-|---|---|
-| دانلود از GitHub در شبکهٔ شما فیلتر/ناقص می‌شود و به‌جای APK یک صفحهٔ HTML ذخیره می‌شود | صفحهٔ دانلود محلی `Tools/serve_apk_downloads.py` فایل را با `application/vnd.android.package-archive` و طول دقیق سرو می‌کند |
-| نسخهٔ قدیمی بازی با کلید دیگری نصب است و اندروید آپدیت با کلید متفاوت را رد می‌کند | `WarriorsOfPersia_3D_hd.apk` با شناسهٔ مستقل `com.pregames.warriorsofpersia.hd` ساخته شده و **کنار** نسخهٔ قبلی نصب می‌شود |
-
-```bash
-# اجرای صفحهٔ دانلود روی همین ماشین
-python3 Tools/serve_apk_downloads.py --port 8000 --dir artifacts/apk
+```
+aapt2: Entry at index 0 is too small (0)
+error: corrupt ResTable_package: chunk is past the end of the document.
 ```
 
-| فایل | شناسهٔ بسته | SHA-256 |
-|---|---|---|
-| `WarriorsOfPersia_3D.apk` | `com.pregames.warriorsofpersia` | `627ff32de1e5edb0197ee311a57b902f80bbd52deea983de85a889e268653163` |
-| `WarriorsOfPersia_3D_hd.apk` | `com.pregames.warriorsofpersia.hd` | `e97189e17ebcc4421e3e1390167aa5f10f2add0cb2617e3a31fe48ceaa368930` |
+همین خطا باعث می‌شد PackageManager کل بسته را «نامعتبر» اعلام کند. در نسخهٔ ۱.۰.۳:
 
----
+1. `Tools/apk_resources.py` یک `ResTable` **معتبر با صفر پکیج** تولید می‌کند
+   (هدر `0x0002` + استخر رشتهٔ UTF-8 خالی) — همان چیزی که یک APK بدون منابعِ برنامه دارد.
+2. `Tools/build_installable_apk.py` دیگر جدول منابعِ خراب و پوشهٔ `res/` را کپی نمی‌کند.
+3. `Tools/verify_apk.py` حالا با **aapt2** (همان پارسرِ اندروید) دروازه‌گذاری می‌کند:
+   `dump badging` / `dump resources` / `dump xmltree`. اگر APK خراب باشد، `verdict: fail`.
+   قبلاً این دروازه نبود و همین باعث شد سه بیلد معیوب پشت‌سرهم تحویل داده شود.
+4. محتوای بازی دست‌نخورده است: `assets/index.html` و `classes.dex` بایت‌به‌بایت با بیلد قبلی
+   یکسان‌اند (SHA-256 جداگانه چک شده)؛ فقط پوستهٔ بسته اصلاح شده.
 
-## 📥 دانلود مستقیم و نصب نسخه ۱.۰.۱ (رفع خطای «بسته نامعتبر»)
+| فایل | شناسهٔ بسته | حجم | SHA-256 |
+|---|---|---|---|
+| `WarriorsOfPersia_3D.apk` | `com.pregames.warriorsofpersia` | ۲۰,۳۲۲,۴۸۹ بایت | `cd8e34730db6d13c4c5b74683375b35d526dc0489df9186a19021403f92d0fd4` |
+| `WarriorsOfPersia_3D_hd.apk` | `com.pregames.warriorsofpersia.hd` | ۲۰,۳۲۲,۴۹۸ بایت | `b411255da984686e570ea7d92a8eb57ffb0510b16f92f5b160c82ffeccd6809a` |
 
-| مشخصه | مقدار |
-|---|---|
-| فایل | `WarriorsOfPersia_3D.apk` |
-| حجم | ۲۰,۳۳۴,۸۱۵ بایت (≈ ۱۹.۴ مگابایت) |
-| SHA-256 | `627ff32de1e5edb0197ee311a57b902f80bbd52deea983de85a889e268653163` |
-| package | `com.pregames.warriorsofpersia` |
-| versionName / versionCode | `1.0.1` / `2` |
-| minSdk / targetSdk | `21` / `28` |
-| امضا | JAR v1 + APK Signature Scheme v2 (RSA 2048 / SHA-256) |
-| بیلد محتوا | `mia-9495b9487f` (همان بیلد Mia-only روز روشن) |
+هر دو: `versionName 1.0.3` / `versionCode 3`، `minSdk 21`، `targetSdk 28`، JAR v1 + APK v2.
 
-**لینک دانلود مستقیم (فایل باینری APK):**
+**لینک دانلود مستقیم (باینری APK، برچسب ثابت `v1.0.3`):**
 
-- نسخهٔ ثابت و برچسب‌خورده (توصیه‌شده):
-  `https://github.com/PreGames-studio/warriors-of-Persia-/raw/v1.0.1-install-fix/WarriorsOfPersia_3D.apk`
-- صفحهٔ فایل در همین شاخه:
-  `https://github.com/PreGames-studio/warriors-of-Persia-/raw/arena/c51908e6-warriors-of-persia/WarriorsOfPersia_3D.apk`
+- `https://github.com/PreGames-studio/warriors-of-Persia-/raw/v1.0.3/WarriorsOfPersia_3D.apk`
+- `https://github.com/PreGames-studio/warriors-of-Persia-/raw/v1.0.3/artifacts/apk/WarriorsOfPersia_3D_hd.apk`
 
-نکته: از لینک‌های بالا استفاده کنید، نه از صفحهٔ نمایش فایل در GitHub؛ باز کردن فایل از صفحهٔ
-`blob` یک صفحهٔ HTML دانلود می‌کند و همان فایل هنگام نصب «بستهٔ نامعتبر» می‌دهد.
+نکته: از همین لینک‌های `raw` استفاده کنید، نه صفحهٔ `blob` گیت‌هاب؛ باز کردن فایل از صفحهٔ
+نمایش، یک صفحهٔ HTML ذخیره می‌کند و همان «بستهٔ نامعتبر» را می‌دهد.
 
-### چه چیزی در نسخهٔ ۱.۰.۱ درست شد؟
+### بازتولید و ممیزی (بازتولیدپذیر)
 
-1. **بسته‌بندی از نو (ZIP استاندارد اندروید):** `resources.arsc` و آیکون به‌صورت *store* و
-   هم‌تراز با مرز ۴ بایت ذخیره می‌شوند (آفست قبلی `759` بود که با `%4 = 3` هم‌تراز نبود) و
-   فیلد اضافی نامعتبر `0xFFFF` از هدر حذف شد.
-2. **امضای بازتولیدپذیر و ممیزی‌شده:** v1 و v2 با اسکریپت‌های `Tools/apk_signing.py` ساخته
-   می‌شوند؛ خروجی با `keytool` (جاوا) و ابزار مستقل `Tools/verify_apk.py` تأیید شده است.
-3. **کلید امضای ثابت:** کلید در `Tools/keys/wop-release.p12` نگه‌داری می‌شود، بنابراین
-   نسخه‌های بعدی مثل یک آپدیت روی نسخهٔ فعلی نصب می‌شوند (قبلاً کلید در هر انتشار عوض می‌شد).
-4. **حجم ۱۹ مگابایت به‌جای ۲۰۸ مگابایت:** دانلود ناقص/قطع‌شدهٔ فایل بزرگ، شایع‌ترین دلیل
-   خطای «There was a problem parsing the package» روی گوشی است؛ نسخهٔ جدید کاملاً آفلاین و
-   کوچک است و همهٔ بافت‌ها داخل خود APK قرار دارند.
-5. **گزارش ممیزی نصب:** [`artifacts/quality/apk-install-audit-v1.0.1.json`](./artifacts/quality/apk-install-audit-v1.0.1.json)
-   شامل بررسی CRC، هم‌ترازی، امضای v1/v2، دیجست SHA-256 محتوا و مانیفست باینری است
-   (نتیجه: `verdict: pass`).
+```bash
+# ابزار دروازه‌گذاری: aapt2 بستهٔ npm (یک‌بار)
+npm i aaptjs3            # باینری در node_modules/aaptjs3/bin/x64/linux/aapt2
+
+python3 Tools/build_installable_apk.py --source-apk WarriorsOfPersia_3D.apk \
+  --keystore Tools/keys/wop-release.p12 --storepass wop-release-2026 \
+  --version-code 3 --version-name 1.0.3 --output WarriorsOfPersia_3D.apk
+python3 Tools/verify_apk.py WarriorsOfPersia_3D.apk \
+  --json artifacts/quality/apk-install-audit-v1.0.3.json
+```
+
+گزارش‌های ممیزی: [`apk-install-audit-v1.0.3.json`](./artifacts/quality/apk-install-audit-v1.0.3.json)
+و [`apk-install-audit-v1.0.3-hd.json`](./artifacts/quality/apk-install-audit-v1.0.3-hd.json)
+(شامل خروجی خام `aapt2 dump badging/resources/xmltree`).
 
 ### نصب
 
-1. اگر نسخهٔ قدیمی بازی روی گوشی نصب است، **یک بار حذفش کنید** (نسخه‌های قبلی با کلید دیگری
-   امضا شده‌اند و اندروید اجازهٔ آپدیت با کلید متفاوت نمی‌دهد).
-2. فایل `WarriorsOfPersia_3D.apk` را نصب کنید؛ اگر پیام «نصب برنامه‌های ناشناس» آمد، اجازه بدهید.
-3. برای اطمینان از سالم‌بودن دانلود، SHA-256 فایل را با مقدار جدول بالا مقایسه کنید.
+1. اگر نسخهٔ قدیمی نصب است، اول حذفش کنید (بیلدهای قبلی با کلیدی دیگر امضا شده‌اند).
+2. `WarriorsOfPersia_3D.apk` را نصب کنید. اگر خطای «بستهٔ نامعتبر» دید، ابتدا SHA-256 را
+   با جدول بالا مقایسه کنید؛ نباید هیچ‌کدام از بیلدهای قبلی (۱.۰.۱/۱.۰.۲) این هش را داشته باشد.
+3. اگر می‌خواهید نسخهٔ قبلی هم بماند، `WarriorsOfPersia_3D_hd.apk` را نصب کنید
+   (شناسهٔ مستقل `...hd`).
 
-ساخت مجدد خروجی (بازتولیدپذیر):
-
-```bash
-python3 Tools/build_installable_apk.py --source-apk WarriorsOfPersia_3D.apk \
-  --keystore Tools/keys/wop-release.p12 --storepass wop-release-2026 \
-  --version-code 2 --version-name 1.0.1 --output WarriorsOfPersia_3D.apk
-python3 Tools/verify_apk.py WarriorsOfPersia_3D.apk --json artifacts/quality/apk-install-audit-v1.0.1.json
-```
+اگر دانلود از گیت‌هاب در شبکهٔ شما ناقص/HTML می‌شود، صفحهٔ دانلود محلی:
+`python3 Tools/serve_apk_downloads.py --port 8000 --dir artifacts/apk`
 
 ---
 

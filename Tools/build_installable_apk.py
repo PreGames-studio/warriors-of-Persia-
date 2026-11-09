@@ -31,6 +31,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from apk_manifest import patch_manifest, read_manifest_attributes  # noqa: E402
+from apk_resources import empty_resource_table  # noqa: E402
 from apk_signing import Entry, sign_apk  # noqa: E402
 
 from cryptography.hazmat.primitives.serialization import pkcs12  # noqa: E402
@@ -69,15 +70,23 @@ def collect_entries(
         package=package,
     )
 
-    # resources.arsc must be stored and 4-byte aligned; drawables are stored too
-    # so that resources can be mapped straight from the APK.
-    order = ["AndroidManifest.xml", "classes.dex", "resources.arsc"]
-    entries: list[Entry] = []
-    for name in order:
-        if name in content:
-            entries.append(Entry(name, content.pop(name), compress=name != "resources.arsc"))
-    for name in sorted(n for n in content if n.startswith("res/")):
-        entries.append(Entry(name, content.pop(name), compress=False))
+    # The source APK's resource table is structurally corrupt (Android's own
+    # parser rejects it: "corrupt ResTable_package"), and nothing in the game
+    # references an app resource, so a valid empty table is emitted instead.
+    content.pop("resources.arsc", None)
+    for name in [n for n in content if n.startswith("res/")]:
+        content.pop(name)
+
+    target_package = read_manifest_attributes(content["AndroidManifest.xml"]).get("package")
+    entries: list[Entry] = [
+        Entry("AndroidManifest.xml", content.pop("AndroidManifest.xml")),
+        Entry("classes.dex", content.pop("classes.dex")),
+        Entry(
+            "resources.arsc",
+            empty_resource_table(package_name=str(target_package)),
+            compress=False,
+        ),
+    ]
     for name in sorted(content):
         entries.append(Entry(name, content.pop(name), compress=True))
     return entries
