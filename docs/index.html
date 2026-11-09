@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>دانلود جنگجویان پارس ۳بعدی — نسخه ۱.۰.۳</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; padding: 32px 18px 48px;
+    font-family: "Vazirmatn", "IRANSans", Tahoma, system-ui, sans-serif;
+    background: radial-gradient(circle at 50% -10%, #3b2412 0%, #170f0a 55%, #0b0705 100%);
+    color: #f6e7cf; line-height: 1.9;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: clamp(1.5rem, 5vw, 2.2rem); margin: 0 0 6px; }
+  .sub { color: #c8ae8b; margin: 0 0 26px; font-size: .98rem; }
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: .8rem;
+    background: #1f5136; color: #a9f0c4; border: 1px solid #2f7a51; margin-inline-start: 8px;
+  }
+  a.card {
+    display: block; text-decoration: none; color: inherit; margin: 14px 0; padding: 18px 20px;
+    border-radius: 16px; border: 1px solid #4a3220; background: linear-gradient(180deg, #241811, #1a110c);
+    transition: transform .12s ease, border-color .12s ease;
+  }
+  a.card:hover, a.card:focus { transform: translateY(-2px); border-color: #c98b3c; }
+  a.card .name { font-size: 1.06rem; font-weight: 700; color: #ffce8a; }
+  a.card .meta { font-size: .86rem; color: #b79c7c; margin-top: 6px; word-break: break-all; }
+  h2 { font-size: 1.05rem; margin: 30px 0 8px; color: #ffce8a; }
+  ol, ul { padding-inline-start: 22px; }
+  code { background: #241811; border: 1px solid #402c1c; border-radius: 6px; padding: 1px 6px; font-size: .84em; word-break: break-all; }
+  .warn { border-inline-start: 3px solid #c98b3c; background: #1e150f; padding: 12px 16px; border-radius: 10px; font-size: .93rem; }
+  footer { margin-top: 34px; font-size: .82rem; color: #8d7660; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>جنگجویان پارس ۳بعدی <span class="badge">نسخه ۱.۰.۳ — قابل نصب</span></h1>
+  <p class="sub">این نسخه خطای «بستهٔ نامعتبر» هنگام نصب را برطرف می‌کند. جدول منابع (resources.arsc) که خراب بود با یک جدول معتبر جایگزین شده و بیلد با همان پارسر اندروید (aapt2) تأیید شده است.</p>
+
+  <a class="card" href="https://github.com/PreGames-studio/warriors-of-Persia-/raw/v1.0.3/WarriorsOfPersia_3D.apk">
+    <div class="name">⬇️ دانلود WarriorsOfPersia_3D.apk</div>
+    <div class="meta">
+      بستهٔ اصلی — <code>com.pregames.warriorsofpersia</code> — نسخه ۱.۰.۳ (کد ۳) — ۲۰,۳۲۲,۴۸۹ بایت<br>
+      SHA-256: <code>cd8e34730db6d13c4c5b74683375b35d526dc0489df9186a19021403f92d0fd4</code>
+    </div>
+  </a>
+
+  <a class="card" href="https://github.com/PreGames-studio/warriors-of-Persia-/raw/v1.0.3/artifacts/apk/WarriorsOfPersia_3D_hd.apk">
+    <div class="name">⬇️ دانلود WarriorsOfPersia_3D_hd.apk</div>
+    <div class="meta">
+      نسخهٔ مستقل و قابل نصب در کنار نسخهٔ قبلی — <code>com.pregames.warriorsofpersia.hd</code> — نسخه ۱.۰.۳ (کد ۳) — ۲۰,۳۲۲,۴۹۸ بایت<br>
+      SHA-256: <code>b411255da984686e570ea7d92a8eb57ffb0510b16f92f5b160c82ffeccd6809a</code>
+    </div>
+  </a>
+
+  <h2>نصب</h2>
+  <ol>
+    <li>اگر نسخهٔ قدیمی بازی روی گوشی نصب است، اول حذفش کنید (بیلدهای قبلی با کلید دیگری امضا شده‌اند).</li>
+    <li>فایل APK را نصب کنید؛ اگر پیام «نصب برنامه‌های ناشناس» آمد، اجازه بدهید.</li>
+    <li>برای اطمینان از سالم‌بودن دانلود، SHA-256 را با مقدار بالا مقایسه کنید.</li>
+  </ol>
+
+  <h2>چرا نسخه‌های قبلی نصب نمی‌شدند؟</h2>
+  <p class="warn">امضا، CRC و هم‌ترازی همه درست بودند؛ ایراد در <code>resources.arsc</code> بود که ساختارش خراب بود و پارسر منابع اندروید آن را رد می‌کرد:
+  <code>corrupt ResTable_package: chunk is past the end of the document</code>. اگر فایلی با همین هش بالا نصب نشد، یعنی دانلود کامل نشده است — دوباره دانلود کنید.</p>
+
+  <footer>Warriors of Persia 3D — PreGames Studio · کد منبع و گزارش‌های ممیزی: <a href="https://github.com/PreGames-studio/warriors-of-Persia-" style="color:#c98b3c">GitHub</a></footer>
+</div>
+</body>
+</html>
