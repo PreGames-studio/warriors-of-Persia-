@@ -1,0 +1,56 @@
+{
+  "path": "artifacts/releases/WarriorsOfPersia_1.0.4.apk",
+  "bytes": 19981688,
+  "sha256": "dd536c4d4744a56ae4b0cda88d0c93cc3c572459d6679457e9c563c11bf1f338",
+  "verdict": "pass",
+  "problems": [],
+  "zipTest": "ok",
+  "entryCount": 38,
+  "storedEntryAlignmentMod4": {
+    "resources.arsc": 0
+  },
+  "manifest": {
+    "versionCode": 4,
+    "versionName": "1.0.4",
+    "installLocation": 0,
+    "package": "com.pregames.warriorsofpersia"
+  },
+  "dexMagic": "dex\n035\u0000",
+  "v1": {
+    "checked": true,
+    "ok": true,
+    "problems": [],
+    "pkcs7Verified": true,
+    "entriesVerified": 35,
+    "declaredSchemes": "2"
+  },
+  "aapt2": {
+    "binary": "/home/user/warriors-of-Persia-/node_modules/aaptjs3/bin/x64/linux/aapt2",
+    "ok": true,
+    "problems": [],
+    "commands": {
+      "badging": 0,
+      "xmltree": 0,
+      "resources": 0
+    },
+    "badging": "package: name='com.pregames.warriorsofpersia' versionCode='4' versionName='1.0.4'",
+    "launchableActivity": "launchable-activity: name='com.pregames.warriorsofpersia.MainActivity'  label='Warriors of Persia 3D' icon=''"
+  },
+  "v2": {
+    "present": true,
+    "ok": true,
+    "problems": [],
+    "blockOffset": 19977092,
+    "pairIds": [
+      "0x7109871a"
+    ],
+    "contentDigest": "85a67c5e231f912f3809e18a100dcf5c6ff2c83a48fbc649b8a0539fa6fd6e6d",
+    "declaredDigest": "85a67c5e231f912f3809e18a100dcf5c6ff2c83a48fbc649b8a0539fa6fd6e6d",
+    "signatureVerified": true,
+    "certificateSubject": "CN=Warriors of Persia,O=PreGames Studio,C=US",
+    "certificateSha256": "d0cee9ad2772f6804970c6cdc7d46ca06f51b932ac68902dd1ae069a7ac8d1a7",
+    "certificateNotAfter": "2059-02-27T11:02:13+00:00",
+    "publicKeyMatchesCertificate": true
+  },
+  "indexHtmlBytes": 18410539
+}
