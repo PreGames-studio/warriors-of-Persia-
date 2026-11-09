@@ -41,13 +41,18 @@ export function createCombatPlan(zone, tier = 1) {
   const portals = zone === 'open_world' ? [[-88, 0], [54, -28], [78, 30]] : [[0, 42]];
   const clear = (x, z, margin) => routes.every(route => route.slice(1).every((b, i) => distanceToSegment(x, z, route[i], b) > margin)) && portals.every(p => Math.hypot(x - p[0], z - p[1]) > margin + 7) && (zone !== 'open_world' || Math.abs(x) > 15 + margin) && (zone !== 'dungeon' || Math.hypot(x, z + 24) > 32 + margin);
   const plots = [], rocks = [], trees = [];
-  // Dense staggered clusters, not a rectilinear town pasted onto a wilderness.
-  for (let z = -bounds.z + 9, row = 0; z < bounds.z - 8; z += 14, row++) {
-    for (let x = -bounds.x + 10; x < bounds.x - 8; x += 16) {
-      const px = x + (row % 2) * 4 + (random() - .5) * 2, pz = z + (random() - .5) * 2;
-      if (clear(px, pz, 12) && random() < .48) plots.push({ x: px, z: pz, y: combatHeight(zone, tier, px, pz), rotY: (random() - .5) * .7, scale: .8, floors: 1, kind: 'house' });
-    }
+  // Half the former building count; independent clustered samples, never rows.
+  const target = zone === 'open_world' ? 23 : fire ? 6 : 4;
+  const clusters = Array.from({length: 5}, () => ({x:(random()*2-1)*(bounds.x-15),z:(random()*2-1)*(bounds.z-15)}));
+  for (let attempt=0; plots.length<target && attempt<20000; attempt++) {
+    const cluster=clusters[Math.floor(random()*clusters.length)];
+    const x=attempt%3 ? cluster.x+(random()*2-1)*26 : (random()*2-1)*(bounds.x-12);
+    const z=attempt%3 ? cluster.z+(random()*2-1)*22 : (random()*2-1)*(bounds.z-12);
+    if(Math.abs(x)>bounds.x-10 || Math.abs(z)>bounds.z-10 || !clear(x,z,12)) continue;
+    if(plots.some(p=>Math.abs(x-p.x)<16 && Math.abs(z-p.z)<16)) continue;
+    plots.push({x,z,y:combatHeight(zone,tier,x,z),rotY:random()*Math.PI*2,scale:.8,floors:1,kind:'house'});
   }
+  if(plots.length!==target) throw new Error('Organic combat plot count invariant failed');
   for (let i = 0; i < (zone === 'open_world' ? 650 : 430); i++) {
     const x = (random() * 2 - 1) * (bounds.x - 3), z = (random() * 2 - 1) * (bounds.z - 3);
     if (!clear(x, z, 5) || plots.some(p => Math.hypot(x-p.x, z-p.z) < 10)) continue;
