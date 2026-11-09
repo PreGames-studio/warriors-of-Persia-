@@ -34,6 +34,10 @@ class StringPool:
     def utf8(self) -> bool:
         return bool(self.flags & UTF8_FLAG)
 
+    @property
+    def string_count(self) -> int:
+        return self.count
+
     def string_slice(self, index: int) -> tuple[int, int]:
         """Return (start, end) of the encoded string *index* inside ``blob``."""
         pool_start = self.chunk_offset + self.strings_start
@@ -94,13 +98,98 @@ def iter_chunks(raw: bytes | bytearray):
         offset += size
 
 
+
+def _encode_length(value: int, *, utf8: bool) -> bytes:
+    """Encode a string-pool length prefix (1-2 bytes for UTF-8, 2-4 for UTF-16)."""
+    if utf8:
+        if value > 0x7F:
+            return bytes([0x80 | (value >> 8), value & 0xFF])
+        return bytes([value])
+    if value > 0x7FFF:
+        return struct.pack("<HH", 0x8000 | (value >> 16), value & 0xFFFF)
+    return struct.pack("<H", value)
+
+
+def _encode_pool_string(value: str, *, utf8: bool) -> bytes:
+    if utf8:
+        encoded = value.encode("utf-8")
+        out = _encode_length(len(value), utf8=True) + _encode_length(len(encoded), utf8=True)
+        out += encoded + b"\x00"
+    else:
+        units = len(value.encode("utf-16-le")) // 2
+        out = _encode_length(units, utf8=False) + value.encode("utf-16-le") + b"\x00\x00"
+    while len(out) % 4:
+        out += b"\x00"
+    return out
+
+
+def rename_package(raw: bytes, new_package: str) -> bytes:
+    """Rewrite the manifest ``package`` attribute, rebuilding the string pool.
+
+    The package name has to be resolvable as a *new* app id, so its length changes
+    and every following string offset has to be recomputed.  Nothing else in the
+    binary XML references absolute pool offsets, so the rest of the document is
+    copied verbatim.
+    """
+    pool = None
+    for chunk_type, _header_size, _size, offset in iter_chunks(raw):
+        if chunk_type == RES_STRING_POOL_TYPE:
+            pool = _parse_string_pool(raw, offset)
+            break
+    if pool is None:
+        raise ValueError("no string pool in AndroidManifest.xml")
+    if pool.string_count == 0:
+        raise ValueError("empty string pool")
+
+    values = [pool.get(i) for i in range(pool.count)]
+    index = None
+    for i, value in enumerate(values):
+        if value == new_package:
+            index = i
+            break
+    if index is None:
+        # the package attribute is the string that looks like the current app id
+        current = read_manifest_attributes(raw).get("package")
+        index = values.index(str(current))
+
+    legacy = values[index]
+    values[index] = new_package
+
+    offsets: list[int] = []
+    data = bytearray()
+    for value in values:
+        offsets.append(len(data))
+        data += _encode_pool_string(value, utf8=pool.utf8)
+    while len(data) % 4:
+        data += b"\x00"
+
+    header_size = 28
+    strings_start = header_size + 4 * len(values)
+    chunk_size = strings_start + len(data)
+    new_pool = (
+        struct.pack("<HHI", RES_STRING_POOL_TYPE, header_size, chunk_size)
+        + struct.pack("<IIIII", len(values), 0, pool.flags, strings_start, 0)
+        + b"".join(struct.pack("<I", off) for off in offsets)
+        + bytes(data)
+    )
+
+    old_size = struct.unpack_from("<I", raw, pool.chunk_offset + 4)[0]
+    out = bytearray(raw[:pool.chunk_offset] + new_pool + raw[pool.chunk_offset + old_size:])
+    struct.pack_into("<I", out, 4, len(out))
+    del legacy
+    return bytes(out)
+
+
 def patch_manifest(
     raw: bytes,
     *,
     version_code: int | None = None,
     version_name: str | None = None,
+    package: str | None = None,
 ) -> bytes:
     """Return *raw* AXML with versionCode / versionName updated in place."""
+    if package is not None:
+        raw = rename_package(raw, package)
     if version_code is None and version_name is None:
         return raw
 

@@ -47,7 +47,12 @@ def load_key(keystore: Path, password: str):
     return key, cert.public_bytes(Encoding.DER), [c.public_bytes(Encoding.DER) for c in (extra or [])]
 
 
-def collect_entries(source: Path, version_code: int | None, version_name: str | None) -> list[Entry]:
+def collect_entries(
+    source: Path,
+    version_code: int | None,
+    version_name: str | None,
+    package: str | None = None,
+) -> list[Entry]:
     """Reuse the game payload from *source* and rebuild the container around it."""
     with zipfile.ZipFile(source) as zf:
         content = {
@@ -58,7 +63,10 @@ def collect_entries(source: Path, version_code: int | None, version_name: str | 
         }
 
     content["AndroidManifest.xml"] = patch_manifest(
-        content["AndroidManifest.xml"], version_code=version_code, version_name=version_name
+        content["AndroidManifest.xml"],
+        version_code=version_code,
+        version_name=version_name,
+        package=package,
     )
 
     # resources.arsc must be stored and 4-byte aligned; drawables are stored too
@@ -83,12 +91,13 @@ def main() -> int:
     parser.add_argument("--storepass", required=True)
     parser.add_argument("--version-code", type=int)
     parser.add_argument("--version-name")
+    parser.add_argument("--package", help="override the application id (fresh install id)")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--report", type=Path)
     args = parser.parse_args()
 
     key, cert_der, extra_certs = load_key(args.keystore, args.storepass)
-    entries = collect_entries(args.source_apk, args.version_code, args.version_name)
+    entries = collect_entries(args.source_apk, args.version_code, args.version_name, args.package)
     apk, report = sign_apk(entries, key, cert_der, extra_certificates=extra_certs)
 
     args.output.parent.mkdir(parents=True, exist_ok=True)

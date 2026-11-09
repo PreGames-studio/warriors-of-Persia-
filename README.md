@@ -2,6 +2,27 @@
 
 > ⭐ **راهنمای سبک طراحی و علایق کارفرما:** جزئیات کامل نحوه طراحی مورد پسند (فروشگاه آهنگری سینمایی قرون‌وسطایی، رندرهای 8K/PBR آیتم‌ها، کوچه‌گردی سه‌بعدی در روستا و سیستم سیو دائمی) در فایل [**`DESIGN_PREFERENCES.md`**](./DESIGN_PREFERENCES.md) ذخیره شده است.
 
+## 🚑 اگر نصب باز هم «بستهٔ نامعتبر» داد
+
+دو سناریو باقی می‌ماند که هر دو در نسخهٔ زیر پوشش داده شده‌اند:
+
+| سناریو | راه‌حل |
+|---|---|
+| دانلود از GitHub در شبکهٔ شما فیلتر/ناقص می‌شود و به‌جای APK یک صفحهٔ HTML ذخیره می‌شود | صفحهٔ دانلود محلی `Tools/serve_apk_downloads.py` فایل را با `application/vnd.android.package-archive` و طول دقیق سرو می‌کند |
+| نسخهٔ قدیمی بازی با کلید دیگری نصب است و اندروید آپدیت با کلید متفاوت را رد می‌کند | `WarriorsOfPersia_3D_hd.apk` با شناسهٔ مستقل `com.pregames.warriorsofpersia.hd` ساخته شده و **کنار** نسخهٔ قبلی نصب می‌شود |
+
+```bash
+# اجرای صفحهٔ دانلود روی همین ماشین
+python3 Tools/serve_apk_downloads.py --port 8000 --dir artifacts/apk
+```
+
+| فایل | شناسهٔ بسته | SHA-256 |
+|---|---|---|
+| `WarriorsOfPersia_3D.apk` | `com.pregames.warriorsofpersia` | `627ff32de1e5edb0197ee311a57b902f80bbd52deea983de85a889e268653163` |
+| `WarriorsOfPersia_3D_hd.apk` | `com.pregames.warriorsofpersia.hd` | `e97189e17ebcc4421e3e1390167aa5f10f2add0cb2617e3a31fe48ceaa368930` |
+
+---
+
 ## 📥 دانلود مستقیم و نصب نسخه ۱.۰.۱ (رفع خطای «بسته نامعتبر»)
 
 | مشخصه | مقدار |
