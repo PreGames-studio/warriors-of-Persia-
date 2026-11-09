@@ -1,4 +1,4 @@
-const CACHE_NAME = 'warriors-of-persia-3d-v7-organic-hamlets';
+const CACHE_NAME = 'warriors-of-persia-3d-v11-smooth-camera';
 const ASSETS = [
   './',
   './index.html',
@@ -10,6 +10,13 @@ const ASSETS = [
   './village-theme.css',
   './village-theme.js',
   './world-landscape.js',
+  './camera-look.js',
+  './camera-motion.js',
+  './map-markers.js',
+  './merchant-shop.js',
+  './merchant-catalog.js',
+  './merchant-shop.css',
+  './assets/merchants/merchant-hall.jpg',
   './blacksmith-forge.js',
   './blacksmith-textures.js',
   './lib/three.module.js',

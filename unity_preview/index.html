@@ -9,6 +9,7 @@
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" href="./icon.png" />
   <link rel="stylesheet" href="./potion-shop.css" />
+  <link rel="stylesheet" href="./merchant-shop.css" />
   <title>Warriors of Persia 3D — روستای پارسی و کوچه‌های بازار</title>
   <style>
     @font-face {
@@ -1224,6 +1225,7 @@
       </div>
       <button class="cam-switch-btn" id="btn-map-toggle" aria-expanded="false">⛶ بزرگ‌کردن نقشه</button>
       <canvas id="minimap-canvas" width="136" height="82"></canvas>
+      <button class="cam-switch-btn" id="btn-camera-reset" title="بازگشت دوربین به پشت سر میا">↶ پشت سر میا</button>
       <button class="cam-switch-btn" id="btn-cam-mode">🎥 دوربین: سوم‌شخص (پشت‌سر هیرو)</button>
     </div>
 
@@ -1456,6 +1458,10 @@
     import * as THREE from './lib/three.module.js';
     import { OrbitControls } from './lib/OrbitControls.js';
     import { OBJExporter } from './lib/OBJExporter.js';
+    import { createMerchantShop } from './merchant-shop.js';
+    import { smoothAngle, dragLookTarget } from './camera-motion.js';
+    import { installDragLook } from './camera-look.js';
+    import { mapMarkerMetrics, drawShopMarker, drawPlayerMarker } from './map-markers.js';
     import { combatBounds, combatHeight, createCombatPlan, buildCombatLandscape } from './world-landscape.js';
     import { createPotionShop } from './potion-shop.js';
     import { createPersianVillageKit } from './village-theme.js';
@@ -1664,7 +1670,7 @@
           roofColor: DISTRICT_SHOP_COLORS[shopIndex % DISTRICT_SHOP_COLORS.length],
           carpetColor: 0x7c2d12,
           interactPos: plot.interactPos || null,
-          greeting: `به ${title} خوش آمدید! کالاها و پیشنهادهای این حجره به‌زودی کامل‌تر می‌شوند.`,
+          greeting: `به ${title} خوش آمدید! کالاها و کالاهای ویژهٔ این حرفه را ببینید و خرید کنید.`,
           kind: 'shop',
           district: true
         };
@@ -1736,6 +1742,22 @@
         }
       ]
     };
+
+    const merchantShop = createMerchantShop({
+      state, onSave: saveGameProgress, onChange: updateHeroStatsHUD, onToast: showToast, onSound: playTone,
+      onSellCrystals: () => {
+        if(state.currentZone !== 'village' || !state.crystals.length) return;
+        state.coins += state.crystals.reduce((sum,c)=>sum+c.coinValue,0); state.crystals=[];
+        updateHeroStatsHUD(); saveGameProgress(); showToast('کریستال‌ها فروخته شدند.', '#fde047');
+      },
+      onRecoverLevel: () => {
+        const hero=state.party[0], cost=45*Math.max(1,hero.level);
+        if(state.currentZone !== 'village' || state.lostLevelsRecoverable<=0 || state.coins<cost) return;
+        state.coins-=cost; state.lostLevelsRecoverable--; hero.level++;
+        hero.hpMax+=25;hero.hp=hero.hpMax;hero.manaMax+=25;hero.mana=hero.manaMax;hero.atk+=5;
+        updateHeroStatsHUD();saveGameProgress();showToast('سطح ازدست‌رفته بازیابی شد.', '#fde047');
+      }
+    });
 
     // Cinematic potion shop, sharing the same gold, inventory and persistent save state.
     const potionShop = createPotionShop({
@@ -1919,8 +1941,11 @@
 
     const orbitControls = new OrbitControls(camera, renderer.domElement);
     orbitControls.enableDamping = true;
-    orbitControls.dampingFactor = .08;
-    orbitControls.rotateSpeed = .75;
+    orbitControls.dampingFactor = .06;
+    orbitControls.rotateSpeed = .28;
+    orbitControls.enablePan = false;
+    orbitControls.minDistance = 6; orbitControls.maxDistance = 45;
+    orbitControls.minPolarAngle = .2; orbitControls.maxPolarAngle = Math.PI / 2 - .08;
     orbitControls.enabled = false;
 
     // Village camera: a true over-the-shoulder view that rotates behind the
@@ -1934,6 +1959,24 @@
       closeHeight: 5.4
     });
     let villageCameraYaw = Math.PI;
+    let manualCameraLook = false;
+    let cameraLookTilt = 0;
+    let cameraLookYawTarget = villageCameraYaw;
+    let cameraLookTiltTarget = 0;
+    let ignoreWorldClickUntil = 0;
+    renderer.domElement.style.touchAction = 'none';
+    const cameraLookGesture = installDragLook(renderer.domElement, {
+      enabled: () => state.cameraMode === 0 && !document.querySelector('.modal-overlay.open'),
+      rotate: (dx, dy) => {
+        if (!manualCameraLook) { cameraLookYawTarget = villageCameraYaw; cameraLookTiltTarget = cameraLookTilt; }
+        manualCameraLook = true;
+        const target = dragLookTarget(cameraLookYawTarget, cameraLookTiltTarget, dx, dy);
+        cameraLookYawTarget = target.yaw;
+        cameraLookTiltTarget = target.tilt;
+        ignoreWorldClickUntil = performance.now() + 450;
+      },
+      finished: () => { ignoreWorldClickUntil = performance.now() + 450; }
+    });
     let villageCameraShoulderOffset = 0;
     let villageCameraShouldAlign = true;
     let villageCameraLookTargetReady = false;
@@ -1945,7 +1988,6 @@
     const villageCameraTarget = new THREE.Vector3();
     const villageCameraLookTarget = new THREE.Vector3();
     const villageCameraSample = new THREE.Vector3();
-    const VILLAGE_CAMERA_SHOULDERS = [0, -.61, .61, -1.05, 1.05, -1.57, 1.57];
 
     const hemiLight = new THREE.HemisphereLight(0xfffbeb, 0x334155, 0.95);
     scene.add(hemiLight);
@@ -2315,6 +2357,8 @@
     // ZONE BUILDERS (1. EXPANDED VILLAGE WITH ALLEYS & SHOPS, 2. OPEN WORLD, 3. DUNGEON)
     // =====================================================================
     function loadZone3D(zoneId, tier = 1, overrideHeroPos = null) {
+      cameraLookGesture.cancel();
+      manualCameraLook = false; cameraLookTilt = 0;
       state.currentZone = zoneId;
       state.dungeonTier = tier;
       portalCooldown = 2.2;
@@ -2834,6 +2878,10 @@
         openApothecaryShop();
         return;
       }
+      if (shopDef && merchantShop.open(shopDef)) {
+        document.getElementById('modal-shop').classList.remove('open');
+        return;
+      }
       const inVillage = state.currentZone === 'village';
       document.getElementById('shop-modal-title').textContent = shopDef ? shopDef.title : '🏪 بازار بزرگ روستای امن (مغازه‌ها و حجره‌ها)';
       document.getElementById('shop-status-msg').textContent = shopDef
@@ -2981,7 +3029,7 @@
     const clickRaycaster = new THREE.Raycaster();
     const clickMouse = new THREE.Vector2();
     canvas.addEventListener('click', (ev) => {
-      if (state.currentZone !== 'village') return;
+      if (performance.now() < ignoreWorldClickUntil || state.currentZone !== 'village') return;
       const rect = canvas.getBoundingClientRect();
       clickMouse.x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
       clickMouse.y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
@@ -3765,8 +3813,18 @@
       });
     });
 
+    document.getElementById('btn-camera-reset').addEventListener('click', () => {
+      cameraLookGesture.cancel(); manualCameraLook = true; cameraLookTiltTarget = 0;
+      state.cameraMode = 0;
+      cameraLookYawTarget = state.party[0]?.mesh?.rotation.y ?? villageCameraYaw;
+      villageCameraShoulderOffset = 0;
+      syncCameraModeUI();
+    });
+
     // Camera Mode Cycle: third-person follow, top-down and free orbit.
     document.getElementById('btn-cam-mode').addEventListener('click', () => {
+      cameraLookGesture.cancel();
+      manualCameraLook = false; cameraLookTilt = 0;
       state.cameraMode = (state.cameraMode + 1) % 3;
       if (state.cameraMode === 0 && state.party[0] && state.party[0].mesh) {
         villageCameraYaw = state.party[0].mesh.rotation.y;
@@ -3868,6 +3926,8 @@
     function drawMinimap() {
       const w = mmCanvas.width;
       const h = mmCanvas.height;
+      const markerMetrics = mapMarkerMetrics(w, mmCanvas.getBoundingClientRect().width || w, mapExpanded);
+      const occupiedMapLabels = [];
       mmCtx.fillStyle = state.currentZone === 'dungeon' ? '#1a122b' : '#143322';
       mmCtx.fillRect(0, 0, w, h);
 
@@ -3896,17 +3956,7 @@
         });
         villageShopNodes.forEach(sn => {
           const pt = toMM(sn.def.pos);
-          const forge = sn.def.id === 'blacksmith';
-          mmCtx.fillStyle = forge ? '#ff933b' : '#fde047';
-          mmCtx.beginPath(); mmCtx.arc(pt.x, pt.y, mapExpanded ? 9 : 3, 0, Math.PI * 2); mmCtx.fill();
-          if (mapExpanded) {
-            mmCtx.font = '14px sans-serif'; mmCtx.textAlign = 'center';
-            mmCtx.fillStyle = '#16120c'; mmCtx.fillText(forge ? '⚒' : '◆', pt.x, pt.y + 5);
-            mmCtx.fillStyle = '#fff4d1'; mmCtx.font = 'bold 11px sans-serif';
-            mmCtx.strokeStyle = '#16120c'; mmCtx.lineWidth = 3;
-            const label = forge ? '⚒ آهنگری کاوه' : sn.def.title;
-            mmCtx.strokeText(label, pt.x, pt.y - 13); mmCtx.fillText(label, pt.x, pt.y - 13);
-          }
+          drawShopMarker(mmCtx, pt, sn.def, markerMetrics, mapExpanded, w, h, occupiedMapLabels);
         });
         questNpcNodes.forEach(node => {
           const pt = toMM(node.group.position);
@@ -3954,15 +4004,16 @@
         mmCtx.fill();
       });
 
-      // Party Heroes
+      // Draw the local player LAST, prominently, independent of online status.
+      const localMember = state.party.find(m => m.isLocal && m.mesh) || state.party[0];
       state.party.forEach(m => {
-        if (!m.isOnline || !m.mesh) return;
+        if (m === localMember || !m.isOnline || !m.mesh) return;
         const pt = toMM(m.mesh.position);
-        mmCtx.fillStyle = m.isLocal ? '#4ade80' : '#38bdf8';
-        mmCtx.beginPath();
-        mmCtx.arc(pt.x, pt.y, m.isLocal ? 4 : 3, 0, Math.PI * 2);
-        mmCtx.fill();
+        mmCtx.fillStyle = '#38bdf8'; mmCtx.beginPath();
+        mmCtx.arc(pt.x, pt.y, 4 * markerMetrics.scale, 0, Math.PI * 2); mmCtx.fill();
       });
+      if (localMember?.mesh) drawPlayerMarker(mmCtx, toMM(localMember.mesh.position), localMember.mesh.rotation.y,
+        markerMetrics, mapExpanded, w, h, performance.now());
     }
 
     // =====================================================================
@@ -3978,7 +4029,7 @@
     }
 
     const CAMERA_MODE_LABELS = [
-      '🎥 دوربین: سوم‌شخص (پشت‌سر هیرو)',
+      '🎥 سوم‌شخص — با انگشت بچرخانید',
       '🎥 دوربین: نمای بالا (Top-Down)',
       '🎥 دوربین: چرخش آزاد ۳ بعدی'
     ];
@@ -3999,7 +4050,7 @@
       for (let i = 1; i <= steps; i++) {
         const fraction = i / steps;
         villageCameraSample.lerpVectors(villageCameraPivot, endPoint, fraction);
-        if (villageCameraSample.y < villageHeight(villageCameraSample.x, villageCameraSample.z) + 16 && isBlockedByBuilding(villageCameraSample.x, villageCameraSample.z)) {
+        if (villageCameraSample.y < worldHeight(villageCameraSample.x, villageCameraSample.z) + 16 && isBlockedByBuilding(villageCameraSample.x, villageCameraSample.z)) {
           return (i - 1) / steps;
         }
       }
@@ -4008,8 +4059,10 @@
 
     function testVillageCameraBoom(heroPos, yaw) {
       villageCameraBoom.set(Math.sin(yaw), 0, Math.cos(yaw));
-      villageCameraCandidate.copy(heroPos).addScaledVector(villageCameraBoom, -VILLAGE_CAMERA.distance);
-      villageCameraCandidate.y = heroPos.y + VILLAGE_CAMERA.height;
+      const distance = state.currentZone === 'village' ? VILLAGE_CAMERA.distance : 20;
+      villageCameraCandidate.copy(heroPos).addScaledVector(villageCameraBoom, -distance);
+      villageCameraCandidate.y = heroPos.y + (state.currentZone === 'village' ? VILLAGE_CAMERA.height : 13) + cameraLookTilt * distance;
+      villageCameraCandidate.y = Math.max(villageCameraCandidate.y, worldHeight(villageCameraCandidate.x, villageCameraCandidate.z) + 1.3);
       return testVillageCameraPath(villageCameraCandidate);
     }
 
@@ -4020,41 +4073,21 @@
       const targetYaw = leader.mesh.rotation.y;
       if (snap) {
         villageCameraYaw = targetYaw;
+        cameraLookYawTarget = targetYaw; cameraLookTiltTarget = cameraLookTilt;
         villageCameraShoulderOffset = 0;
-      } else if (villageCameraShouldAlign) {
-        const yawDelta = Math.atan2(
-          Math.sin(targetYaw - villageCameraYaw),
-          Math.cos(targetYaw - villageCameraYaw)
-        );
-        villageCameraYaw += yawDelta * (1 - Math.exp(-dt * 5.2));
+      } else {
+        const desiredYaw = manualCameraLook ? cameraLookYawTarget : villageCameraShouldAlign ? targetYaw : villageCameraYaw;
+        villageCameraYaw = smoothAngle(villageCameraYaw, desiredYaw, dt, 1.05, 3.5);
+        const tiltDelta = cameraLookTiltTarget - cameraLookTilt;
+        cameraLookTilt += THREE.MathUtils.clamp(tiltDelta * (1 - Math.exp(-dt * 4)), -.45 * dt, .45 * dt);
       }
 
       villageCameraPivot.copy(heroPos);
       villageCameraPivot.y += VILLAGE_CAMERA.targetHeight;
 
-      // Select a clear boom, then damp its shoulder angle as well as its
-      // position. The collision-safe result is checked again after damping,
-      // so smoothing can never carry the camera through a building.
-      const directFraction = testVillageCameraBoom(heroPos, villageCameraYaw);
-      let bestFraction = directFraction;
-      let bestYaw = villageCameraYaw;
-      if (bestFraction < .985) {
-        for (let i = 1; i < VILLAGE_CAMERA_SHOULDERS.length; i++) {
-          const candidateYaw = villageCameraYaw + VILLAGE_CAMERA_SHOULDERS[i];
-          const fraction = testVillageCameraBoom(heroPos, candidateYaw);
-          const score = fraction - Math.abs(VILLAGE_CAMERA_SHOULDERS[i]) * .035;
-          const bestScore = bestFraction - Math.abs(bestYaw - villageCameraYaw) * .035;
-          if (score > bestScore + .02) {
-            bestFraction = fraction;
-            bestYaw = candidateYaw;
-          }
-        }
-      }
-      const targetOffset = Math.atan2(Math.sin(bestYaw - villageCameraYaw), Math.cos(bestYaw - villageCameraYaw));
-      const offsetDelta = Math.atan2(Math.sin(targetOffset - villageCameraShoulderOffset), Math.cos(targetOffset - villageCameraShoulderOffset));
-      villageCameraShoulderOffset += offsetDelta * (snap ? 1 : 1 - Math.exp(-dt * 5.5));
-
-      const actualYaw = villageCameraYaw + villageCameraShoulderOffset;
+      // Retract along the current boom at obstacles; do not suddenly pick a
+      // different shoulder and sweep the entire view left/right in narrow alleys.
+      const actualYaw = villageCameraYaw;
       const safeFraction = testVillageCameraBoom(heroPos, actualYaw);
       villageCameraDesired.copy(villageCameraCandidate);
       if (safeFraction < 1) {
@@ -4140,12 +4173,12 @@
         const rawInputLength = Math.hypot(mx, mz);
         // Do not chase a continuously strafing hero: that would rotate the
         // camera, then rotate the input again and force the player into a
-        // circle. Re-align smoothly as soon as the stick/key is released.
-        villageCameraShouldAlign = rawInputLength <= .07 || mz < -.2;
+        // circle. Re-align slowly only when movement input is released.
+        villageCameraShouldAlign = rawInputLength <= .07;
 
         // In the village, up always moves away from the third-person camera
         // and right follows the screen, even after the camera swings around.
-        if (state.currentZone === 'village' && state.cameraMode === 0) {
+        if (state.cameraMode === 0) {
           const inputX = mx;
           const inputZ = mz;
           const c = Math.cos(villageCameraYaw);
@@ -4197,8 +4230,7 @@
 
           if (heroMoveSpeed > .08) {
             const targetYaw = Math.atan2(heroVelocity.x, heroVelocity.z);
-            const yawDelta = Math.atan2(Math.sin(targetYaw - leader.mesh.rotation.y), Math.cos(targetYaw - leader.mesh.rotation.y));
-            leader.mesh.rotation.y += yawDelta * (1 - Math.exp(-dt * 10.5));
+            leader.mesh.rotation.y = smoothAngle(leader.mesh.rotation.y, targetYaw, dt, 2.1, 5);
           }
         }
         leader.mesh.position.y = worldHeight(leader.mesh.position.x, leader.mesh.position.z);
@@ -4261,20 +4293,20 @@
         }
 
         // Camera Follow Modes
-        if (state.cameraMode === 0 && state.currentZone === 'village') {
+        if (state.cameraMode === 0) {
           updateVillageThirdPersonCamera(dt);
-        } else if (state.cameraMode === 0) {
-          // Keep the original close follow outside the village.
-          const targetCam = new THREE.Vector3(leader.mesh.position.x, leader.mesh.position.y + 17, leader.mesh.position.z + 24);
-          camera.position.lerp(targetCam, 1 - Math.exp(-dt * 9));
-          camera.lookAt(leader.mesh.position.x, leader.mesh.position.y + 3, leader.mesh.position.z - 3);
         } else if (state.cameraMode === 1) {
           // High Top-Down View
           const targetCam = new THREE.Vector3(leader.mesh.position.x, leader.mesh.position.y + 44, leader.mesh.position.z + 32);
           camera.position.lerp(targetCam, 1 - Math.exp(-dt * 7.5));
           camera.lookAt(leader.mesh.position.x, leader.mesh.position.y + 1.5, leader.mesh.position.z);
         } else {
+          // Orbit around the moving hero, never around an old world-space target.
+          const orbitTarget = leader.mesh.position.clone().add(new THREE.Vector3(0, 2.2, 0));
+          camera.position.add(orbitTarget.clone().sub(orbitControls.target));
+          orbitControls.target.copy(orbitTarget);
           orbitControls.update();
+          camera.position.y = Math.max(camera.position.y, worldHeight(camera.position.x, camera.position.z) + 1.3);
         }
       }
 

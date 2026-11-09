@@ -42,7 +42,7 @@ export function createCombatPlan(zone, tier = 1) {
   const clear = (x, z, margin) => routes.every(route => route.slice(1).every((b, i) => distanceToSegment(x, z, route[i], b) > margin)) && portals.every(p => Math.hypot(x - p[0], z - p[1]) > margin + 7) && (zone !== 'open_world' || Math.abs(x) > 15 + margin) && (zone !== 'dungeon' || Math.hypot(x, z + 24) > 32 + margin);
   const plots = [], rocks = [], trees = [];
   // Half the former building count; independent clustered samples, never rows.
-  const target = zone === 'open_world' ? 23 : fire ? 6 : 4;
+  const target = zone === 'open_world' ? 0 : fire ? 6 : 4;
   const clusters = Array.from({length: 5}, () => ({x:(random()*2-1)*(bounds.x-15),z:(random()*2-1)*(bounds.z-15)}));
   for (let attempt=0; plots.length<target && attempt<20000; attempt++) {
     const cluster=clusters[Math.floor(random()*clusters.length)];
@@ -60,7 +60,7 @@ export function createCombatPlan(zone, tier = 1) {
     (random() < (fire ? .12 : .64) ? trees : rocks).push(item);
   }
   return { bounds, routes, portals, plots, rocks, trees, fire, landmarks: zone === 'open_world' ? [
-    { x: -95, z: 49, title: 'کاروانسرای دامنه', symbol: '⌂' },
+    { x: -95, z: 49, title: 'چشم‌انداز دامنه', symbol: '△' },
     { x: 0, z: 0, title: 'پل رودخانه', symbol: '≋' },
   ] : [{ x: 0, z: -24, title: fire ? 'میدان دیو آتش' : 'میدان نگهبان باستانی', symbol: '☠' }] };
 }
@@ -95,7 +95,7 @@ export function buildCombatLandscape(THREE, kit, materials, zone, tier, plan) {
     const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3)); geometry.setIndex(indices); geometry.computeVertexNormals();
     const road = new THREE.Mesh(geometry, kit.materials.road); road.receiveShadow = true; root.add(road);
   }));
-  root.add(kit.buildDistrict(plan.plots));
+  if (plan.plots.length) root.add(kit.buildDistrict(plan.plots));
   const matrix = new THREE.Object3D();
   function batch(geometry, material, items, yOffset, scaleY = 1) {
     if (!items.length) return;

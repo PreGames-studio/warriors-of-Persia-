@@ -37,7 +37,7 @@ def main():
     entries = [e for e in collect_entries(ROOT / 'WarriorsOfPersia_3D.apk', args.version_code, args.version_name) if not e.name.startswith('assets/')]
     entries.append(Entry('assets/index.html', html.encode()))
     paths = list((preview / 'assets').rglob('*')) + list((preview / 'fonts').rglob('*'))
-    paths += [preview / name for name in ('potion-shop.css', 'village-theme.css', 'manifest.json', 'icon.png')]
+    paths += [preview / name for name in ('potion-shop.css', 'village-theme.css', 'merchant-shop.css', 'manifest.json', 'icon.png')]
     for path in sorted(paths):
         if path.is_file():
             entries.append(Entry('assets/' + path.relative_to(preview).as_posix(), path.read_bytes()))
