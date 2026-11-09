@@ -1,4 +1,4 @@
-const CACHE_NAME = 'warriors-of-persia-3d-v4-mia';
+const CACHE_NAME = 'warriors-of-persia-3d-v5-hillside';
 const ASSETS = [
   './',
   './index.html',

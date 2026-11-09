@@ -553,7 +553,7 @@ export function createBlacksmithForgeBuilder(THREE) {
       const scale = (plot.scale || 1) * DISTRICT_BUILDING_SCALE;
       const matrix = new THREE.Matrix4();
       matrix.compose(
-        new THREE.Vector3(position.x, 0, position.z),
+        new THREE.Vector3(position.x, plot.y || 0, position.z),
         new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), plot.rotY || 0),
         new THREE.Vector3(scale, scale, scale)
       );

@@ -26,3 +26,7 @@ artifacts/apk/WarriorsOfPersia_3D.apk
 
 # aapt2 oracle for Tools/verify_apk.py: npm i aaptjs3
 node_modules/
+
+# Local Python environment and downloadable release binaries
+.venv/
+artifacts/releases/
