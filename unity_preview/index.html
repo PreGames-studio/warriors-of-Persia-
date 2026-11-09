@@ -1219,7 +1219,7 @@
     <!-- MINIMAP & CAMERA MODE (TOP-LEFT) -->
     <div class="minimap-card">
       <div class="minimap-title">
-        <span>نقشه روستا و کوچه‌ها</span>
+        <span>نقشه منطقه و گذرها</span>
         <span id="minimap-zone-tag" style="color:#4ade80;">Village</span>
       </div>
       <button class="cam-switch-btn" id="btn-map-toggle" aria-expanded="false">⛶ بزرگ‌کردن نقشه</button>
@@ -1456,6 +1456,7 @@
     import * as THREE from './lib/three.module.js';
     import { OrbitControls } from './lib/OrbitControls.js';
     import { OBJExporter } from './lib/OBJExporter.js';
+    import { combatBounds, combatHeight, createCombatPlan, buildCombatLandscape } from './world-landscape.js';
     import { createPotionShop } from './potion-shop.js';
     import { createPersianVillageKit } from './village-theme.js';
 
@@ -1953,6 +1954,10 @@
     let portalCooldown = 0;
     let activeShopNear = null;
     let activeQuestNear = null;
+    let activeCombatPlan = null;
+    function worldHeight(x, z) {
+      return state.currentZone === 'village' ? villageHeight(x, z) : combatHeight(state.currentZone, state.dungeonTier, x, z);
+    }
 
     const villageKit = createPersianVillageKit(THREE);
 
@@ -2298,6 +2303,7 @@
       heroMoveDirection.set(0, 0, 0);
       villageCameraLookTargetReady = false;
       stage.dataset.zone = zoneId;
+      activeCombatPlan = null;
       villageKit.reset();
       villageKit.applyLighting(zoneId, scene, hemiLight, dirLight, renderer);
 
@@ -2398,22 +2404,11 @@
         scene.background = new THREE.Color(0x91bfd6);
         scene.fog = new THREE.FogExp2(0xbcd4d6, .002);
 
-        const west = new THREE.Mesh(new THREE.BoxGeometry(102, 3, 140), MATS.plainsGrass);
-        west.position.set(-58, -1.5, 0);
-        west.receiveShadow = true;
-        const east = new THREE.Mesh(new THREE.BoxGeometry(102, 4.2, 140), MATS.highlandGrass);
-        east.position.set(58, -0.9, 0);
-        east.receiveShadow = true;
-        const river = new THREE.Mesh(new THREE.BoxGeometry(14, 1.8, 140), MATS.riverWater);
-        river.position.set(0, -1.2, 0);
-        const roadW = new THREE.Mesh(new THREE.BoxGeometry(82, 0.18, 9), MATS.dirtRoad);
-        roadW.position.set(-48, 0.08, 0);
-        const roadE = new THREE.Mesh(new THREE.BoxGeometry(48, 0.18, 9), MATS.dirtRoad);
-        roadE.position.set(30, 1.25, 0);
-        mapRoot.add(west, east, river, roadW, roadE);
+        const river = new THREE.Mesh(new THREE.BoxGeometry(14, 1.8, 180), MATS.riverWater);
+        river.position.set(0, -1.2, 0); mapRoot.add(river);
 
         const bridge = new THREE.Group();
-        bridge.position.set(0, 0.8, 0);
+        bridge.position.set(0, -.45, 0);
         const deck = new THREE.Mesh(new THREE.BoxGeometry(22, 0.9, 14), MATS.woodBridge);
         const rN = new THREE.Mesh(new THREE.BoxGeometry(22, 1.9, 0.9), MATS.darkWood);
         rN.position.set(0, 1.2, -6.5);
@@ -2435,7 +2430,7 @@
         });
 
         [[-78, -28], [-70, 30], [-45, -34], [-32, 35], [36, -36], [72, -32], [68, -14]].forEach(([tx, tz]) => {
-          mapRoot.add(buildCypress3D(tx, tx > 0 ? 1.2 : 0, tz, 1.05));
+          mapRoot.add(buildCypress3D(tx, 0, tz, 1.05));
         });
 
         const pVil = buildPortal3D(-88, 0, 0, MATS.portalGreen, '⬅️ ورود به روستای امن (بازار و کوچه‌ها)', '#4ade80', 'village', 1);
@@ -2452,17 +2447,12 @@
 
         spawnPoint.set(-66, 0, 0);
       } else if (zoneId === 'dungeon') {
-        scene.background = new THREE.Color(0x110b1d);
-        scene.fog = new THREE.FogExp2(0x110b1d, 0.0026);
-
-        const floor = new THREE.Mesh(new THREE.BoxGeometry(140, 3, 110), MATS.dungeonFloor);
-        floor.position.set(0, -1.5, 0);
-        floor.receiveShadow = true;
-        const carpet = new THREE.Mesh(new THREE.BoxGeometry(22, 0.2, 85), MATS.dungeonCarpet);
-        carpet.position.set(0, 0.1, 4);
-        const arena = new THREE.Mesh(new THREE.CylinderGeometry(28, 30, 1.1, 8), MATS.dungeonCarpet);
-        arena.position.set(0, 0.55, -24);
-        mapRoot.add(floor, carpet, arena);
+        const fireDungeon = tier >= 3;
+        scene.background = new THREE.Color(fireDungeon ? 0x36251f : 0x344c42);
+        scene.fog = new THREE.FogExp2(fireDungeon ? 0x58453b : 0x658071, .0035);
+        hemiLight.intensity = 2.8; dirLight.intensity = 3.4;
+        dirLight.color.setHex(fireDungeon ? 0xffb875 : 0xffeed1);
+        renderer.toneMappingExposure = 1.15;
 
         [-26, -6, 14, 34].forEach(zPos => {
           mapRoot.add(buildColumn3D(-20, 0, zPos), buildColumn3D(20, 0, zPos));
@@ -2479,6 +2469,26 @@
         spawnPoint.set(0, 0, 28);
       }
 
+      if (zoneId !== 'village') {
+        activeCombatPlan = createCombatPlan(zoneId, tier);
+        mapRoot.children.forEach(child => {
+          child.position.y = combatHeight(zoneId, tier, child.position.x, child.position.z) + child.position.y;
+        });
+        // Enemy spawn offsets were inherited from the former stepped floors.
+        enemiesList.forEach(enemy => {
+          enemy.group.position.y = combatHeight(zoneId, tier, enemy.group.position.x, enemy.group.position.z);
+          enemy.homePos.copy(enemy.group.position);
+        });
+        portalsList.forEach(portal => {
+          portal.pos.y = combatHeight(zoneId, tier, portal.pos.x, portal.pos.z);
+          portal.group.position.y = portal.pos.y;
+        });
+        floatingLabels.forEach(label => { label.pos.y += combatHeight(zoneId, tier, label.pos.x, label.pos.z); });
+        mapRoot.add(buildCombatLandscape(THREE, villageKit, MATS, zoneId, tier, activeCombatPlan));
+        activeCombatPlan.plots.forEach(plot => addOrientedCollider(plot.x, plot.z, 4.7 * plot.scale * villageKit.districtBuildingScale, 3.75 * plot.scale * villageKit.districtBuildingScale, plot.rotY));
+        activeCombatPlan.landmarks.forEach(p => addWorldLabel(`${p.symbol} ${p.title}`, new THREE.Vector3(p.x, combatHeight(zoneId, tier, p.x, p.z) + 7, p.z), '#d8b66a'));
+      }
+
       if (overrideHeroPos && typeof overrideHeroPos.x === 'number' && typeof overrideHeroPos.z === 'number') {
         spawnPoint.set(overrideHeroPos.x, overrideHeroPos.y || 0, overrideHeroPos.z);
       }
@@ -2489,7 +2499,8 @@
         spawnPoint.set(0, 0, 10);
       }
 
-      if (zoneId === 'village') spawnPoint.y = villageHeight(spawnPoint.x, spawnPoint.z);
+      if (isBlockedByBuilding(spawnPoint.x, spawnPoint.z) && zoneId !== 'village') spawnPoint.set(zoneId === 'open_world' ? -66 : 0, 0, zoneId === 'open_world' ? 0 : 28);
+      spawnPoint.y = worldHeight(spawnPoint.x, spawnPoint.z);
       syncPartyUnitsIn3D(spawnPoint);
       if (zoneId === 'village' && state.party[0] && state.party[0].mesh) {
         // Enter the village facing its centre, with the camera already behind
@@ -3823,7 +3834,7 @@
       mapExpanded = !mapExpanded;
       document.querySelector('.minimap-card').classList.toggle('expanded', mapExpanded);
       mmCanvas.width = mapExpanded ? 900 : 136; mmCanvas.height = mapExpanded ? 900 : 82;
-      mapToggle.textContent = mapExpanded ? '✕ بستن نقشه — ⚒ آهنگری | ◆ مغازه | ● شما' : '⛶ بزرگ‌کردن نقشه';
+      mapToggle.textContent = mapExpanded ? '✕ بستن نقشه — ⚒ آهنگری | ◆ مغازه | ◯ دروازه | ● شما' : '⛶ بزرگ‌کردن نقشه';
       mapToggle.setAttribute('aria-expanded', String(mapExpanded));
       drawMinimap();
     }
@@ -3839,7 +3850,7 @@
 
       const toMM = (pos) => state.currentZone === 'village'
         ? { x: ((pos.x + 270) / 540) * w, y: ((pos.z + 270) / 540) * h }
-        : { x: ((pos.x + 85) / 170) * w, y: ((pos.z + 55) / 110) * h };
+        : { x: (pos.x / (combatBounds(state.currentZone).x + 2) + 1) * w / 2, y: (pos.z / (combatBounds(state.currentZone).z + 2) + 1) * h / 2 };
 
       if (state.currentZone === 'village') {
         mmCtx.fillStyle = '#6f6a61';
@@ -3874,11 +3885,21 @@
           mmCtx.fillStyle = '#f0abfc';
           mmCtx.beginPath(); mmCtx.arc(pt.x, pt.y, 2.2, 0, Math.PI * 2); mmCtx.fill();
         });
-      } else if (state.currentZone === 'open_world') {
-        mmCtx.fillStyle = '#1d4ed8';
-        mmCtx.fillRect(w * 0.47, 0, w * 0.06, h);
-        mmCtx.fillStyle = '#92400e';
-        mmCtx.fillRect(w * 0.45, h * 0.44, w * 0.10, h * 0.12);
+      } else if (activeCombatPlan) {
+        const plan = activeCombatPlan;
+        mmCtx.fillStyle = plan.fire ? '#46352e' : '#284735'; mmCtx.fillRect(0, 0, w, h);
+        if (state.currentZone === 'open_world') {
+          mmCtx.fillStyle = '#287ea0'; const a = toMM({x:-7,z:0}), b = toMM({x:7,z:0}); mmCtx.fillRect(a.x,0,b.x-a.x,h);
+        }
+        mmCtx.strokeStyle = '#b4a282'; mmCtx.lineWidth = mapExpanded ? 5 : 2;
+        plan.routes.forEach(route => {
+          mmCtx.beginPath(); route.forEach(([x,z],i) => { const p = toMM({x,z}); if (i) mmCtx.lineTo(p.x,p.y); else mmCtx.moveTo(p.x,p.y); }); mmCtx.stroke();
+        });
+        mmCtx.fillStyle = '#b5a78b'; plan.plots.forEach(plot => { const p=toMM(plot); mmCtx.fillRect(p.x-2,p.y-2,4,4); });
+        mmCtx.fillStyle = plan.fire ? '#b56844' : '#4c8052'; plan.trees.forEach(tree => { const p=toMM(tree); mmCtx.fillRect(p.x,p.y,2,2); });
+        if (mapExpanded) plan.landmarks.forEach(mark => {
+          const p=toMM(mark); mmCtx.fillStyle='#ffe6ae'; mmCtx.font='bold 13px sans-serif'; mmCtx.textAlign='center'; mmCtx.fillText(`${mark.symbol} ${mark.title}`,p.x,p.y-10);
+        });
       }
 
       // Portals
@@ -3889,6 +3910,10 @@
         mmCtx.beginPath();
         mmCtx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
         mmCtx.stroke();
+        if (mapExpanded) {
+          mmCtx.font = 'bold 12px sans-serif'; mmCtx.textAlign = 'center'; mmCtx.fillStyle = '#c4edff';
+          mmCtx.fillText(p.label, pt.x, pt.y - 12);
+        }
       });
 
       // Enemies
@@ -4129,12 +4154,12 @@
         }
 
         if (heroMoveSpeed > .001 && heroMoveDirection.lengthSq() > 0) {
-          const tryX = THREE.MathUtils.clamp(leader.mesh.position.x + heroVelocity.x * dt, -(state.currentZone === 'village' ? VILLAGE_HALF_SIZE : 130), (state.currentZone === 'village' ? VILLAGE_HALF_SIZE : 130));
-          const tryZ = THREE.MathUtils.clamp(leader.mesh.position.z + heroVelocity.z * dt, -(state.currentZone === 'village' ? VILLAGE_HALF_SIZE : 130), (state.currentZone === 'village' ? VILLAGE_HALF_SIZE : 130));
+          const tryX = THREE.MathUtils.clamp(leader.mesh.position.x + heroVelocity.x * dt, -(state.currentZone === 'village' ? VILLAGE_HALF_SIZE : combatBounds(state.currentZone).x), (state.currentZone === 'village' ? VILLAGE_HALF_SIZE : combatBounds(state.currentZone).x));
+          const tryZ = THREE.MathUtils.clamp(leader.mesh.position.z + heroVelocity.z * dt, -(state.currentZone === 'village' ? VILLAGE_HALF_SIZE : combatBounds(state.currentZone).z), (state.currentZone === 'village' ? VILLAGE_HALF_SIZE : combatBounds(state.currentZone).z));
 
           // Slide along X and Z independently against village house/shop colliders.
           if (!isBlockedByBuilding(tryX, leader.mesh.position.z)) {
-            if (!(state.currentZone === 'open_world' && Math.abs(tryX) < 7.2 && Math.abs(leader.mesh.position.z) > 7.2)) {
+            if (!(state.currentZone === 'open_world' && Math.abs(tryX) < 7.2 && Math.abs(leader.mesh.position.z) > 6)) {
               leader.mesh.position.x = tryX;
             }
           }
@@ -4148,7 +4173,7 @@
             leader.mesh.rotation.y += yawDelta * (1 - Math.exp(-dt * 10.5));
           }
         }
-        leader.mesh.position.y = state.currentZone === 'village' ? villageHeight(leader.mesh.position.x, leader.mesh.position.z) : (state.currentZone === 'open_world' && leader.mesh.position.x > 7) ? 1.2 : 0;
+        leader.mesh.position.y = worldHeight(leader.mesh.position.x, leader.mesh.position.z);
         const actualDistance = Math.hypot(leader.mesh.position.x - previousHeroX, leader.mesh.position.z - previousHeroZ);
         const actualSpeed = actualDistance / Math.max(dt, .001);
         heroAnimationSpeed += (actualSpeed - heroAnimationSpeed) * (1 - Math.exp(-dt * 12));
@@ -4238,7 +4263,7 @@
             v.group.rotation.y = Math.atan2(dir.x, dir.z);
           }
         }
-        v.labelRef.pos.set(v.group.position.x, v.static ? 4.65 : 4.4, v.group.position.z);
+        v.labelRef.pos.set(v.group.position.x, v.group.position.y + (v.static ? 4.65 : 4.4), v.group.position.z);
       });
 
       // 3. Connected Online Teammates Follow
@@ -4255,6 +4280,7 @@
           ally.mesh.position.addScaledVector(dir, 22 * dt);
           ally.mesh.rotation.y = Math.atan2(dir.x, dir.z);
         }
+        ally.mesh.position.y = worldHeight(ally.mesh.position.x, ally.mesh.position.z);
         ally.mesh.userData.labelRef.pos.set(ally.mesh.position.x, ally.mesh.position.y + 5.4, ally.mesh.position.z);
       });
 
@@ -4274,7 +4300,7 @@
         }
         en.group.position.y = THREE.MathUtils.lerp(
           en.group.position.y,
-          en.homePos.y + Math.abs(Math.sin(elapsed * 3.2 + idx)) * 0.3,
+          worldHeight(en.group.position.x, en.group.position.z) + Math.abs(Math.sin(elapsed * 3.2 + idx)) * 0.3,
           0.15
         );
 
@@ -4302,6 +4328,7 @@
             }
           }
         }
+        en.group.position.y = worldHeight(en.group.position.x, en.group.position.z) + Math.abs(Math.sin(elapsed * 3.2 + idx)) * .3;
         en.labelRef.pos.set(en.group.position.x, en.group.position.y + 4.8 * en.scale, en.group.position.z);
       });
 

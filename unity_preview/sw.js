@@ -1,4 +1,4 @@
-const CACHE_NAME = 'warriors-of-persia-3d-v5-hillside';
+const CACHE_NAME = 'warriors-of-persia-3d-v6-all-landscapes';
 const ASSETS = [
   './',
   './index.html',
@@ -9,6 +9,9 @@ const ASSETS = [
   './potion-shop.js',
   './village-theme.css',
   './village-theme.js',
+  './world-landscape.js',
+  './blacksmith-forge.js',
+  './blacksmith-textures.js',
   './lib/three.module.js',
   './lib/OrbitControls.js',
   './lib/OBJExporter.js',

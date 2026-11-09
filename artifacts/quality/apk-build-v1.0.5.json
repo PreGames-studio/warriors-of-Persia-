@@ -1,0 +1,201 @@
+{
+  "contentDigestSha256": "d8079ed0ee86bebd309b5e8db72d8f70c964960890d327684a0927753cd52940",
+  "signingBlockBytes": 1503,
+  "v2RemovedContentDigest": "d8079ed0ee86bebd309b5e8db72d8f70c964960890d327684a0927753cd52940",
+  "schemes": [
+    1,
+    2
+  ],
+  "entries": [
+    {
+      "name": "AndroidManifest.xml",
+      "bytes": 1884,
+      "stored": false
+    },
+    {
+      "name": "classes.dex",
+      "bytes": 1244,
+      "stored": false
+    },
+    {
+      "name": "resources.arsc",
+      "bytes": 40,
+      "stored": true
+    },
+    {
+      "name": "assets/index.html",
+      "bytes": 18415825,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/apothecary/apothecary_keeper.jpg",
+      "bytes": 229523,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/apothecary/potion_guardian.jpg",
+      "bytes": 218236,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/apothecary/potion_hero.jpg",
+      "bytes": 272884,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/apothecary/potion_immortal.jpg",
+      "bytes": 244121,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/apothecary/potion_mana.jpg",
+      "bytes": 162317,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/apothecary/potion_mountain.jpg",
+      "bytes": 286091,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/apothecary/potion_restoration.jpg",
+      "bytes": 223738,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/apothecary/potion_starlight.jpg",
+      "bytes": 185686,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/apothecary/potion_vitality.jpg",
+      "bytes": 229523,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/apothecary/potion_zagros.jpg",
+      "bytes": 196254,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/armor_persian.jpg",
+      "bytes": 73402,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/armored_boots.jpg",
+      "bytes": 59935,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/armored_gauntlets.jpg",
+      "bytes": 78357,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/battle_axe_double.jpg",
+      "bytes": 70801,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/blacksmith_bg.jpg",
+      "bytes": 423509,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/blacksmith_left.jpg",
+      "bytes": 241113,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/bow_arash.jpg",
+      "bytes": 67223,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/chest_plate_royal.jpg",
+      "bytes": 68970,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/immortal_spear.jpg",
+      "bytes": 59369,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/iron_helmet.jpg",
+      "bytes": 64446,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/iron_shield.jpg",
+      "bytes": 73305,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/iron_sword.jpg",
+      "bytes": 69660,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/sword_radiant.jpg",
+      "bytes": 60342,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/war_hammer.jpg",
+      "bytes": 78491,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/hero/mia_hero.png",
+      "bytes": 2593440,
+      "stored": false
+    },
+    {
+      "name": "assets/fonts/Vazirmatn-Bold.ttf",
+      "bytes": 123036,
+      "stored": false
+    },
+    {
+      "name": "assets/fonts/Vazirmatn-Regular.ttf",
+      "bytes": 122752,
+      "stored": false
+    },
+    {
+      "name": "assets/icon.png",
+      "bytes": 11556,
+      "stored": false
+    },
+    {
+      "name": "assets/manifest.json",
+      "bytes": 651,
+      "stored": false
+    },
+    {
+      "name": "assets/potion-shop.css",
+      "bytes": 26654,
+      "stored": false
+    },
+    {
+      "name": "assets/village-theme.css",
+      "bytes": 7293,
+      "stored": false
+    }
+  ],
+  "version": "1.0.5",
+  "bytes": 19983581,
+  "sha256": "02ec6394d5ee980c1c21a50fb38b813b5f7f2a4dd37bc6126a8766a3d660dbfb",
+  "sourceHashes": {
+    "unity_preview/index.html": "c031fb908be83faf1d4476aa03e4a63b196efa628993b24e4e4f61e6fc7f213e",
+    "unity_preview/blacksmith-forge.js": "9787304c2b962e8a321ac5dd0f28a96734454b117ef4d14bd3a4a28f03f4be6e",
+    "unity_preview/blacksmith-textures.js": "17a4a4b97346645b42da5c59c6b17c723a180b203d6923c21c33f10f09b45072",
+    "unity_preview/potion-shop.js": "9604e2809bc44ed053c9093691c23c4bf17247f260b8eb33c4f6fba4c495cbaa",
+    "unity_preview/server.js": "f069d575e9af5f849c986bca896cf5759cd3a8c636753d246b86441593d50682",
+    "unity_preview/sw.js": "ca8ec4e37f2fe444c7214ba51f9ee033329b49af3e41c5f25b7ef78f95ee89e3",
+    "unity_preview/village-theme.js": "5b1d88966ff113073347eec0a58c3c9da0b31bca76edb73cd55c570910246af0",
+    "unity_preview/world-landscape.js": "f2421adacfe36d5b59f8fc57e8019563df5339c362348fec59b2a16b11fe8abf",
+    "unity_preview/potion-shop.css": "fc9a73f6a7f757211e9f16e034e7547c354c94942d7969c2005e6701c4da6476",
+    "unity_preview/village-theme.css": "6edb050e0b770fb85c9956075ed577b2e1b6e7c7830359fb09f021c1c2e80f89"
+  }
+}
