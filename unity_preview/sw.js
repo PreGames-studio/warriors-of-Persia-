@@ -1,4 +1,4 @@
-const CACHE_NAME = 'warriors-of-persia-3d-v11-smooth-camera';
+const CACHE_NAME = 'warriors-of-persia-3d-v14-guild-population';
 const ASSETS = [
   './',
   './index.html',
@@ -13,6 +13,10 @@ const ASSETS = [
   './camera-look.js',
   './camera-motion.js',
   './map-markers.js',
+  './portal-arrival.js',
+  './adventure-guild.js',
+  './village-population.js',
+  './guild-services.js',
   './merchant-shop.js',
   './merchant-catalog.js',
   './merchant-shop.css',

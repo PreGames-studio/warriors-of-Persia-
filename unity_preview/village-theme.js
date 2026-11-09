@@ -491,9 +491,25 @@ export function createPersianVillageKit(THREE) {
     return group;
   }
 
-  function buildVillager(robeColor) {
-    const person = buildShopkeeper('villager', robeColor);
-    person.scale.setScalar(.94);
+  function buildVillager(robeColor, profile = null) {
+    const person = buildShopkeeper(profile === 'elder' ? 'apothecary' : 'villager', robeColor);
+    person.scale.setScalar(profile === 'child' ? .58 : profile === 'elder' ? .86 : .94);
+    person.userData.profile = profile || 'quest';
+    if (profile === 'woman') {
+      const fabric = new THREE.MeshStandardMaterial({color: robeColor, roughness: .94});
+      const hood = addMesh(person, new THREE.SphereGeometry(.68, 12, 10), fabric, 0, 3, -.18);
+      hood.scale.set(1, 1.2, .8);
+      addBox(person, 1.15, 1.5, .16, fabric, 0, 2, -.43);
+    }
+    if (profile === 'elder') {
+      const cane = addCylinder(person, .06, .08, 2.2, materials.wood, .9, 1.1, .4, 6);
+      cane.rotation.z = -.1;
+      person.rotation.x = .045;
+    }
+    if (profile === 'man') {
+      const beard = addMesh(person, new THREE.ConeGeometry(.25, .45, 8), materials.darkMetal, 0, 2.5, .45);
+      beard.rotation.z = Math.PI;
+    }
     // Quest NPCs are stationary, so their static parts can be merged without
     // changing their silhouette or touching the player's animated hero.
     mergeStaticGroup(person);
