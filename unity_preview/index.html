@@ -1459,9 +1459,10 @@
     import { OrbitControls } from './lib/OrbitControls.js';
     import { OBJExporter } from './lib/OBJExporter.js';
     import { createMerchantShop } from './merchant-shop.js';
+    import { createGuildAtmosphere } from './guild-atmosphere.js';
     import { createVillagePopulation } from './village-population.js';
     import { createGuildServices } from './guild-services.js';
-    import { GUILD, buildGuildExterior, buildGuildInteriorStage } from './adventure-guild.js';
+    import { GUILD, guildWalkHeight, guildCanWalkTo, guildUpperFloorBlocked, guildDoorReached, buildGuildExterior, buildGuildInteriorStage } from './adventure-guild.js';
     import { dungeonReturnArrival, arrivalPartyPosition } from './portal-arrival.js';
     import { smoothAngle, dragLookTarget } from './camera-motion.js';
     import { installDragLook } from './camera-look.js';
@@ -2031,9 +2032,14 @@
     let activeGuildStaff = null;
     let guildStaffNodes = [];
     let villagePopulation = null;
+    let guildHall = null;
+    let guildAtmosphere = null;
+    let guildConversationLabels = [];
+    let guildComingSoonNoticeAt = 0;
+    let guildFollowTrail = [];
     let activeCombatPlan = null;
-    function worldHeight(x, z) {
-      return state.currentZone === 'guild' ? 0 : state.currentZone === 'village' ? villageHeight(x, z) : combatHeight(state.currentZone, state.dungeonTier, x, z);
+    function worldHeight(x, z, referenceY = state.party[0]?.mesh?.position.y || 0) {
+      return state.currentZone === 'guild' ? guildWalkHeight(x, z, referenceY) : state.currentZone === 'village' ? villageHeight(x, z) : combatHeight(state.currentZone, state.dungeonTier, x, z);
     }
 
     const villageKit = createPersianVillageKit(THREE);
@@ -2398,7 +2404,7 @@
       villagersNPCs = [];
       questNpcNodes = [];
       activeQuestNear = null;
-      activeGuildStaff = null; guildStaffNodes = []; villagePopulation = null;
+      activeGuildStaff = null; guildStaffNodes = []; villagePopulation = null; guildHall = null; guildFollowTrail = []; guildAtmosphere = null; guildConversationLabels = []; guildComingSoonNoticeAt = 0;
       enemiesList = [];
       crystals3DList = [];
       projectilesList = [];
@@ -2437,9 +2443,8 @@
         mapRoot.add(guild);
         addColliderBox(0, -3, 12.2, 10.2);
         addWorldLabel('🛡️ گیلد ماجراجویان', new THREE.Vector3(0, 27, -3), '#d8b66a');
-        const guildGate = buildPortal3D(GUILD.entrance.x, 0, GUILD.entrance.z, MATS.portalPurple,
-          '🛡️ ورود به گیلد ماجراجویان', '#d8b66a', 'guild', 1);
-        mapRoot.add(guildGate);
+        portalsList.push({group:new THREE.Group(), ring:null, door:true,
+          pos:new THREE.Vector3(GUILD.entrance.x,0,GUILD.entrance.z),targetZone:'guild',targetTier:1});
 
         // 4. Twenty detailed merchant exteriors (six original + fourteen new).
         VILLAGE_SHOPS_3D.forEach(shopDef => {
@@ -2485,23 +2490,37 @@
         });
         floatingLabels.forEach(label => { label.pos.y += villageHeight(label.pos.x, label.pos.z); });
         portalsList.forEach(portal => { portal.pos.y = villageHeight(portal.pos.x, portal.pos.z); });
-        villagePopulation = createVillagePopulation(THREE, villageKit, VILLAGE_DISTRICT_PLAN.houses, buildingColliders, villageHeight, mapRoot, 100);
+        villagePopulation = createVillagePopulation(THREE, villageKit, VILLAGE_DISTRICT_PLAN.houses, buildingColliders, villageHeight, mapRoot, 200);
         spawnPoint.set(0, 0, 24);
       } else if (zoneId === 'guild') {
         scene.background = new THREE.Color(0x18201c);
         scene.fog = null;
         hemiLight.intensity = 3.5; dirLight.intensity = 3.8;
         const hall=buildGuildInteriorStage(THREE, villageKit.materials);
-        mapRoot.add(hall);
-        hall.userData.colliders.forEach(c=>addColliderBox(c.x,c.z,c.halfW,c.halfD));
+        mapRoot.add(hall); guildHall = hall;
+        for(const side of [-1,1])addWorldLabel('بزودی',new THREE.Vector3(side*17.65,2.3,-15.3),'#d8b66a');
+        guildAtmosphere=createGuildAtmosphere(THREE,villageKit.materials,hall.userData.furniturePlan);
+        mapRoot.add(guildAtmosphere.root);
+        guildAtmosphere.root.userData.colliders.forEach(c=>{
+          addColliderBox(c.x,c.z,c.halfW,c.halfD);
+          Object.assign(buildingColliders[buildingColliders.length-1],{minY:-.5,maxY:2.7});
+        });
+        guildConversationLabels=guildAtmosphere.conversations.map(c=>{
+          const label=addWorldLabel('',new THREE.Vector3(c.position.x,c.position.y,c.position.z),'#a9ba99');
+          label.maxDistance=14;label.el.style.display='none';return label;
+        });
+        hall.userData.colliders.forEach(c=>{
+          addColliderBox(c.x,c.z,c.halfW,c.halfD);
+          Object.assign(buildingColliders[buildingColliders.length-1],{minY:c.minY,maxY:c.maxY});
+        });
         hall.userData.furniturePlan.staff.forEach(staff=>{
           const group=villageKit.buildVillager(staff.color,staff.id==='buyer'?'woman':'man');
           group.position.set(staff.x,0,staff.z);mapRoot.add(group);
           addWorldLabel(staff.title,new THREE.Vector3(staff.x,4,staff.z),'#d8b66a',()=>guildServices.open(staff));
           guildStaffNodes.push({def:staff,group});
         });
-        mapRoot.add(buildPortal3D(GUILD.interiorExit.x, 0, GUILD.interiorExit.z, MATS.portalGreen,
-          '⬅️ بازگشت به روستا', '#4ade80', 'village', 1));
+        portalsList.push({group:new THREE.Group(),ring:null,door:true,
+          pos:new THREE.Vector3(GUILD.interiorExit.x,0,GUILD.interiorExit.z),targetZone:'village',targetTier:1});
         spawnPoint.set(GUILD.interiorSpawn.x, 0, GUILD.interiorSpawn.z);
       } else if (zoneId === 'open_world') {
         scene.background = new THREE.Color(0x91bfd6);
@@ -2598,6 +2617,9 @@
       if (overrideHeroPos && typeof overrideHeroPos.x === 'number' && typeof overrideHeroPos.z === 'number') {
         spawnPoint.set(overrideHeroPos.x, overrideHeroPos.y || 0, overrideHeroPos.z);
       }
+      if(zoneId==='guild' && (spawnPoint.y>3 || guildUpperFloorBlocked(spawnPoint.x,spawnPoint.z))) {
+        spawnPoint.set(GUILD.interiorSpawn.x,0,GUILD.interiorSpawn.z);
+      }
       // Older saves may point at a plot that is now occupied by a new house.
       // Move only that invalid spawn to the central road; never rewrite the
       // player's saved position during ordinary zone travel.
@@ -2606,7 +2628,7 @@
       }
 
       if (isBlockedByBuilding(spawnPoint.x, spawnPoint.z) && zoneId !== 'village') spawnPoint.set(zoneId === 'open_world' ? -66 : 0, 0, zoneId === 'open_world' ? 0 : zoneId === 'guild' ? -4 : 28);
-      spawnPoint.y = worldHeight(spawnPoint.x, spawnPoint.z);
+      spawnPoint.y = worldHeight(spawnPoint.x, spawnPoint.z, zoneId === 'guild' ? (overrideHeroPos?.y || 0) : 0);
       syncPartyUnitsIn3D(spawnPoint, gateArrival);
       if (gateArrival && state.party[0]?.mesh) {
         villageCameraYaw = state.party[0].mesh.rotation.y;
@@ -2639,6 +2661,7 @@
         const angle = idx * 1.35;
         const offsetR = idx === 0 ? 0 : 4.5;
         mesh.position.set(refPos.x + Math.cos(angle) * offsetR, refPos.y, refPos.z + Math.sin(angle) * offsetR);
+        if (state.currentZone === 'guild') mesh.position.copy(refPos);
         if (gateArrival) {
           const position = arrivalPartyPosition(gateArrival, idx);
           mesh.position.set(position.x, worldHeight(position.x, position.z), position.z);
@@ -4072,8 +4095,10 @@
     // =====================================================================
     // COLLISION CHECK FOR ALLEY WALLS & HOUSES
     // =====================================================================
-    function isBlockedByBuilding(x, z) {
+    function isBlockedByBuilding(x, z, y = state.party[0]?.mesh?.position.y || 0) {
+      if (state.currentZone === 'guild' && !guildCanWalkTo(x,z,y)) return true;
       for (const b of buildingColliders) {
+        if (b.minY !== undefined && (y < b.minY || y > b.maxY)) continue;
         if (x >= b.minX && x <= b.maxX && z >= b.minZ && z <= b.maxZ) {
           return true;
         }
@@ -4103,7 +4128,7 @@
       for (let i = 1; i <= steps; i++) {
         const fraction = i / steps;
         villageCameraSample.lerpVectors(villageCameraPivot, endPoint, fraction);
-        if (villageCameraSample.y < worldHeight(villageCameraSample.x, villageCameraSample.z) + 16 && isBlockedByBuilding(villageCameraSample.x, villageCameraSample.z)) {
+        if (villageCameraSample.y < worldHeight(villageCameraSample.x, villageCameraSample.z) + 16 && isBlockedByBuilding(villageCameraSample.x, villageCameraSample.z, villageCameraSample.y)) {
           return (i - 1) / steps;
         }
       }
@@ -4271,6 +4296,10 @@
           const tryX = THREE.MathUtils.clamp(leader.mesh.position.x + heroVelocity.x * dt, -(state.currentZone === 'village' ? VILLAGE_HALF_SIZE : (state.currentZone === 'guild' ? GUILD.bounds : combatBounds(state.currentZone)).x), (state.currentZone === 'village' ? VILLAGE_HALF_SIZE : (state.currentZone === 'guild' ? GUILD.bounds : combatBounds(state.currentZone)).x));
           const tryZ = THREE.MathUtils.clamp(leader.mesh.position.z + heroVelocity.z * dt, -(state.currentZone === 'village' ? VILLAGE_HALF_SIZE : (state.currentZone === 'guild' ? GUILD.bounds : combatBounds(state.currentZone)).z), (state.currentZone === 'village' ? VILLAGE_HALF_SIZE : (state.currentZone === 'guild' ? GUILD.bounds : combatBounds(state.currentZone)).z));
 
+          if(state.currentZone==='guild' && guildUpperFloorBlocked(tryX,tryZ) && performance.now()>guildComingSoonNoticeAt) {
+            showToast('بزودی — طبقات بالای گیلد هنوز باز نشده‌اند.','#d8b66a');
+            guildComingSoonNoticeAt=performance.now()+4000;
+          }
           // Slide along X and Z independently against village house/shop colliders.
           if (!isBlockedByBuilding(tryX, leader.mesh.position.z)) {
             if (!(state.currentZone === 'open_world' && Math.abs(tryX) < 7.2 && Math.abs(leader.mesh.position.z) > 6)) {
@@ -4305,7 +4334,7 @@
         const ctxBtn = document.getElementById('context-action-btn');
         activeShopNear = null;
         activeQuestNear = null; activeGuildStaff = null;
-        if (state.currentZone === 'guild') {
+        if (state.currentZone === 'guild' && leader.mesh.position.y < 2.5) {
           let distance=8;
           guildStaffNodes.forEach(node=>{const d=leader.mesh.position.distanceTo(node.group.position);if(d<distance){distance=d;activeGuildStaff=node.def;}});
         }
@@ -4342,8 +4371,8 @@
         // Check Portals
         if (portalCooldown <= 0) {
           for (const p of portalsList) {
-            p.ring.rotation.z = elapsed * 1.6;
-            if (leader.mesh.position.distanceTo(p.pos) < 6.0) {
+            if (p.ring) p.ring.rotation.z = elapsed * 1.6;
+            if (p.door ? guildDoorReached(leader.mesh.position, p.pos) : leader.mesh.position.distanceTo(p.pos) < 6.0) {
               playTone(520, 0.22, 'sine');
               loadZone3D(p.targetZone, p.targetTier);
               break;
@@ -4387,6 +4416,21 @@
         v.labelRef.pos.set(v.group.position.x, v.group.position.y + (v.static ? 4.65 : 4.4), v.group.position.z);
       });
 
+      if (guildAtmosphere) {
+        guildAtmosphere.update(elapsed);
+        guildAtmosphere.conversations.forEach((conversation,index)=>{
+          const label=guildConversationLabels[index];
+          label.el.style.display=conversation.active?'':'none';label.el.textContent=conversation.text;
+        });
+      }
+      if (guildHall && leader.mesh) {
+        // Hide upper ceiling slabs while below them, keeping a clear playable camera.
+        guildHall.userData.upperDecks.forEach((deck,index)=>{deck.visible=leader.mesh.position.y >= (index+1)*7-.75;});
+        const last=guildFollowTrail[guildFollowTrail.length-1];
+        if(!last || last.distanceTo(leader.mesh.position)>.35)guildFollowTrail.push(leader.mesh.position.clone());
+        if(guildFollowTrail.length>240)guildFollowTrail.shift();
+      }
+
       // 3. Connected Online Teammates Follow
       state.party.forEach((ally, idx) => {
         if (idx === 0 || !ally.isOnline || !ally.mesh || !leader.mesh) return;
@@ -4396,12 +4440,15 @@
           leader.mesh.position.y,
           leader.mesh.position.z + Math.sin(formAngle) * 5.0
         );
-        if (ally.mesh.position.distanceTo(desiredPos) > 1.2) {
+        if (state.currentZone === 'guild' && guildFollowTrail.length) {
+          desiredPos.copy(guildFollowTrail[Math.max(0,guildFollowTrail.length-1-idx*6)]);
+        }
+        if (ally.mesh.position.distanceTo(desiredPos) > (state.currentZone === 'guild' ? .15 : 1.2)) {
           const dir = desiredPos.clone().sub(ally.mesh.position).normalize();
-          ally.mesh.position.addScaledVector(dir, 22 * dt);
+          ally.mesh.position.addScaledVector(dir, Math.min(22 * dt, ally.mesh.position.distanceTo(desiredPos)));
           ally.mesh.rotation.y = Math.atan2(dir.x, dir.z);
         }
-        ally.mesh.position.y = worldHeight(ally.mesh.position.x, ally.mesh.position.z);
+        ally.mesh.position.y = state.currentZone === 'guild' ? desiredPos.y : worldHeight(ally.mesh.position.x, ally.mesh.position.z);
         ally.mesh.userData.labelRef.pos.set(ally.mesh.position.x, ally.mesh.position.y + 5.4, ally.mesh.position.z);
       });
 

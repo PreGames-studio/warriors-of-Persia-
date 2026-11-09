@@ -11,7 +11,7 @@ assert.equal(exterior.position.x,0);assert.equal(exterior.position.z,-3);
 exterior.updateMatrixWorld(true);
 const bounds=new THREE.Box3().setFromObject(exterior,true);
 assert.ok(bounds.max.y>24);assert.ok(bounds.min.y<0);
-assert.ok(GUILD.entrance.z>bounds.max.z+2);
+assert.ok(GUILD.entrance.z>7.2 && GUILD.entrance.z<11,'trigger just outside door collision');
 for(let i=0;i<5;i++){
  const p=arrivalPartyPosition(GUILD.villageArrival,i);
  assert.ok(Math.hypot(p.x-GUILD.entrance.x,p.z-GUILD.entrance.z)>6);
@@ -31,5 +31,5 @@ const html=fs.readFileSync('unity_preview/index.html','utf8');
 assert.ok(html.includes("} else if (zoneId === 'guild')"));
 assert.ok(html.includes("zoneId === 'open_world' || zoneId === 'dungeon'"));
 assert.equal((html.match(/const guildPoint = toMM/g)||[]).length,1,'map rendering must not leak into game update');
-assert.ok(html.includes("state.currentZone === 'guild' ? 0"));
+assert.ok(html.includes("state.currentZone === 'guild' ? guildWalkHeight"));
 console.log('PASS: three-storey guild geometry, furnished independent interior, safe entry/exit spawn formation and map integration.');

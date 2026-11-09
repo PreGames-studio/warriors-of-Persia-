@@ -54,7 +54,7 @@ export function accessibleHouseDoors(houses,colliders,navigation){
   });
 }
 
-export function createVillagePopulation(THREE,kit,houses,colliders,height,parent,count=100){
+export function createVillagePopulation(THREE,kit,houses,colliders,height,parent,count=200){
   let seed=82039;const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
   const navigation=createVillageNavigation(colliders),homes=accessibleHouseDoors(houses,colliders,navigation);
   if(homes.length<2)throw new Error('No accessible houses for village population');

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'warriors-of-persia-3d-v14-guild-population';
+const CACHE_NAME = 'warriors-of-persia-3d-v17-elf-icon';
 const ASSETS = [
   './',
   './index.html',
@@ -15,6 +15,7 @@ const ASSETS = [
   './map-markers.js',
   './portal-arrival.js',
   './adventure-guild.js',
+  './guild-atmosphere.js',
   './village-population.js',
   './guild-services.js',
   './merchant-shop.js',
