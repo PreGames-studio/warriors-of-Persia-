@@ -1,5 +1,43 @@
-/** Exterior landmark and deliberately empty, separately addressable interior staging zone. */
-export const GUILD = Object.freeze({zone:'guild',floors:3,center:{x:0,z:-3},entrance:{x:0,z:13},villageArrival:{x:0,z:23,yaw:0},interiorSpawn:{x:0,z:10},interiorExit:{x:0,z:21},bounds:{x:20,z:25}});
+/** Guild exterior, furnished hall and walkable three-level stair system. */
+export const GUILD = Object.freeze({zone:'guild',floors:3,center:{x:0,z:-3},entrance:{x:0,z:8.8},villageArrival:{x:0,z:23,yaw:0},interiorSpawn:{x:0,z:10},interiorExit:{x:0,z:25.5},bounds:{x:20.5,z:27}});
+
+export const GUILD_UPPER_FLOORS_OPEN = false;
+export function guildUpperFloorBlocked(x,z) {
+  return !GUILD_UPPER_FLOORS_OPEN && Math.abs(x)>=14.8 && z < -15.5;
+}
+
+export const GUILD_STAIRS = Object.freeze([-1,1].flatMap(side=>[
+  {side,flight:0,x:side*16.3,width:2.6,startZ:-16,endZ:-26,base:0,rise:7},
+  {side,flight:1,x:side*19.2,width:2.6,startZ:-26,endZ:-16,base:7,rise:7}
+]));
+
+export function guildWalkHeight(x,z,previousY=0) {
+  if(!GUILD_UPPER_FLOORS_OPEN)return 0;
+  const floor=Math.max(0,Math.min(2,Math.round(previousY/7)))*7;
+  // Turn on the rear landing to reach the parallel upper flight.
+  if(Math.abs(x)>=14.9&&Math.abs(x)<=20.5&&z<=-26&&z>=-27.5&&previousY>5.6&&previousY<8.4)return 7;
+  for(const stair of GUILD_STAIRS){
+    if(Math.abs(x-stair.x)>stair.width/2 || z < -26 || z > -16)continue;
+    const t=(z-stair.startZ)/(stair.endZ-stair.startZ);
+    const height=stair.base+stair.rise*Math.max(0,Math.min(1,t));
+    if(Math.abs(height-previousY)<1.25)return height;
+  }
+  return floor;
+}
+
+export function guildCanWalkTo(x,z,previousY) {
+  if(!GUILD_UPPER_FLOORS_OPEN)return !guildUpperFloorBlocked(x,z);
+  if(previousY<5.8 || Math.abs(x)<14.9 || z>=-16)return true;
+  if(z<=-26)return Math.abs(previousY-7)<1.3;
+  const stair=GUILD_STAIRS.find(s=>Math.abs(x-s.x)<=s.width/2);
+  if(!stair)return false;
+  const t=(z-stair.startZ)/(stair.endZ-stair.startZ);
+  return Math.abs(previousY-(stair.base+stair.rise*t))<1.25;
+}
+
+export function guildDoorReached(position,door){
+  return Math.abs(position.x-door.x)<2.3&&Math.abs(position.z-door.z)<2&&Math.abs(position.y)<1.5;
+}
 
 export function buildGuildExterior(THREE, m) {
   const root=new THREE.Group();root.name='Adventure guild • three floors';root.position.set(0,0,-3);root.userData.floors=3;
@@ -31,7 +69,6 @@ export function buildGuildExterior(THREE, m) {
   box(8.5,.15,.15,0,8.6,11.2,m.bronze);
   for(const x of [-9,9]){box(1.5,4.8,.16,x,11.2,9.4,m.tile);box(1.8,.2,.35,x,13.7,9.4,m.bronze);}
   const roof=new THREE.Mesh(new THREE.ConeGeometry(16.1,4,4),m.wood);roof.rotation.y=Math.PI/4;roof.position.y=23.3;roof.castShadow=true;root.add(roof);
-  const badge=new THREE.Mesh(new THREE.TorusGeometry(.85,.13,8,24),m.bronze);badge.position.set(0,5.9,10.2);root.add(badge);
   return root;
 }
 
@@ -79,6 +116,46 @@ export function buildGuildInteriorStage(THREE,m){
   colliders.push({x:0,z:-20,halfW:8.4,halfD:1.3});
   // Ledgers, parcels and brass candle holders establish the guild's work area.
   for(const x of [-4,4]){box(1.3,.15,.9,x,1.98,-20,m.parchment);box(.35,.5,.35,x+1,2.2,-20,m.bronze);}
-  root.userData.furniturePlan=plan;root.userData.colliders=colliders;
+  // Natural interior door: no magical ring, columns or teleport platform.
+  box(5.5,5.4,.25,0,2.7,26.7,m.wood);
+  box(.12,5.2,.35,0,2.7,26.5,m.bronze);
+  const upperDecks=[];
+  for(let level=1;GUILD_UPPER_FLOORS_OPEN&&level<=2;level++) {
+    const deck=new THREE.Group();deck.name=`Guild floor ${level+1}`;
+    const slab=(w,d,x,z)=>{const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,.35,d),m.plaza);mesh.position.set(x,level*7-.175,z);mesh.receiveShadow=true;deck.add(mesh);};
+    slab(29.8,54,0,0);
+    for(const side of [-1,1])slab(6.2,42,side*18,-16+21);
+    deck.visible=false;upperDecks.push(deck);root.add(deck);
+  }
+  // Two U-shaped staircases, one beside each end of the counter.
+  for(const stair of GUILD_STAIRS.filter(s=>GUILD_UPPER_FLOORS_OPEN||s.flight===0)){
+    const flight=new THREE.Group();flight.name=`Guild stair ${stair.side<0?'left':'right'} flight ${stair.flight+1}`;
+    flight.userData.staircase=stair;
+    for(let i=0;i<28;i++){
+      const h=(i+1)*stair.rise/28,z=stair.startZ+(i+.5)/28*(stair.endZ-stair.startZ);
+      const mesh=new THREE.Mesh(new THREE.BoxGeometry(stair.width,h,10/28+.02),m.stone);
+      mesh.position.set(stair.x,stair.base+h/2,z);mesh.castShadow=true;mesh.receiveShadow=true;flight.add(mesh);
+      if(i%4===0)for(const edge of [-1,1]){
+        const post=new THREE.Mesh(new THREE.BoxGeometry(.1,1.1,.1),m.wood);post.position.set(stair.x+edge*(stair.width/2-.08),stair.base+h+.55,z);flight.add(post);
+      }
+    }
+    // Continuous inclined handrails, with height-aware collision to prevent side stepping.
+    for(const edge of [-1,1]){
+      const rail=new THREE.Mesh(new THREE.BoxGeometry(.12,Math.hypot(10,7),.12),m.wood);
+      rail.position.set(stair.x+edge*(stair.width/2-.08),stair.base+4.55,-21);
+      rail.rotation.x=Math.atan2(-(stair.endZ-stair.startZ),7);flight.add(rail);
+      colliders.push({x:stair.x+edge*(stair.width/2-.08),z:-21,halfW:.1,halfD:4.9,minY:stair.base-.2,maxY:stair.base+8});
+    }
+    root.add(flight);
+  }
+  if(GUILD_UPPER_FLOORS_OPEN)for(const side of [-1,1])box(5.6,.35,1.5,side*17.75,6.825,-26.7,m.stone);
+  else for(const side of [-1,1]) {
+    for(const dx of [-2.2,2.2])box(.18,1.5,.2,side*17.65+dx,.75,-15.4,m.wood);
+    box(5.5,.2,.18,side*17.65,1.1,-15.4,m.wood);
+    box(5.5,.15,.18,side*17.65,.5,-15.4,m.bronze);
+    colliders.push({x:side*17.65,z:-21.5,halfW:2.85,halfD:6,minY:-.5,maxY:30});
+  }
+  root.userData.upperDecks=upperDecks;
+  root.userData.furniturePlan=plan;root.userData.colliders=colliders.map(c=>({...c,minY:c.minY??-.5,maxY:c.maxY??3.5}));
   return root;
 }
