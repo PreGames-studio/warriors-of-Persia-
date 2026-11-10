@@ -1201,7 +1201,7 @@
       <div class="stat-bar-row">
         <div class="stat-bar-track">
           <div class="stat-bar-fill fill-mana" id="bar-mana" style="width: 100%;"></div>
-          <div class="stat-bar-text" id="txt-mana">MANA: 100 / 100</div>
+          <div class="stat-bar-text" id="txt-mana">MP: 100 / 100</div>
         </div>
       </div>
       <div class="stat-bar-row">
@@ -1455,10 +1455,13 @@
   </div>
 
   <script type="module">
+    import { floorNumber, restoreDungeonProgress, canEnterFloor, clearDungeonFloor, dungeonFloorDefinition } from './dungeon-floors.js';
     import * as THREE from './lib/three.module.js';
     import { OrbitControls } from './lib/OrbitControls.js';
     import { OBJExporter } from './lib/OBJExporter.js';
     import { createMerchantShop } from './merchant-shop.js';
+    import { OPEN_WORLD_BOUNDS, WEST_SPAWN, VILLAGE_GATE, SLIME, createSlimeSpawns, buildSlime, slimeCanMove, isSafeWestTrail, isOpenWorldLand } from './open-world-first.js';
+    import { recoverMP, enemySpawnKey, enemyRespawnAt, recordEnemyDeath, restoreEnemyRespawns, mpDisplayName } from './game-timing.js';
     import { createGuildAtmosphere } from './guild-atmosphere.js';
     import { createVillagePopulation } from './village-population.js';
     import { createGuildServices } from './guild-services.js';
@@ -1517,11 +1520,11 @@
 
     const SHOP_CATALOG = [
       { id: 'potion_hp', title: '🧪 معجون سبز حیات (عطاری حکیم)', desc: '+۶۰ بازیابی سلامتی (HP)', price: 20, power: 60, type: 'hp' },
-      { id: 'potion_mana', title: '🧪 معجون آبی مانا (عطاری حکیم)', desc: '+۵۰ بازیابی مانا (MANA)', price: 20, power: 50, type: 'mana' },
+      { id: 'potion_mana', title: '🧪 معجون آبی MP (عطاری حکیم)', desc: '+۵۰ بازیابی MP (MP)', price: 20, power: 50, type: 'mana' },
       { id: 'sword_radiant', title: '⚒️ شمشیر کاویانی (آهنگری کاوه)', desc: '+۸ قدرت حمله دائمی برای قهرمان', price: 50, power: 8, type: 'atk' },
       { id: 'armor_persian', title: '🛡️ زره پولادین پارسی (آهنگری کاوه)', desc: '+۴۰ سقف سلامتی (Max HP) دائمی', price: 55, power: 40, type: 'max_hp' },
-      { id: 'amulet_star', title: '🔮 طلسم ستاره‌ای (مکتب ستاره‌شناس)', desc: '+۳۰ سقف مانا (MANA) دائمی', price: 60, power: 30, type: 'max_mana' },
-      { id: 'tea_buff', title: '🍵 چای زعفرانی پهلوانان (چایخانه)', desc: 'پر کردن کامل HP و MANA فوری', price: 15, power: 999, type: 'full_restore' }
+      { id: 'amulet_star', title: '🔮 طلسم ستاره‌ای (مکتب ستاره‌شناس)', desc: '+۳۰ سقف MP (MP) دائمی', price: 60, power: 30, type: 'max_mana' },
+      { id: 'tea_buff', title: '🍵 چای زعفرانی پهلوانان (چایخانه)', desc: 'پر کردن کامل HP و MP فوری', price: 15, power: 999, type: 'full_restore' }
     ];
 
     // 6 Distinct Walkable Village Shops placed along the Alleys
@@ -1554,7 +1557,7 @@
         rotY: 0,
         roofColor: 0x16a34a,
         carpetColor: 0x15803d,
-        greeting: 'به عطاری حکیم خوش آمدید! معجون‌های شفا و مانا با گیاهان کوهستان زاگرس.'
+        greeting: 'به عطاری حکیم خوش آمدید! معجون‌های شفا و MP با گیاهان کوهستان زاگرس.'
       },
       {
         id: 'astrologer',
@@ -1564,7 +1567,7 @@
         rotY: 0,
         roofColor: 0x9333ea,
         carpetColor: 0x6b21a8,
-        greeting: 'به مکتب ستاره‌شناس خوش آمدید! طلسم‌های مانا و بازیابی سطح قهرمان.'
+        greeting: 'به مکتب ستاره‌شناس خوش آمدید! طلسم‌های MP و بازیابی سطح قهرمان.'
       },
       {
         id: 'carpet_bazaar',
@@ -1718,9 +1721,11 @@
     const state = {
       currentZone: 'village', // Starts directly in the Village Map so the user can walk the alleys!
       dungeonTier: 1,
+      dungeonFloor: 1, dungeonProgress: restoreDungeonProgress(null),
       coins: 12450, // Matches 12,450 Gold in reference image so all blacksmith items can be tested & bought!
       lostLevelsRecoverable: 0,
       ownedBlacksmithIds: new Set(),
+      enemyRespawns: {},
       savedHeroPos: null,
       crystals: [
         { type: 'small', title: 'خرده کریستال آبی (Lv.1)', level: 1, coinValue: 150 },
@@ -1796,10 +1801,12 @@
         timestamp: Date.now(),
         currentZone: state.currentZone || 'village',
         dungeonTier: state.dungeonTier || 1,
+        dungeonFloor: state.dungeonFloor, dungeonProgress: state.dungeonProgress,
         coins: Number(state.coins) || 0,
         lostLevelsRecoverable: Number(state.lostLevelsRecoverable) || 0,
         guildMembership: state.guildMembership || null,
         ownedBlacksmithIds: Array.from(state.ownedBlacksmithIds || []),
+        enemyRespawns: state.enemyRespawns,
         crystals: Array.isArray(state.crystals) ? state.crystals : [],
         inventory: Array.isArray(state.inventory) ? state.inventory : [],
         cameraMode: Number(state.cameraMode) || 0,
@@ -1815,7 +1822,8 @@
           xpToNext: Math.max(50, Number(m.xpToNext) || 100),
           hp: Math.max(1, Number(m.hp) || 160),
           hpMax: Math.max(100, Number(m.hpMax) || 160),
-          mana: Math.max(0, Number(m.mana) || 100),
+          mana: Math.max(0, Number.isFinite(m.mana) ? m.mana : 100),
+          mpRecoveryAt: Number.isFinite(m.mpRecoveryAt) ? m.mpRecoveryAt : Date.now(),
           manaMax: Math.max(50, Number(m.manaMax) || 100),
           atk: Math.max(10, Number(m.atk) || 24)
         }))
@@ -1854,12 +1862,15 @@
       if (!data || !Array.isArray(data.party) || data.party.length === 0) return false;
       state.currentZone = data.currentZone || 'village';
       state.dungeonTier = Number(data.dungeonTier) || 1;
+      state.dungeonProgress=restoreDungeonProgress(data.dungeonProgress);
+      state.dungeonFloor=canEnterFloor(state.dungeonProgress,floorNumber(data.dungeonFloor))?floorNumber(data.dungeonFloor):1;
       state.coins = (typeof data.coins === 'number') ? data.coins : 12450;
       state.lostLevelsRecoverable = Number(data.lostLevelsRecoverable) || 0;
       state.guildMembership = data.guildMembership?.registered ? {...data.guildMembership} : null;
       state.ownedBlacksmithIds = new Set(Array.isArray(data.ownedBlacksmithIds) ? data.ownedBlacksmithIds : []);
+      state.enemyRespawns = restoreEnemyRespawns(data.enemyRespawns);
       state.crystals = Array.isArray(data.crystals) ? data.crystals : [];
-      state.inventory = Array.isArray(data.inventory) ? data.inventory : [];
+      state.inventory = Array.isArray(data.inventory) ? data.inventory.map(item=>({...item,title:mpDisplayName(item.title),desc:mpDisplayName(item.desc)})) : [];
       state.cameraMode = Number(data.cameraMode) || 0;
       state.savedHeroPos = data.heroPos || null;
 
@@ -1874,12 +1885,14 @@
         xpToNext: Math.max(50, Number(m.xpToNext) || 100),
         hp: Math.max(1, Number(m.hp) || Number(m.hpMax) || 160),
         hpMax: Math.max(100, Number(m.hpMax) || 160),
-        mana: Math.max(0, Number(m.mana) || Number(m.manaMax) || 100),
+        mana: Math.max(0, Number.isFinite(m.mana) ? m.mana : (Number(m.manaMax) || 100)),
+        mpRecoveryAt: Number.isFinite(m.mpRecoveryAt) ? m.mpRecoveryAt : Date.now(),
         manaMax: Math.max(50, Number(m.manaMax) || 100),
         atk: Math.max(10, Number(m.atk) || 24),
         mesh: null
       }));
 
+      state.party.forEach(member=>recoverMP(member));
       if (rebuild3D) {
         loadZone3D(state.currentZone, state.dungeonTier, state.savedHeroPos);
       }
@@ -1946,7 +1959,7 @@
     renderer.toneMappingExposure = 1.15;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(50, 1, 0.5, 600);
+    const camera = new THREE.PerspectiveCamera(50, 1, 0.5, 3000);
     camera.position.set(0, 22, 28);
 
     const orbitControls = new OrbitControls(camera, renderer.domElement);
@@ -2015,6 +2028,8 @@
     let mapRoot = new THREE.Group();
     scene.add(mapRoot);
 
+    let dungeonTraps = [];
+    let floorPicker = null;
     let portalsList = [];
     let villageShopNodes = [];
     let buildingColliders = []; // AABB boxes { minX, maxX, minZ, maxZ } for alley walls & houses
@@ -2293,14 +2308,16 @@
       villagersNPCs.push({ group: g, points: [new THREE.Vector3(def.x, 0, def.z)], targetIdx: 0, labelRef: lbl, static: true, quest: def });
     }
 
-    function spawnEnemyUnit3D(x, y, z, level, rank = 'normal', customTitle = '') {
+    function spawnEnemyUnit3D(x, y, z, level, rank = 'normal', customTitle = '', creature = null) {
+      const isSlime = creature?.kind === 'slime';
       const isBoss = rank === 'boss';
       const isElite = rank === 'elite';
-      const g = new THREE.Group();
+      const g = isSlime ? buildSlime(THREE) : new THREE.Group();
       g.position.set(x, y, z);
       const scale = isBoss ? 2.1 : (isElite ? 1.35 : 1.0);
       g.scale.setScalar(scale);
 
+      if (!isSlime) {
       const mat = isBoss ? MATS.bossMat : (isElite ? MATS.enemyElite : MATS.enemyNormal);
       const body = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 1.15, 2.2, 10), mat);
       body.position.y = 1.4;
@@ -2310,15 +2327,22 @@
       const head = new THREE.Mesh(new THREE.SphereGeometry(1.12, 14, 14), isBoss ? MATS.bossMat : MATS.volcanicRock);
       head.position.y = 3.2;
       g.add(head);
+      }
 
-      const hpMax = isBoss ? (260 + level * 90) : (isElite ? (110 + level * 35) : (65 + level * 22));
-      const atk = isBoss ? (22 + level * 6) : (isElite ? (14 + level * 4) : (9 + level * 3));
-      const xpReward = isBoss ? (120 * level) : (isElite ? (45 * level) : (25 * level));
+      const hpMax = isSlime ? creature.hp : isBoss ? (260 + level * 90) : (isElite ? (110 + level * 35) : (65 + level * 22));
+      const atk = isSlime ? creature.attack : isBoss ? (22 + level * 6) : (isElite ? (14 + level * 4) : (9 + level * 3));
+      const xpReward = isSlime ? creature.xp : isBoss ? (120 * level) : (isElite ? (45 * level) : (25 * level));
       const title = customTitle || (isBoss ? `👹 باس دیو باستانی (Lv.${level})` : (isElite ? `👾 نگهبان الیت (Lv.${level})` : `👾 هیولا (Lv.${level})`));
 
       const lbl = addWorldLabel(`${title} [${hpMax}/${hpMax}]`, new THREE.Vector3(x, y + 4.8 * scale, z), isBoss ? '#f43f5e' : '#fb7185');
 
+      if(isSlime)lbl.maxDistance=65;
+      const spawnKey = enemySpawnKey(state.currentZone, state.currentZone==='dungeon'&&state.dungeonTier===1?`first-floor-${state.dungeonFloor}`:state.dungeonTier, x, z, rank, level);
+      const respawnAt = enemyRespawnAt(state.enemyRespawns, spawnKey);
+      if (respawnAt) { g.visible = false; lbl.el.style.display = 'none'; }
       enemiesList.push({
+        spawnKey,
+        kind: isSlime ? 'slime' : 'humanoid',
         group: g,
         homePos: new THREE.Vector3(x, y, z),
         level,
@@ -2331,8 +2355,8 @@
         scale,
         atkTimer: 1.5,
         shockwaveTimer: 4.5,
-        dead: false,
-        respawnTimer: 0,
+        dead: respawnAt > 0,
+        respawnAt,
         labelRef: lbl
       });
       mapRoot.add(g);
@@ -2345,7 +2369,9 @@
       let colorHex = 0x38bdf8;
       let sc = 0.9;
 
-      if (rank === 'boss') {
+      if (rank === 'slime') {
+        cType=SLIME.drop.type;title=SLIME.drop.title;coinValue=SLIME.drop.coinValue;colorHex=SLIME.drop.color;sc=.75;
+      } else if (rank === 'boss') {
         cType = 'boss';
         title = 'کریستال باستانی باس';
         coinValue = 45 + enemyLevel * 20;
@@ -2374,7 +2400,26 @@
     // =====================================================================
     // ZONE BUILDERS (1. EXPANDED VILLAGE WITH ALLEYS & SHOPS, 2. OPEN WORLD, 3. DUNGEON)
     // =====================================================================
-    function loadZone3D(zoneId, tier = 1, overrideHeroPos = null) {
+    function chooseDungeonFloor() {
+      if(floorPicker)return;
+      floorPicker=document.createElement('dialog');
+      floorPicker.style.cssText='background:#211a30;color:white;padding:24px;border:2px solid #b99155;border-radius:14px;max-height:75vh;direction:rtl';
+      const title=document.createElement('h3');title.textContent='دانجن اول — تلپورت به طبقات دارای مجوز';floorPicker.append(title);
+      const select=document.createElement('select');select.style.cssText='padding:12px;font-size:18px';
+      for(let f=1;f<=state.dungeonProgress.highest;f++){const o=document.createElement('option');o.value=f;o.textContent=`طبقه ${f}`;select.append(o);}
+      select.value=state.dungeonProgress.highest;floorPicker.append(select);
+      const close=()=>{floorPicker.close();floorPicker.remove();floorPicker=null;portalCooldown=3;};
+      const enter=document.createElement('button');enter.textContent='ورود / تلپورت';enter.onclick=()=>{const f=Number(select.value);close();loadZone3D('dungeon',1,null,f);};floorPicker.append(enter);
+      const cancel=document.createElement('button');cancel.textContent='انصراف';cancel.onclick=close;floorPicker.append(cancel);
+      floorPicker.addEventListener('cancel',e=>{e.preventDefault();close();});document.body.append(floorPicker);floorPicker.showModal();
+    }
+    function loadZone3D(zoneId, tier = 1, overrideHeroPos = null, requestedFloor = null) {
+      if(zoneId==='dungeon' && tier===1){
+        if(requestedFloor===null && !overrideHeroPos){chooseDungeonFloor();return;}
+        const f=floorNumber(requestedFloor??state.dungeonFloor);
+        if(!canEnterFloor(state.dungeonProgress,f)){showToast('مجوز این طبقه را ندارید.','#fb7185');return;}
+        state.dungeonFloor=f;
+      }
       const returningFromGuild = state.currentZone === 'guild' && zoneId === 'village' && !overrideHeroPos;
       const returningDungeonTier = state.currentZone === 'dungeon' && zoneId === 'open_world' && !overrideHeroPos ? state.dungeonTier : null;
       cameraLookGesture.cancel();
@@ -2398,6 +2443,7 @@
       scene.add(mapRoot);
       renderer.shadowMap.needsUpdate = true;
 
+      dungeonTraps = [];
       portalsList = [];
       villageShopNodes = [];
       buildingColliders = [];
@@ -2526,7 +2572,7 @@
         scene.background = new THREE.Color(0x91bfd6);
         scene.fog = new THREE.FogExp2(0xbcd4d6, .002);
 
-        const river = new THREE.Mesh(new THREE.BoxGeometry(14, 1.8, 180), MATS.riverWater);
+        const river = new THREE.Mesh(new THREE.BoxGeometry(14, 1.8, 1760), MATS.riverWater);
         river.position.set(0, -1.2, 0); mapRoot.add(river);
 
         const bridge = new THREE.Group();
@@ -2540,7 +2586,7 @@
         mapRoot.add(bridge);
         addWorldLabel('🌉 پل رودخانه خروشان', new THREE.Vector3(0, 4.8, 0), '#7dd3fc');
 
-        [[-72, -56, 15, 24], [-42, -58, 17, 28], [-16, -55, 14, 22], [24, -55, 18, 30], [52, -57, 21, 35], [82, -54, 17, 27]].forEach(([px, pz, r, h]) => {
+        [[-72, -56, 15, 24], [-42, -58, 17, 28], [-16, -55, 14, 22], [24, -55, 18, 30], [52, -57, 21, 35], [82, -54, 17, 27]].filter(([px])=>px>0).forEach(([px, pz, r, h]) => {
           const pk = new THREE.Group();
           pk.position.set(px, 0, pz);
           const rk = new THREE.Mesh(new THREE.ConeGeometry(r, h, 7), MATS.mountainRock);
@@ -2551,23 +2597,21 @@
           mapRoot.add(pk);
         });
 
-        [[-78, -28], [-70, 30], [-45, -34], [-32, 35], [36, -36], [72, -32], [68, -14]].forEach(([tx, tz]) => {
+        [[-78, -28], [-70, 30], [-45, -34], [-32, 35], [36, -36], [72, -32], [68, -14]].filter(([tx])=>tx>0).forEach(([tx, tz]) => {
           mapRoot.add(buildCypress3D(tx, 0, tz, 1.05));
         });
 
-        const pVil = buildPortal3D(-88, 0, 0, MATS.portalGreen, '⬅️ ورود به روستای امن (بازار و کوچه‌ها)', '#4ade80', 'village', 1);
+        const pVil = buildPortal3D(VILLAGE_GATE.x, 0, VILLAGE_GATE.z, MATS.portalGreen, '⬅️ ورود به روستای امن (بازار و کوچه‌ها)', '#4ade80', 'village', 1);
         pVil.rotation.y = Math.PI / 2;
         const pFor = buildPortal3D(54, 1.2, -28, MATS.portalPurple, '🟣 دانجن ۱: جنگل باستانی (Lv.1)', '#d8b4fe', 'dungeon', 1);
         const pFir = buildPortal3D(78, 1.2, 30, MATS.portalFire, '🔥 دانجن ۲: کوهستان آتش (Lv.3)', '#fb923c', 'dungeon', 3);
         mapRoot.add(pVil, pFor, pFir);
 
-        spawnEnemyUnit3D(-36, 0, -2, 1, 'normal');
-        spawnEnemyUnit3D(-28, 0, -22, 1, 'normal');
-        spawnEnemyUnit3D(-30, 0, 22, 1, 'normal');
+        createSlimeSpawns().forEach(p=>spawnEnemyUnit3D(p.x,0,p.z,1,'slime','اسلایم قطره‌ای',SLIME));
         spawnEnemyUnit3D(30, 1.2, -4, 2, 'elite');
         spawnEnemyUnit3D(58, 1.2, 10, 3, 'elite');
 
-        spawnPoint.set(-66, 0, 0);
+        spawnPoint.set(WEST_SPAWN.x, 0, WEST_SPAWN.z);
       } else if (zoneId === 'dungeon') {
         const fireDungeon = tier >= 3;
         scene.background = new THREE.Color(fireDungeon ? 0x36251f : 0x344c42);
@@ -2583,16 +2627,25 @@
         const pExit = buildPortal3D(0, 0, 42, MATS.portalGreen, '⬇️ خروج از دانجن به جهان باز', '#38bdf8', 'open_world', 1);
         mapRoot.add(pExit);
 
-        spawnEnemyUnit3D(-14, 0, 6, tier, 'normal');
-        spawnEnemyUnit3D(14, 0, 6, tier, 'normal');
-        spawnEnemyUnit3D(0, 0, -4, tier + 1, 'elite');
-        spawnEnemyUnit3D(0, 1.1, -24, tier + 2, 'boss', `👹 باس دانجن سطح ${tier}: دیو باستانی`);
+        const definition=dungeonFloorDefinition(tier===1?state.dungeonFloor:1);
+        definition.enemies.forEach(e=>spawnEnemyUnit3D(e.x,0,e.z,tier+(e.rank==='elite'?1:0),e.rank));
+        spawnEnemyUnit3D(definition.boss.x,1.1,definition.boss.z,tier+2,'boss',`👹 رئیس ${tier===1?'طبقه '+state.dungeonFloor:'دانجن آتش'}`);
+        if(tier===1){
+          if(state.dungeonFloor<100){
+            const next=buildPortal3D(0,0,-38,MATS.portalPurple,'⬆️ طبقه بعد — نیازمند مجوز رئیس','#d8b4fe','dungeon',1);
+            portalsList[portalsList.length-1].targetFloor=state.dungeonFloor+1;mapRoot.add(next);
+          }
+          definition.traps.forEach(t=>{
+            const mesh=new THREE.Mesh(new THREE.CylinderGeometry(t.radius,t.radius,.18,12),new THREE.MeshStandardMaterial({color:0xcc6633,emissive:0x772200}));
+            mesh.position.set(t.x,.12,t.z);mapRoot.add(mesh);dungeonTraps.push({...t,mesh,cooldown:0});
+          });
+        }
 
         spawnPoint.set(0, 0, 28);
       }
 
       if (zoneId === 'open_world' || zoneId === 'dungeon') {
-        activeCombatPlan = createCombatPlan(zoneId, tier);
+        activeCombatPlan = createCombatPlan(zoneId, tier, state.dungeonFloor);
         mapRoot.children.forEach(child => {
           child.position.y = combatHeight(zoneId, tier, child.position.x, child.position.z) + child.position.y;
         });
@@ -2627,7 +2680,8 @@
         spawnPoint.set(0, 0, 24);
       }
 
-      if (isBlockedByBuilding(spawnPoint.x, spawnPoint.z) && zoneId !== 'village') spawnPoint.set(zoneId === 'open_world' ? -66 : 0, 0, zoneId === 'open_world' ? 0 : zoneId === 'guild' ? -4 : 28);
+      if (isBlockedByBuilding(spawnPoint.x, spawnPoint.z) && zoneId !== 'village') spawnPoint.set(zoneId === 'open_world' ? WEST_SPAWN.x : 0, 0, zoneId === 'open_world' ? 0 : zoneId === 'guild' ? -4 : 28);
+      if(zoneId==='open_world'&&!isOpenWorldLand(spawnPoint.x,spawnPoint.z))spawnPoint.set(WEST_SPAWN.x,0,WEST_SPAWN.z);
       spawnPoint.y = worldHeight(spawnPoint.x, spawnPoint.z, zoneId === 'guild' ? (overrideHeroPos?.y || 0) : 0);
       syncPartyUnitsIn3D(spawnPoint, gateArrival);
       if (gateArrival && state.party[0]?.mesh) {
@@ -2688,8 +2742,8 @@
         zoneTitle = '🌍 جهان باز (دشت، رودخانه و کوهستان)';
         mmTag.textContent = 'OpenWorld';
       } else {
-        zoneTitle = `⚔️ دانجن سطح ${state.dungeonTier} (باس و غنائم)`;
-        mmTag.textContent = `Dungeon Lv.${state.dungeonTier}`;
+        zoneTitle = state.dungeonTier===1?`⚔️ دانجن اول — طبقه ${state.dungeonFloor} از ۱۰۰`:`⚔️ دانجن سطح ${state.dungeonTier} (باس و غنائم)`;
+        mmTag.textContent = state.dungeonTier===1?`Floor ${state.dungeonFloor}/100`:`Dungeon Lv.${state.dungeonTier}`;
       }
       if (pill) pill.textContent = zoneTitle;
 
@@ -2702,7 +2756,7 @@
     }
 
     // =====================================================================
-    // PARTY MANAGEMENT
+    // PARTY MPGEMENT
     // =====================================================================
     function renderPartyHUD() {
       const container = document.getElementById('party-list-container');
@@ -2810,12 +2864,17 @@
 
       if (enemy.hp <= 0) {
         enemy.dead = true;
-        enemy.respawnTimer = enemy.rank === 'boss' ? 14 : 7;
+        if(enemy.rank==='boss'&&state.currentZone==='dungeon'&&state.dungeonTier===1){
+          state.dungeonProgress=clearDungeonFloor(state.dungeonProgress,state.dungeonFloor);
+          showToast(state.dungeonFloor===100?'دانجن اول کامل شد!':`مجوز دائمی طبقه ${state.dungeonFloor+1} دریافت شد.`,'#4ade80');
+        }
+        enemy.respawnAt = recordEnemyDeath(state.enemyRespawns, enemy.spawnKey);
         enemy.group.visible = false;
         enemy.labelRef.el.style.display = 'none';
         spawnCrystal3D(enemy.group.position, enemy.level, enemy.rank);
         grantSharedTeamXP(enemy.xpReward);
         playTone(660, 0.22, 'triangle');
+        saveGameProgress();
       }
     }
 
@@ -2834,7 +2893,7 @@
           m.atk += 5;
           if (m.isLocal && m.mesh) {
             spawnFloatingPopup(`🎉 ارتقای سطح! Lv.${m.level}`, m.mesh.position, '#4ade80');
-            showToast(`ارتقای سطح! اکنون سطح ${m.level} هستید (+۲۵ سقف مانا)`, '#fde047');
+            showToast(`ارتقای سطح! اکنون سطح ${m.level} هستید (+۲۵ سقف MP)`, '#fde047');
             playTone(880, 0.3, 'sine');
           }
         }
@@ -2865,13 +2924,16 @@
       const sk = SKILLS[skillIdx];
       if (!leader.mesh || !sk) return;
       if (state.skillCooldowns[skillIdx] > 0) return;
+      recoverMP(leader);
       if (leader.mana < sk.manaCost) {
-        showToast('مانا کافی نیست! (نوار آبی MANA)', '#38bdf8');
+        showToast('MP کافی نیست! (نوار آبی MP)', '#38bdf8');
         return;
       }
 
+      if (leader.mana === leader.manaMax) leader.mpRecoveryAt = Date.now();
       leader.mana -= sk.manaCost;
       state.skillCooldowns[skillIdx] = sk.cooldown;
+      saveGameProgress();
       updateHeroStatsHUD();
 
       const totalDmg = leader.atk * sk.mult;
@@ -2931,7 +2993,7 @@
       document.getElementById('txt-hp').textContent = `HP: ${Math.round(leader.hp)} / ${Math.round(leader.hpMax)}`;
 
       document.getElementById('bar-mana').style.width = `${(leader.mana / leader.manaMax) * 100}%`;
-      document.getElementById('txt-mana').textContent = `MANA: ${Math.round(leader.mana)} / ${Math.round(leader.manaMax)}`;
+      document.getElementById('txt-mana').textContent = `MP: ${Math.round(leader.mana)} / ${Math.round(leader.manaMax)}`;
 
       document.getElementById('bar-xp').style.width = `${(leader.xp / leader.xpToNext) * 100}%`;
       document.getElementById('txt-xp').textContent = `XP: ${leader.xp} / ${leader.xpToNext}`;
@@ -4007,7 +4069,9 @@
       mmCtx.fillStyle = state.currentZone === 'dungeon' ? '#1a122b' : '#143322';
       mmCtx.fillRect(0, 0, w, h);
 
-      const toMM = (pos) => state.currentZone === 'village'
+      const toMM = (pos) => state.currentZone === 'open_world'
+        ? {x:(pos.x-OPEN_WORLD_BOUNDS.minX)/(OPEN_WORLD_BOUNDS.maxX-OPEN_WORLD_BOUNDS.minX)*w,y:(pos.z-OPEN_WORLD_BOUNDS.minZ)/(OPEN_WORLD_BOUNDS.maxZ-OPEN_WORLD_BOUNDS.minZ)*h}
+        : state.currentZone === 'village'
         ? { x: ((pos.x + 270) / 540) * w, y: ((pos.z + 270) / 540) * h }
         : { x: (pos.x / ((state.currentZone === 'guild' ? GUILD.bounds : combatBounds(state.currentZone)).x + 2) + 1) * w / 2, y: (pos.z / ((state.currentZone === 'guild' ? GUILD.bounds : combatBounds(state.currentZone)).z + 2) + 1) * h / 2 };
 
@@ -4046,6 +4110,9 @@
         const plan = activeCombatPlan;
         mmCtx.fillStyle = plan.fire ? '#46352e' : '#284735'; mmCtx.fillRect(0, 0, w, h);
         if (state.currentZone === 'open_world') {
+          const edge=toMM({x:-7,z:-88}),bottom=toMM({x:128,z:88});
+          mmCtx.fillStyle='#0c1715';mmCtx.fillRect(edge.x,0,w-edge.x,h);
+          mmCtx.fillStyle='#284735';mmCtx.fillRect(edge.x,edge.y,w-edge.x,bottom.y-edge.y);
           mmCtx.fillStyle = '#287ea0'; const a = toMM({x:-7,z:0}), b = toMM({x:7,z:0}); mmCtx.fillRect(a.x,0,b.x-a.x,h);
         }
         mmCtx.strokeStyle = '#b4a282'; mmCtx.lineWidth = mapExpanded ? 5 : 2;
@@ -4232,8 +4299,10 @@
       }
 
       const isSafe = state.currentZone === 'village' || state.currentZone === 'guild';
-      const manaRegen = (4.0 + (leader.level - 1) * 0.8) * (isSafe ? 3.0 : 1.0);
-      if (leader.mana < leader.manaMax) leader.mana = Math.min(leader.manaMax, leader.mana + manaRegen * dt);
+      const recoveryNow = Date.now();
+      let recoveredMP = 0;
+      state.party.forEach(member=>{ recoveredMP += recoverMP(member,recoveryNow); });
+      if (recoveredMP > 0) saveGameProgress();
       if (isSafe && leader.hp < leader.hpMax) leader.hp = Math.min(leader.hpMax, leader.hp + 25.0 * dt);
       updateHeroStatsHUD();
 
@@ -4300,13 +4369,14 @@
             showToast('بزودی — طبقات بالای گیلد هنوز باز نشده‌اند.','#d8b66a');
             guildComingSoonNoticeAt=performance.now()+4000;
           }
+          const boundedX=state.currentZone==='open_world'?THREE.MathUtils.clamp(tryX,OPEN_WORLD_BOUNDS.minX,OPEN_WORLD_BOUNDS.maxX):tryX;
           // Slide along X and Z independently against village house/shop colliders.
-          if (!isBlockedByBuilding(tryX, leader.mesh.position.z)) {
-            if (!(state.currentZone === 'open_world' && Math.abs(tryX) < 7.2 && Math.abs(leader.mesh.position.z) > 6)) {
-              leader.mesh.position.x = tryX;
+          if (!isBlockedByBuilding(boundedX, leader.mesh.position.z) && (state.currentZone!=='open_world'||isOpenWorldLand(boundedX,leader.mesh.position.z))) {
+            if (!(state.currentZone === 'open_world' && Math.abs(boundedX) < 7.2 && Math.abs(leader.mesh.position.z) > 6)) {
+              leader.mesh.position.x = boundedX;
             }
           }
-          if (!isBlockedByBuilding(leader.mesh.position.x, tryZ)) {
+          if (!isBlockedByBuilding(leader.mesh.position.x, tryZ) && (state.currentZone!=='open_world'||isOpenWorldLand(leader.mesh.position.x,tryZ))) {
             leader.mesh.position.z = tryZ;
           }
 
@@ -4368,13 +4438,24 @@
           ctxBtn.style.display = 'none';
         }
 
+        for(const trap of dungeonTraps){
+          trap.cooldown=Math.max(0,trap.cooldown-dt);
+          const active=elapsed%trap.period<trap.active;
+          trap.mesh.material.emissive.setHex(active?0xff3300:0x221100);
+          if(active&&trap.cooldown===0&&Math.hypot(leader.mesh.position.x-trap.x,leader.mesh.position.z-trap.z)<trap.radius){
+            trap.cooldown=1;leader.hp=Math.max(0,leader.hp-trap.damage);spawnFloatingPopup(`-${trap.damage}`,leader.mesh.position,'#fb7185');
+            if(leader.hp<=0){leader.hp=leader.hpMax;leader.mana=leader.manaMax;loadZone3D('village',1);break;}
+            saveGameProgress();
+          }
+        }
         // Check Portals
         if (portalCooldown <= 0) {
           for (const p of portalsList) {
             if (p.ring) p.ring.rotation.z = elapsed * 1.6;
             if (p.door ? guildDoorReached(leader.mesh.position, p.pos) : leader.mesh.position.distanceTo(p.pos) < 6.0) {
               playTone(520, 0.22, 'sine');
-              loadZone3D(p.targetZone, p.targetTier);
+              if(p.targetFloor&&!canEnterFloor(state.dungeonProgress,p.targetFloor)){showToast('ابتدا رئیس این طبقه را شکست بدهید.','#fb7185');portalCooldown=3;break;}
+              loadZone3D(p.targetZone, p.targetTier, null, p.targetFloor??null);
               break;
             }
           }
@@ -4455,14 +4536,16 @@
       // 4. Enemies AI
       enemiesList.forEach((en, idx) => {
         if (en.dead) {
-          en.respawnTimer -= dt;
-          if (en.respawnTimer <= 0) {
+          if (Date.now() >= en.respawnAt) {
+            delete state.enemyRespawns[en.spawnKey];
+            en.respawnAt = 0;
             en.dead = false;
             en.hp = en.hpMax;
             en.group.position.copy(en.homePos);
             en.group.visible = true;
             en.labelRef.el.style.display = 'block';
             en.labelRef.el.textContent = `${en.title} [${en.hp}/${en.hpMax}]`;
+            saveGameProgress();
           }
           return;
         }
@@ -4474,13 +4557,27 @@
 
         if (leader.mesh) {
           const dist = en.group.position.distanceTo(leader.mesh.position);
-          if (dist < 25 && dist > 3.8) {
+          const safePlayer=state.currentZone==='open_world'&&isSafeWestTrail(leader.mesh.position.x,leader.mesh.position.z);
+          if(en.kind==='slime'){
+            const nearHome=en.group.position.distanceTo(en.homePos)<45;
+            const chase=dist<26&&dist>3.5&&!safePlayer&&nearHome;
+            const target=chase?leader.mesh.position:{x:en.homePos.x+Math.sin(elapsed*.12+idx)*9,z:en.homePos.z+Math.cos(elapsed*.1+idx)*9};
+            const dx=target.x-en.group.position.x,dz=target.z-en.group.position.z,distance=Math.hypot(dx,dz);
+            if(distance>.3){
+              const speed=chase?3.2:1.1,step=Math.min(speed*dt,distance);
+              const next={x:en.group.position.x+dx/distance*step,z:en.group.position.z+dz/distance*step};
+              if(slimeCanMove(en.group.position,next)){en.group.position.x=next.x;en.group.position.z=next.z;en.group.rotation.y=Math.atan2(dx,dz);}
+            }
+            const bounce=Math.sin(elapsed*3+idx)*.06;en.group.scale.set(1+bounce,1-bounce*.7,1+bounce);
+          } else if (dist < 25 && dist > 3.8 && !safePlayer) {
             const dir = leader.mesh.position.clone().sub(en.group.position).setY(0).normalize();
-            en.group.position.addScaledVector(dir, (en.rank === 'boss' ? 9 : 11) * dt);
+            const step=(en.rank === 'boss' ? 9 : 11) * dt;
+            const next={x:en.group.position.x+dir.x*step,z:en.group.position.z+dir.z*step};
+            if(state.currentZone!=='open_world'||!isSafeWestTrail(next.x,next.z))en.group.position.addScaledVector(dir,step);
             en.group.rotation.y = Math.atan2(dir.x, dir.z);
           }
           en.atkTimer -= dt;
-          if (dist <= 5.0 && en.atkTimer <= 0) {
+          if (dist <= 5.0 && en.atkTimer <= 0 && !safePlayer) {
             en.atkTimer = 1.4;
             leader.hp = Math.max(0, leader.hp - en.atk);
             spawnFloatingPopup(`-${en.atk}`, leader.mesh.position, '#fb7185');
@@ -4597,7 +4694,7 @@
     onResize();
     // Load any saved progress (Level, XP, Gold, Inventory, Blacksmith Owned Items & Hero Position) before building the 3D zone!
     const hadSave = loadGameProgress();
-    loadZone3D(state.currentZone || 'village', state.dungeonTier || 1, state.savedHeroPos);
+    loadZone3D(state.currentZone || 'village', state.dungeonTier || 1, state.savedHeroPos, state.dungeonFloor);
     if (hadSave) {
       setTimeout(() => {
         showToast(`💾 ادامه از آخرین ذخیره: سطح ${state.party[0].level} | ${formatCommaGold(state.coins)} سکه`, '#4ade80');

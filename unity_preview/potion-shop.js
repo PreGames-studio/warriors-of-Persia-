@@ -15,10 +15,10 @@ const POTIONS = [
   },
   {
     id: 'potion_mana',
-    title: 'مانای لاجورد',
-    short: 'بازیابی فوری ۷۰ واحد مانا',
+    title: 'MP لاجورد',
+    short: 'بازیابی فوری ۷۰ واحد MP',
     lore: 'قطره‌های لاجورد با نور ماه و عصاره‌ی نیلوفر آبی، برای جادوگرانی که هرگز متوقف نمی‌شوند.',
-    stat: 'بازیابی +۷۰ مانا',
+    stat: 'بازیابی +۷۰ MP',
     price: 220,
     category: 'mana',
     rarity: 'common',
@@ -72,9 +72,9 @@ const POTIONS = [
   {
     id: 'potion_restoration',
     title: 'اکسیر احیای کامل',
-    short: 'پر شدن کامل جان و مانا',
+    short: 'پر شدن کامل جان و MP',
     lore: 'نور صبح، عسل سپید و هفت گیاه کهن در شیشه‌ای بلورین؛ یک جرعه تا آغازی دوباره فاصله است.',
-    stat: 'احیای کامل جان و مانا',
+    stat: 'احیای کامل جان و MP',
     price: 950,
     category: 'healing',
     rarity: 'legendary',
@@ -100,9 +100,9 @@ const POTIONS = [
   {
     id: 'potion_starlight',
     title: 'عصاره‌ی ستاره',
-    short: 'افزایش دائمی ۴۵ سقف مانا',
+    short: 'افزایش دائمی ۴۵ سقف MP',
     lore: 'ستاره‌باران شب‌های کویر در شیشه‌ای بنفش ثبت شده؛ هر ذره، ظرفیت تازه‌ای برای جادو می‌سازد.',
-    stat: '+۴۵ سقف مانا دائمی',
+    stat: '+۴۵ سقف MP دائمی',
     price: 820,
     category: 'mana',
     rarity: 'epic',
@@ -130,7 +130,7 @@ const POTIONS = [
 const CATEGORY_NAMES = {
   all: 'همه‌ی معجون‌ها',
   healing: 'شفا و بازیابی جان',
-  mana: 'مانا و جادو',
+  mana: 'MP و جادو',
   boost: 'تقویت قهرمان',
   rare: 'گنجینه‌ی حکیم'
 };
@@ -210,7 +210,7 @@ function shopMarkup() {
               <div class="ap-categories">
                 <button class="ap-category active" type="button" data-ap-category="all" data-tip="همه‌ی معجون‌ها" aria-label="همه‌ی معجون‌ها">${icon('grid')}</button>
                 <button class="ap-category" type="button" data-ap-category="healing" data-tip="شفا و جان" aria-label="شفا و جان">${icon('heart')}</button>
-                <button class="ap-category" type="button" data-ap-category="mana" data-tip="مانا و جادو" aria-label="مانا و جادو">${icon('drop')}</button>
+                <button class="ap-category" type="button" data-ap-category="mana" data-tip="MP و جادو" aria-label="MP و جادو">${icon('drop')}</button>
                 <button class="ap-category" type="button" data-ap-category="boost" data-tip="تقویت قهرمان" aria-label="تقویت قهرمان">${icon('spark')}</button>
                 <button class="ap-category" type="button" data-ap-category="rare" data-tip="گنجینه‌ی حکیم" aria-label="معجون‌های حماسه‌ای و افسانه‌ای">${icon('star')}</button>
               </div>

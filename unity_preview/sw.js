@@ -1,4 +1,4 @@
-const CACHE_NAME = 'warriors-of-persia-3d-v17-elf-icon';
+const CACHE_NAME = 'warriors-of-persia-3d-v20-dungeon-floors';
 const ASSETS = [
   './',
   './index.html',
@@ -10,12 +10,15 @@ const ASSETS = [
   './village-theme.css',
   './village-theme.js',
   './world-landscape.js',
+  './dungeon-floors.js',
   './camera-look.js',
   './camera-motion.js',
   './map-markers.js',
   './portal-arrival.js',
   './adventure-guild.js',
   './guild-atmosphere.js',
+  './game-timing.js',
+  './open-world-first.js',
   './village-population.js',
   './guild-services.js',
   './merchant-shop.js',
