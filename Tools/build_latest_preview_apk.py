@@ -36,7 +36,7 @@ def main():
     ).stdout
     # No ES module fetches under file:// Android WebView; all code is inline.
     html = html[:match.start()] + '<script>' + bundle.replace('</script', '<\\/script') + '</script>' + html[match.end():]
-    entries = [e for e in collect_entries(ROOT / 'WarriorsOfPersia_3D.apk', args.version_code, args.version_name) if not e.name.startswith('assets/')]
+    entries = [e for e in collect_entries(ROOT / 'WarriorsOfPersia_3D.apk', None, None) if not e.name.startswith('assets/')]
     entries = [e for e in entries if e.name not in ('AndroidManifest.xml', 'resources.arsc') and not e.name.startswith('res/')]
     entries.extend(launcher_entries(preview / 'icon.png', args.android_jar, ROOT / 'node_modules/aaptjs3/bin/x64/linux/aapt2', args.version_code, args.version_name))
     entries.append(Entry('assets/index.html', html.encode()))

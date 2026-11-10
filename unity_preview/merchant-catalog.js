@@ -21,7 +21,7 @@ const definitions = [
   ['district_shop_13','کاسپین','سفال دست‌ساز با لعاب فیروزه‌ای','pot','#72c5c3','max_mana', ['پیاله لعابی','کوزه سفالی','تنگ فیروزه‌ای','بشقاب نقش انار','بخورسوز سفالی','جام شاهی']],
   ['district_shop_14','بازرگان دارا','نشان‌های یادبود، نه بسته‌های افزایش سکه','coin','#e4ca7b','max_mana', ['نشان مسی پارس','درهم نقره یادبود','نشان شیر','مهر بازرگان','سکه زر یادبود','نشان شاهنشاهی']],
 ];
-const effectText = (type,power) => ({hp:`بازیابی ${power} سلامتی`,mana:`بازیابی ${power} مانا`,atk:`افزایش دائمی ${power} حمله`,max_hp:`افزایش دائمی ${power} سقف سلامتی`,max_mana:`افزایش دائمی ${power} سقف مانا`,full_restore:'بازیابی کامل سلامتی و مانا'}[type]);
+const effectText = (type,power) => ({hp:`بازیابی ${power} سلامتی`,mana:`بازیابی ${power} MP`,atk:`افزایش دائمی ${power} حمله`,max_hp:`افزایش دائمی ${power} سقف سلامتی`,max_mana:`افزایش دائمی ${power} سقف MP`,full_restore:'بازیابی کامل سلامتی و MP'}[type]);
 export const MERCHANT_CATALOG = Object.fromEntries(definitions.map(([id,keeper,tagline,art,color,type,names])=>[id,{
   id,keeper,tagline,art,color,
   items:names.map((title,i)=>{
