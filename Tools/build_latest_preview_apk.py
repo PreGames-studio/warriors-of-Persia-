@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Bundle current preview sources (not a stale standalone) into a signed offline APK.
-Requires npm install --no-save esbuild and Python cryptography/asn1crypto.
+Requires npm install --no-save esbuild and Python cryptography/asn1crypto/Pillow/numpy.
 """
 import argparse
 import hashlib
@@ -23,8 +23,13 @@ def main():
     parser.add_argument('--storepass', required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--android-jar', type=Path, default=ROOT / '.cache/android/android.jar')
+    parser.add_argument('--original-merchant-images', action='store_true', help='Package original portrait/product PNG bytes instead of the approved dimension-preserving WebP policy')
     args = parser.parse_args()
     preview = ROOT / 'unity_preview'
+    optimized = {}
+    if not args.original_merchant_images:
+        from optimize_merchant_images import optimize_assets
+        optimized = optimize_assets(preview, ROOT / 'build/optimized-images')
     html = (preview / 'index.html').read_text()
     match = re.search(r'<script type="module">(.*?)</script>', html, re.S)
     if not match:
@@ -44,12 +49,15 @@ def main():
     paths += [preview / name for name in ('potion-shop.css', 'village-theme.css', 'merchant-shop.css', 'manifest.json', 'icon.png')]
     for path in sorted(paths):
         if path.is_file():
-            entries.append(Entry('assets/' + path.relative_to(preview).as_posix(), path.read_bytes()))
+            relative = path.relative_to(preview).as_posix()
+            payload = optimized[relative][0] if relative in optimized else path.read_bytes()
+            entries.append(Entry('assets/' + relative, payload))
     key, cert, extra = load_key(ROOT / 'Tools/keys/wop-release.p12', args.storepass)
     apk, report = sign_apk(entries, key, cert, extra_certificates=extra)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_bytes(apk)
     report.update(launcherIconSha256=hashlib.sha256((preview/'icon.png').read_bytes()).hexdigest(), version=args.version_name, bytes=len(apk), sha256=hashlib.sha256(apk).hexdigest(), sourceHashes={str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in [preview / 'index.html', *preview.glob('*.js'), *preview.glob('*.css')]})
+    report['merchantImageOptimization'] = {name: details for name, (_, details) in optimized.items()}
     args.output.with_suffix('.build.json').write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps({k: report[k] for k in ('version', 'bytes', 'sha256')}, indent=2))
 

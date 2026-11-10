@@ -1,0 +1,12 @@
+{
+  "version": "1.0.12",
+  "bytes": 80762260,
+  "previousBytes": 146622778,
+  "reductionPercent": 44.92,
+  "optimizedImages": 45,
+  "unchangedDimensions": 45,
+  "pixelIdenticalLossless": 38,
+  "remainingAssetsUnchanged": true,
+  "nativeIconUnchanged": true,
+  "devicePlaytest": false
+}
