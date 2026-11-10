@@ -33,3 +33,7 @@ artifacts/releases/
 
 # Local Android framework and tool cache
 .cache/
+
+# Generated review galleries and large signed release outputs (published as release assets).
+artifacts/previews/
+build/

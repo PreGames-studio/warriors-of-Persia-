@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const html=fs.readFileSync('unity_preview/index.html','utf8');
+const body=html.match(/function addCharacterLabel\(text, posVec3\) \{([\s\S]*?)\n    \}/)[1];
+assert.ok(body.includes('el.hidden=true'));assert.ok(!body.includes('appendChild'));assert.ok(!body.includes('floatingLabels.push'));
+assert.ok(html.includes('const lbl = addCharacterLabel(`${title}'));
+assert.ok(html.includes('addCharacterLabel(staff.title,'));
+assert.ok(html.includes("const label=addCharacterLabel('',"));
+assert.ok(html.includes('const shopLabel = addWorldLabel('));
+assert.ok(html.includes('addWorldLabel(label, new THREE.Vector3'));
+console.log('PASS: character labels detached for heroes, villagers, quest NPCs, guild staff/conversations and enemies; shop and portal labels retained.');

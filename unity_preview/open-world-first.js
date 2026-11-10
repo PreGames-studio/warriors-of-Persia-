@@ -39,11 +39,11 @@ export const SLIME = Object.freeze({kind:'slime',hp:100,xp:1,attack:3,drop:{type
 export function createSlimeSpawns(){
  let seed=39191;const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
  const spawns=[];
- for(let cell=0;cell<100;cell++){
+ for(let cell=0;cell<300;cell++){
   let placed=false;
   for(let attempt=0;attempt<1000;attempt++){
-   const x=-1160+(cell%10+random())*112,z=-860+(Math.floor(cell/10)+random())*172;
-   if(x>-24||routeDistance(x,z)<22||spawns.some(p=>Math.hypot(x-p.x,z-p.z)<35))continue;
+   const x=-1160+(cell%15+random())*(1120/15),z=-860+(Math.floor(cell/15)+random())*86;
+   if(x>-24||routeDistance(x,z)<22||spawns.some(p=>Math.hypot(x-p.x,z-p.z)<25))continue;
    spawns.push({id:`slime_${cell+1}`,x,z});placed=true;break;
   }
   if(!placed)throw new Error('Unable to place slime outside safe paths');
