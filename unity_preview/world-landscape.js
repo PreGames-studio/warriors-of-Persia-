@@ -1,10 +1,10 @@
-import { dungeonFloorDefinition } from './dungeon-floors.js';
+import {CAVE,createCave,buildCave} from './cave-dungeon.js';
 import { WEST_FIELD, OPEN_WORLD_BOUNDS, OPEN_WORLD_ROUTES, VILLAGE_GATE, routeDistance, createSlimeSpawns } from './open-world-first.js';
 /** Shared deterministic landscape grammar for every combat map.
  * Existing PBR architecture/materials are reused; no remote assets.
  */
-export function combatBounds(zone) {
-  return zone === 'dungeon' ? { x: 68, z: 53 } : OPEN_WORLD_BOUNDS;
+export function combatBounds(zone, tier=1) {
+  return zone === 'dungeon' ? (tier===1?{x:CAVE.width/2,z:CAVE.depth/2}:{x:68,z:53}) : OPEN_WORLD_BOUNDS;
 }
 
 export function combatHeight(zone, tier, x, z) {
@@ -13,6 +13,7 @@ export function combatHeight(zone, tier, x, z) {
     const bank = Math.min(1, Math.max(0, (Math.abs(x) - 11) / 20));
     return bank * (.065 * x - .075 * z + 2.8 * Math.sin(x / 28) * Math.sin(z / 23));
   }
+  if(tier===1)return 0;
   const fire = tier >= 3;
   // Boss and exit courts are locally level, with continuously sloping approaches.
   const court = Math.min(1, Math.max(0, (Math.hypot(x, z + 24) - 20) / 15));
@@ -43,7 +44,8 @@ function createExpandedOpenWorldPlan(){
 
 export function createCombatPlan(zone, tier = 1, floor = 1) {
   if(zone==='open_world')return createExpandedOpenWorldPlan();
-  const bounds = combatBounds(zone), fire = zone === 'dungeon' && tier >= 3;
+  if(zone==='dungeon'&&tier===1){const cave=createCave(floor);return {floor,bounds:combatBounds(zone,tier),routes:cave.routes,portals:[[cave.spawn.x,cave.spawn.z]],plots:[],trees:[],rocks:[],fire:false,landmarks:[]};}
+  const bounds = combatBounds(zone, tier), fire = zone === 'dungeon' && tier >= 3;
   let seed = zone === 'open_world' ? 6201 : fire ? 937 : 493;
   const random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
   const routes = zone === 'open_world' ? [
@@ -51,7 +53,7 @@ export function createCombatPlan(zone, tier = 1, floor = 1) {
     [[32, 3], [43, -12], [54, -28]],
     [[58, 0], [69, 14], [78, 30]],
     [[-58, 3], [-66, 25], [-95, 49]],
-  ] : dungeonFloorDefinition(floor).corridors;
+  ] : [[[0,48],[0,28],[6,16],[-4,4],[0,-8],[0,-24]],[[6,16],[29,22],[43,5],[34,-16],[22,-27]],[[-4,4],[-30,13],[-46,-4],[-36,-26],[-22,-29]]];
   const portals = zone === 'open_world' ? [[-88, 0], [54, -28], [78, 30]] : [[0, 42]];
   const clear = (x, z, margin) => routes.every(route => route.slice(1).every((b, i) => distanceToSegment(x, z, route[i], b) > margin)) && portals.every(p => Math.hypot(x - p[0], z - p[1]) > margin + 7) && (zone !== 'open_world' || Math.abs(x) > 15 + margin) && (zone !== 'dungeon' || Math.hypot(x, z + 24) > 32 + margin);
   const plots = [], rocks = [], trees = [];
@@ -80,6 +82,7 @@ export function createCombatPlan(zone, tier = 1, floor = 1) {
 }
 
 export function buildCombatLandscape(THREE, kit, materials, zone, tier, plan) {
+  if(zone==='dungeon'&&tier===1)return buildCave(THREE,createCave(plan.floor||1),materials.volcanicRock);
   const root = new THREE.Group();
   const height = (x, z) => combatHeight(zone, tier, x, z);
   function surface(w, d, x, z, material, lift = 0) {

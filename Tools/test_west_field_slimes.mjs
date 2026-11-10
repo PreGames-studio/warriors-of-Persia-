@@ -6,8 +6,8 @@ const area=(WEST_FIELD.maxX-WEST_FIELD.minX)*(WEST_FIELD.maxZ-WEST_FIELD.minZ);
 assert.equal(area/WEST_FIELD.originalArea,100);
 assert.equal(OPEN_WORLD_BOUNDS.maxX,128,'right bank unchanged');
 assert.equal(SLIME.hp,100);assert.equal(SLIME.xp,1);assert.equal(SLIME.drop.count,1);assert.equal(SLIME.drop.color,0x32dd77);
-const spawns=createSlimeSpawns();assert.equal(spawns.length,100);assert.deepEqual(spawns,createSlimeSpawns());
-assert.equal(new Set(spawns.map(s=>s.id)).size,100);
+const spawns=createSlimeSpawns();assert.equal(spawns.length,300);assert.deepEqual(spawns,createSlimeSpawns());
+assert.equal(new Set(spawns.map(s=>s.id)).size,300);
 for(const p of spawns){assert.ok(p.x<-24&&p.x>WEST_FIELD.minX&&Math.abs(p.z)<880);assert.ok(routeDistance(p.x,p.z)>=22);}
 assert.ok(isSafeWestTrail(WEST_SPAWN.x,WEST_SPAWN.z));assert.ok(isSafeWestTrail(VILLAGE_GATE.x,VILLAGE_GATE.z));
 for(const route of OPEN_WORLD_ROUTES)for(const [x,z] of route)assert.ok(isOpenWorldLand(x,z));
@@ -26,4 +26,4 @@ for(const n of slime.children[0].geometry.attributes.position.array)assert.ok(Nu
 const html=fs.readFileSync('unity_preview/index.html','utf8');
 assert.ok(html.includes("createSlimeSpawns().forEach(p=>spawnEnemyUnit3D"));
 assert.ok(html.includes("cType=SLIME.drop.type"));
-console.log('PASS: exact 100x west-bank area, unchanged east bank, 100 deterministic off-trail slimes, 100 HP / 1 XP / one green drop, swept safe-path exclusion and droplet geometry.');
+console.log('PASS: exact 100x west-bank area, unchanged east bank, 300 deterministic off-trail slimes, 100 HP / 1 XP / one green drop, swept safe-path exclusion and droplet geometry.');

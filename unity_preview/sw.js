@@ -1,5 +1,11 @@
-const CACHE_NAME = 'warriors-of-persia-3d-v20-dungeon-floors';
+const CACHE_NAME = 'warriors-of-persia-3d-v28-no-character-labels';
 const ASSETS = [
+  './merchant-signature-items.js',
+  ...['jeweler','astrologer','carpet_bazaar','teahouse','district_shop_03','district_shop_04','district_shop_06','district_shop_07','district_shop_08','district_shop_09','district_shop_10','district_shop_11','district_shop_12','district_shop_13','district_shop_14'].map(id=>`./assets/merchants/signature/${id}.png`),
+  './merchant-keepers.js',
+  './assets/merchants/bookshop-dana.png',
+  ...['jeweler','astrologer','carpet_bazaar','teahouse','district_shop_01','district_shop_02','district_shop_03','district_shop_04','district_shop_06','district_shop_07','district_shop_08','district_shop_09','district_shop_10','district_shop_11','district_shop_12','district_shop_13','district_shop_14'].map(id=>`./assets/merchants/keepers/${id}.png`),
+  ...Array.from({length:12},(_,i)=>`./assets/merchants/books/book-${String(i+1).padStart(2,'0')}.png`),
   './',
   './index.html',
   './manifest.json',
@@ -11,6 +17,7 @@ const ASSETS = [
   './village-theme.js',
   './world-landscape.js',
   './dungeon-floors.js',
+  './cave-dungeon.js',
   './camera-look.js',
   './camera-motion.js',
   './map-markers.js',
