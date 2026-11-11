@@ -6,6 +6,7 @@ import {
   MIA_ACTIONS_GLB_BASE64,
   MIA_COMBAT_GLB_BASE64
 } from './assets/hero/mia/mia-assets.js';
+import { addNormalDetail, addAlbedoDetail, strandRoughness, waitForImage } from './mia-texture-detail.js';
 
 /**
  * Mia's articulated hero model.
@@ -132,6 +133,120 @@ function retargetClip(clip, suffix) {
 }
 
 /** Hand-painted dark chestnut hair: multiplies the albedo, texture untouched. */
+/**
+ * Replace the imported Phong-style materials with physically based ones.
+ *
+ * Sheen reproduces fabric and skin micro-fuzz (two cheap extra terms, no extra
+ * maps), clearcoat keeps the eyes wet, anisotropy breaks the hair highlight into
+ * strands, and specularIntensity tames broad plastic highlights. Every original
+ * map (albedo, normal, rough/metal pack) is preserved; only the shading model
+ * changes.
+ */
+
+/**
+ * The atlas paints a red sash across the pauldron UVs; on steel that reads as a
+ * rust blotch. Re-render the albedo with the colour removed and the luminance
+ * compressed into a narrow gunmetal band, keeping every painted scratch.
+ */
+async function steelAlbedo(THREE, texture) {
+  if (!texture || !texture.image) return null;
+  const image = texture.image;
+  if (image.decode) { try { await image.decode(); } catch (error) { /* already decoded */ } }
+  if (!image.width || !image.height) return null;
+  const size = Math.min(1024, Math.max(image.width, image.height));
+  const scale = size / Math.max(image.width, image.height);
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(image.width * scale));
+  canvas.height = Math.max(1, Math.round(image.height * scale));
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  if (!context) return null;
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
+  const data = pixels.data;
+  for (let i = 0; i < data.length; i += 4) {
+    const luminance = (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114) / 255;
+    const steel = 0.42 + (luminance - 0.5) * 0.55;
+    data[i] = Math.max(0, Math.min(255, steel * 236));
+    data[i + 1] = Math.max(0, Math.min(255, steel * 242));
+    data[i + 2] = Math.max(0, Math.min(255, steel * 250));
+  }
+  context.putImageData(pixels, 0, 0);
+  const result = new THREE.CanvasTexture(canvas);
+  result.colorSpace = texture.colorSpace;
+  result.wrapS = texture.wrapS;
+  result.wrapT = texture.wrapT;
+  result.flipY = texture.flipY;
+  result.needsUpdate = true;
+  return result;
+}
+
+
+function upgradeMaterials(meshes, environment) {
+  const surfaceOf = (mesh, material) => {
+    if (mesh.name === 'Eyebrows') return 'brow';
+    if (mesh.name === 'Eyes') return 'eye';
+    if (mesh.name.startsWith('Hair')) return 'hair';
+    if (mesh.name === 'Superhero_Female') return 'skin';
+    return 'cloth';
+  };
+
+  meshes.forEach((mesh) => {
+    const materials = (Array.isArray(mesh.material) ? mesh.material : [mesh.material]).map((source) => {
+      const surface = surfaceOf(mesh, source);
+      const material = new THREE.MeshPhysicalMaterial({
+        name: `${source.name} (${surface})`,
+        map: source.map,
+        normalMap: source.normalMap,
+        roughnessMap: source.roughnessMap,
+        metalnessMap: source.metalnessMap,
+        color: source.color ? source.color.clone() : new THREE.Color(0xffffff),
+        roughness: source.roughness ?? 0.8,
+        metalness: source.metalness ?? 0,
+        side: surface === 'hair' ? THREE.DoubleSide : THREE.FrontSide,
+        envMap: environment,
+        envMapIntensity: surface === 'eye' ? 0.9 : surface === 'skin' ? 0.32 : surface === 'hair' ? 0.42 : 0.26
+      });
+      if (source.normalScale) material.normalScale.copy(source.normalScale);
+      material.specularIntensity = 0.5;
+      material.ior = 1.4;
+
+      if (surface === 'skin') {
+        material.sheen = 0.16;
+        material.sheenRoughness = 0.85;
+        material.sheenColor.setHex(0xff9c80);
+        material.specularIntensity = 0.34;
+        material.envMapIntensity = 0.22;
+      } else if (surface === 'cloth') {
+        material.sheen = 0.2;
+        material.sheenRoughness = 0.9;
+        material.sheenColor.setHex(0x8a5a52);
+        material.specularIntensity = 0.28;
+        material.envMapIntensity = 0.14;
+      } else if (surface === 'hair') {
+        material.sheen = 0.4;
+        material.sheenRoughness = 0.58;
+        material.sheenColor.setHex(0xb07c52);
+        material.specularIntensity = 0.55;
+        material.envMapIntensity = 0.3;
+      } else if (surface === 'eye') {
+        material.clearcoat = 1;
+        material.clearcoatRoughness = 0.06;
+        material.roughness = 0.2;
+        material.specularIntensity = 0.9;
+      } else if (surface === 'brow') {
+        material.color.setHex(0x4d3527);
+        material.roughness = 0.94;
+        material.specularIntensity = 0.15;
+        material.sheen = 0.2;
+      }
+      material.userData.surface = surface;
+      material.needsUpdate = true;
+      return material;
+    });
+    mesh.material = Array.isArray(mesh.material) ? materials : materials[0];
+  });
+}
+
 function tintHair(meshes) {
   meshes.filter((mesh) => mesh.name === 'Hair_Long').forEach((hair) => {
     const materials = Array.isArray(hair.material) ? hair.material : [hair.material];
@@ -142,6 +257,7 @@ function tintHair(meshes) {
     });
   });
 }
+
 
 /**
  * Two tapered crimson belt tails. A single flat quad read as a banner behind
@@ -205,20 +321,70 @@ class ClothTail {
   }
 }
 
-/** Crimson scarf wrapped around the neck, as on the reference sheet. */
+/**
+ * Crimson scarf: several tapered cloth bands stacked with slight offsets and a
+ * hanging tail, so it reads as wrapped fabric instead of a solid ring.
+ */
+/**
+ * A wound scarf: two overlapping loops whose surface is displaced along its own
+ * normals, so the folds catch light like knit cloth instead of reading as two
+ * clean rubber tubes.
+ */
 function buildScarf(material) {
   const group = new THREE.Group();
-  const knot = new THREE.Mesh(new THREE.TorusGeometry(0.062, 0.024, 8, 18), material);
-  knot.rotation.x = Math.PI / 2;
-  knot.scale.set(1.2, 1, 0.85);
-  knot.position.set(0, 0.03, 0.005);
-  knot.castShadow = true;
-  group.add(knot);
-  const fold = new THREE.Mesh(new THREE.TorusGeometry(0.068, 0.017, 8, 18), material);
-  fold.rotation.x = Math.PI / 2;
-  fold.rotation.z = 0.2;
-  fold.scale.set(1.16, 1, 0.8);
-  group.add(fold);
+  group.name = 'MiaScarf';
+
+  const folded = (radius, tube, folds, phase, amplitude) => {
+    const geometry = new THREE.TorusGeometry(radius, tube, 12, 56);
+    const position = geometry.attributes.position;
+    const normal = geometry.attributes.normal;
+    const vertex = new THREE.Vector3();
+    const direction = new THREE.Vector3();
+    for (let i = 0; i < position.count; i++) {
+      vertex.fromBufferAttribute(position, i);
+      direction.fromBufferAttribute(normal, i);
+      const angle = Math.atan2(vertex.y, vertex.x);
+      const fold = Math.sin(angle * folds + phase) * amplitude
+        + Math.sin(angle * folds * 2.7 + phase * 1.7) * amplitude * 0.42;
+      position.setXYZ(
+        i,
+        vertex.x + direction.x * fold,
+        vertex.y + direction.y * fold,
+        vertex.z + direction.z * fold
+      );
+    }
+    geometry.computeVertexNormals();
+    return geometry;
+  };
+
+  const loops = [
+    { radius: 0.066, tube: 0.029, folds: 9, phase: 0.6, amplitude: 0.0028, y: 0.012, tilt: 0.05, roll: 0.18, scale: [1.2, 1, 0.92] },
+    { radius: 0.059, tube: 0.024, folds: 8, phase: 2.4, amplitude: 0.0024, y: 0.055, tilt: -0.09, roll: -0.28, scale: [1.15, 1, 0.9] },
+    { radius: 0.071, tube: 0.021, folds: 7, phase: 4.1, amplitude: 0.0022, y: -0.024, tilt: 0.12, roll: 0.42, scale: [1.24, 1, 0.88] }
+  ];
+  loops.forEach((loop) => {
+    const mesh = new THREE.Mesh(folded(loop.radius, loop.tube, loop.folds, loop.phase, loop.amplitude), material);
+    mesh.rotation.set(Math.PI / 2, loop.tilt, loop.roll);
+    mesh.position.set(0, loop.y, loop === loops[2] ? 0.008 : 0);
+    mesh.scale.set(loop.scale[0], loop.scale[1], loop.scale[2]);
+    mesh.castShadow = true;
+    group.add(mesh);
+  });
+
+  // Loose end dropping over the collarbone, with its own soft folds.
+  const tailGeometry = new THREE.PlaneGeometry(0.105, 0.27, 5, 8);
+  const tailPosition = tailGeometry.attributes.position;
+  for (let i = 0; i < tailPosition.count; i++) {
+    const x = tailPosition.getX(i);
+    const y = tailPosition.getY(i);
+    tailPosition.setZ(i, Math.sin(y * 26 + x * 14) * 0.007 + Math.cos(x * 30) * 0.004);
+  }
+  tailGeometry.computeVertexNormals();
+  const tail = new THREE.Mesh(tailGeometry, material);
+  tail.position.set(0.058, -0.105, 0.074);
+  tail.rotation.set(-0.2, 0.32, 0.26);
+  tail.castShadow = true;
+  group.add(tail);
   return group;
 }
 
@@ -229,14 +395,14 @@ class Shamshir {
     group.name = 'MiaShamshir';
 
     const blade = new THREE.Shape();
-    blade.moveTo(-0.038, 0);
-    blade.lineTo(0.038, 0);
+    blade.moveTo(-0.036, 0);
+    blade.lineTo(0.036, 0);
     // A shamshir: the cutting edge sweeps forward while the spine stays nearly
     // straight, then both curves meet in a fine point.
-    blade.quadraticCurveTo(0.085, 0.34, 0.13, 0.62);
-    blade.quadraticCurveTo(0.16, 0.82, 0.105, 0.94);
-    blade.quadraticCurveTo(0.1, 0.8, 0.07, 0.62);
-    blade.quadraticCurveTo(0.02, 0.34, -0.038, 0);
+    blade.quadraticCurveTo(0.072, 0.36, 0.112, 0.66);
+    blade.quadraticCurveTo(0.136, 0.86, 0.09, 0.98);
+    blade.quadraticCurveTo(0.086, 0.82, 0.062, 0.64);
+    blade.quadraticCurveTo(0.02, 0.36, -0.036, 0);
     const bladeGeometry = new THREE.ExtrudeGeometry(blade, {
       depth: 0.022, bevelEnabled: true, bevelSize: 0.005, bevelThickness: 0.006, bevelSegments: 3, curveSegments: 36
     });
@@ -369,27 +535,77 @@ export async function loadMiaHero(options = {}) {
       mesh.frustumCulled = false;
       mesh.castShadow = true;
       mesh.receiveShadow = false;
-      const list = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-      list.forEach((material) => {
-        if (environment && !material.envMap) {
-          material.envMap = environment;
-          material.envMapIntensity = 0.55;
-          material.needsUpdate = true;
-        }
-      });
       visibleMeshes.push(mesh);
     });
   });
-  tintHair(visibleMeshes);
-  visibleMeshes.filter((mesh) => mesh.name === 'Eyebrows').forEach((brows) => {
-    const materials = (Array.isArray(brows.material) ? brows.material : [brows.material]).map((material) => {
-      const clone = material.clone();
-      clone.color.setHex(0x4a3025);
-      clone.roughness = 0.9;
-      if (environment) { clone.envMap = environment; clone.envMapIntensity = 0.15; }
-      return clone;
+
+  upgradeMaterials(visibleMeshes, environment);
+  // The atlas paints the shoulder plate cream; Mia wears gunmetal. Tint only the
+  // pauldron mesh so cloth and leather keep their painted colour.
+  visibleMeshes.filter((mesh) => mesh.name === 'Female_Ranger_Acc_Pauldrons').forEach((mesh) => {
+    const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    materials.forEach((material) => {
+      steelAlbedo(THREE, material.map).then((map) => {
+        if (!map) return;
+        material.map = map;
+        material.needsUpdate = true;
+      }).catch(() => {});
+      material.color.setHex(0xb9c0c6);
+      material.metalness = 0.55;
+      material.roughness = 0.38;
+      material.sheen = 0;
+      material.envMapIntensity = 0.6;
+      material.needsUpdate = true;
     });
-    brows.material = Array.isArray(brows.material) ? materials : materials[0];
+  });
+  tintHair(visibleMeshes);
+  // Detail passes run once and are shared: the same atlas feeds several meshes,
+  // so the derived canvas is cached per source texture.
+  const detailCache = new Map();
+  const once = (key, factory) => {
+    if (!detailCache.has(key)) detailCache.set(key, Promise.resolve(factory()));
+    return detailCache.get(key);
+  };
+  const detailJobs = [];
+  visibleMeshes.forEach((mesh) => {
+    const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    materials.forEach((material) => {
+      if (material.userData.detailApplied) return;
+      material.userData.detailApplied = true;
+      if (material.userData.surface === 'skin') {
+        if (material.normalMap) {
+          detailJobs.push(once(`skin-normal-${material.uuid}`, () =>
+            addNormalDetail(THREE, material.normalMap, 'pores', 0.3, 7001)
+          ).then((map) => { material.normalMap = map; material.needsUpdate = true; }));
+        }
+      } else if (material.userData.surface === 'cloth') {
+        if (material.normalMap) {
+          detailJobs.push(once(`cloth-normal-${material.uuid}`, () =>
+            addNormalDetail(THREE, material.normalMap, 'weave', 0.22, 7002)
+          ).then((map) => { material.normalMap = map; material.needsUpdate = true; }));
+        }
+      } else if (material.userData.surface === 'hair') {
+        if (material.normalMap) {
+          detailJobs.push(once(`hair-normal-${material.uuid}`, () =>
+            addNormalDetail(THREE, material.normalMap, 'strands', 0.5, 7003)
+          ).then((map) => { material.normalMap = map; material.needsUpdate = true; }));
+        }
+        if (material.map) {
+          detailJobs.push(once(`hair-rough-${material.uuid}`, () =>
+            strandRoughness(THREE, material.map, 9001, 512)
+          ).then((map) => { material.roughnessMap = map; material.metalnessMap = null; material.needsUpdate = true; }));
+          detailJobs.push(once(`hair-albedo-${material.uuid}`, () =>
+            addAlbedoDetail(THREE, material.map, 'strands', 0.05, 7003)
+          ).then((map) => { material.map = map; material.needsUpdate = true; }));
+        }
+      } else if (material.userData.surface === 'brow') {
+        if (material.map) {
+          detailJobs.push(once(`brow-albedo-${material.uuid}`, () =>
+            addAlbedoDetail(THREE, material.map, 'strands', 0.08, 7004)
+          ).then((map) => { material.map = map; material.needsUpdate = true; }));
+        }
+      }
+    });
   });
 
   const clips = [...locomotion.animations, ...actions.animations, ...combat.animations]
@@ -567,17 +783,17 @@ export async function loadMiaHero(options = {}) {
   tailMaterial.roughness = 0.97;
   tailMaterial.envMapIntensity = 0.18;
   if (environment) tailMaterial.envMap = environment;
-  const tailLeft = new ClothTail(tailMaterial, { length: 0.4, topWidth: 0.095, hemWidth: 0.07, phase: 0 });
-  const tailRight = new ClothTail(tailMaterial, { length: 0.3, topWidth: 0.075, hemWidth: 0.055, phase: 1.7 });
+  const tailLeft = new ClothTail(tailMaterial, { length: 0.32, topWidth: 0.09, hemWidth: 0.065, phase: 0 });
+  const tailRight = new ClothTail(tailMaterial, { length: 0.24, topWidth: 0.07, hemWidth: 0.05, phase: 1.7 });
   const tails = [tailLeft, tailRight];
   const waist = boneByName.get('pelvis') || boneByName.get('spine_01');
   if (waist) {
     // Two short belt tails flank the hips: they clear the legs while walking
     // and cannot cut through the torso when the spine bends in combat.
-    tailLeft.mesh.position.set(0.15, 0.015, -0.02);
-    tailLeft.mesh.rotation.set(0.08, 0.55, 0.16);
-    tailRight.mesh.position.set(-0.155, 0.015, -0.05);
-    tailRight.mesh.rotation.set(0.05, -0.5, -0.14);
+    tailLeft.mesh.position.set(0.155, 0.015, -0.035);
+    tailLeft.mesh.rotation.set(0.08, 0.6, 0.16);
+    tailRight.mesh.position.set(-0.16, 0.015, -0.06);
+    tailRight.mesh.rotation.set(0.05, -0.55, -0.14);
     waist.add(tailLeft.mesh);
     waist.add(tailRight.mesh);
   }

@@ -520,6 +520,30 @@ export function createPersianVillageKit(THREE) {
     });
     const aura = addMesh(group, new THREE.RingGeometry(1.18, 1.52, 32), auraMaterial, 0, .055, 0, false);
     aura.rotation.x = -Math.PI / 2;
+    // Soft contact shadow so the character is planted on the ground instead of
+    // floating, and a short-range key + rim fill so the face and armour read in
+    // daylight. Both are hero-only and cast no extra shadow maps.
+    const shadowTexture = canvasTexture(128, (ctx, size) => {
+      const gradient = ctx.createRadialGradient(size / 2, size / 2, size * .1, size / 2, size / 2, size / 2);
+      gradient.addColorStop(0, 'rgba(12,14,18,.5)');
+      gradient.addColorStop(.55, 'rgba(12,14,18,.22)');
+      gradient.addColorStop(1, 'rgba(12,14,18,0)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, size, size);
+    });
+    const contactShadow = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.55, 1.55),
+      new THREE.MeshBasicMaterial({ map: shadowTexture, transparent: true, opacity: .85, depthWrite: false })
+    );
+    contactShadow.rotation.x = -Math.PI / 2;
+    contactShadow.position.y = .03;
+    group.add(contactShadow);
+
+    // One short-range key light: a second rim light cost ~10 s of first-frame
+    // shader work on software GL without changing the read at gameplay distance.
+    const keyFill = new THREE.PointLight(0xffd9bd, 4.2, 8, 2);
+    keyFill.position.set(1.5, 3.1, 1.9);
+    group.add(keyFill);
 
     const shared = medievalForge.getHeroMaterials();
     const steel = shared.steel.clone();
@@ -541,6 +565,10 @@ export function createPersianVillageKit(THREE) {
     group.userData.updateLocomotion = (dt, speed = 0) => {
       pendingSpeed = speed;
       if (hero) hero.update(dt, speed);
+      // Slightly wider and fainter while moving, like a real cast shadow.
+      const spread = 1 + Math.min(.22, Math.abs(speed) * .045);
+      contactShadow.scale.set(spread, spread, 1);
+      contactShadow.material.opacity = .85 - Math.min(.3, Math.abs(speed) * .05);
     };
     group.userData.playAction = (name) => (hero ? hero.playOneShot(name) : null);
     group.userData.getMia = () => hero;
@@ -626,6 +654,7 @@ export function createPersianVillageKit(THREE) {
     });
     const aura = addMesh(group, new THREE.RingGeometry(1.18, 1.52, 32), auraMaterial, 0, .055, 0, false);
     aura.rotation.x = -Math.PI / 2;
+
 
     // Pelvis, leather belt, metal buckle and lamellar armoured skirt.
     addCylinder(rig, .48, .56, .42, leather, 0, 1.55, 0, 14);

@@ -1,0 +1,33 @@
+{
+  "file": "wop-mia-polished.glb",
+  "bytes": 3097996,
+  "sha256": "c02ed09de422cf8866636f549e871dcb13beb82335de1fbe58bfde53182982b8",
+  "sourceSha256": "3f8f0886d9a2a7798ad9457c769b0225e4017dbc32ad03dc01f13c11b63eaae1",
+  "geometryChanged": false,
+  "normalAndOrmMapsChanged": false,
+  "textureResolutionChanged": false,
+  "encoding": "lossless WebP at native resolution",
+  "maxScaleDelta": 0.14,
+  "maps": [
+    {
+      "map": "T_Ranger_BaseColor",
+      "family": "leather",
+      "resolution": "512x512",
+      "maskCoverage": 0.4509,
+      "bytesBefore": 179246,
+      "bytesAfter": 186996,
+      "sha256Before": "19ea2666a3778637fd9514f75efcfff0057ed2160c58cc25dc449d34be3a3231",
+      "sha256After": "a6cbe6dcc1fca10879f4c5ef61ed996842fa6e43b8386bef3fe2b250e6a7f7ac"
+    },
+    {
+      "map": "T_Superhero_Female_Dark_BaseColor",
+      "family": "skin",
+      "resolution": "2048x2048",
+      "maskCoverage": 0.9391,
+      "bytesBefore": 48838,
+      "bytesAfter": 434212,
+      "sha256Before": "b82ecae9f253e49f0f00947dada99b051817ed17302e8d44369815fd44271ea9",
+      "sha256After": "e9e7ed4fbde6dd862a42a255a7dda3b1fe88759de46d7738394a3c94a36a05cd"
+    }
+  ]
+}
