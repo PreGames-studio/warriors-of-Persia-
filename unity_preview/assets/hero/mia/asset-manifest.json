@@ -1,0 +1,72 @@
+{
+  "character": "Mia",
+  "license": "CC0 1.0 Universal",
+  "modelCopiedByteForByte": false,
+  "rangerAlbedoRecolouredLosslessly": true,
+  "textureResolutionReduced": false,
+  "geometryReduced": false,
+  "files": [
+    {
+      "source": "/tmp/wop-hero-f-hd.glb",
+      "file": "mia_base.glb",
+      "bytes": 2704832,
+      "sha256": "3f8f0886d9a2a7798ad9457c769b0225e4017dbc32ad03dc01f13c11b63eaae1",
+      "sourceSha256": "a2120d29861c1403afed192318839ca53b615370fe747848205d04eaf36de9d8",
+      "copiedByteForByte": false,
+      "rangerAlbedoRecoloured": true,
+      "rangerAlbedoEncoding": "lossless WebP; 512x512; no resize",
+      "rangerClothPixelsChanged": 122438,
+      "otherTextureDimensionsChanged": false,
+      "textureResolutionReduced": false,
+      "geometryReduced": false
+    },
+    {
+      "source": "/tmp/wop-hero-anims.glb",
+      "file": "mia_locomotion.glb",
+      "bytes": 167784,
+      "sha256": "e098941d50cdb5660319862d5c7513d153a33b668821dc777dea0d23240431b1",
+      "clips": [
+        "Idle_Loop",
+        "Jog_Fwd_Loop",
+        "Jump_Loop",
+        "Walk_Loop"
+      ]
+    },
+    {
+      "source": "/tmp/wop-hero-anims2.glb",
+      "file": "mia_actions.glb",
+      "bytes": 325252,
+      "sha256": "938a97474319d6875a5825994c819081151c8e93c2d41c600968886668c44433",
+      "clips": [
+        "Death01",
+        "Jump_Land",
+        "Jump_Start",
+        "Sprint_Loop",
+        "Sword_Idle"
+      ]
+    },
+    {
+      "source": "/tmp/wop-UAL2.glb",
+      "file": "mia_combat.glb",
+      "bytes": 1223888,
+      "sha256": "3e7bf756f37e574355424d3447496b372b8404294c962bbd237e7c3d5fdd8d52",
+      "clips": [
+        "Hit_Knockback",
+        "OverhandThrow",
+        "Sword_Block",
+        "Sword_Dash",
+        "Sword_Heavy_A",
+        "Sword_Light_A",
+        "Sword_Light_B",
+        "Sword_Light_C",
+        "Sword_Regular_A",
+        "Sword_Regular_B",
+        "Sword_UpperCut"
+      ]
+    }
+  ],
+  "generatedModule": {
+    "file": "mia-assets.js",
+    "bytes": 5895920
+  }
+}

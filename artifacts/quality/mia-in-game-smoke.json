@@ -1,0 +1,14 @@
+{
+  "run": "local headless Chromium (Playwright + SwiftShader), village zone, real build",
+  "url": "unity_preview/index.html?debug=1",
+  "modelReadySeconds": 1.6,
+  "characterId": "mia",
+  "animations": 20,
+  "triangles": 33054,
+  "skinnedMeshes": 13,
+  "consoleErrors": 0,
+  "pageErrors": 0,
+  "observed": ["idle", "walk", "walk-turn", "basic attack Sword_Light_A", "ultimate Sword_Heavy_A with authored VFX"],
+  "hpUnchangedByAnimation": "160/160",
+  "note": "Physical-device FPS/RAM/GPU not measured."
+}
