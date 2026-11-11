@@ -8,7 +8,28 @@
   "skinnedMeshes": 13,
   "consoleErrors": 0,
   "pageErrors": 0,
-  "observed": ["idle", "walk", "walk-turn", "basic attack Sword_Light_A", "ultimate Sword_Heavy_A with authored VFX"],
+  "observed": [
+    "idle",
+    "walk",
+    "walk-turn",
+    "basic attack Sword_Light_A",
+    "ultimate Sword_Heavy_A with authored VFX"
+  ],
   "hpUnchangedByAnimation": "160/160",
-  "note": "Physical-device FPS/RAM/GPU not measured."
+  "note": "Physical-device FPS/RAM/GPU not measured.",
+  "apkBuild": {
+    "pipeline": "Tools/bundle_mia_hero_apk.py (esbuild IIFE + external 15 HQ maps)",
+    "sourceApk": "r5-derived fixture with the same 15 map records",
+    "htmlBytes": 6841329,
+    "build": "hq8k-mia-hero-2ab37aa17bbd",
+    "hqMapsPreservedByteForByte": true,
+    "offlineFileUrlSmoke": {
+      "modelReadySeconds": 2.6,
+      "animations": 20,
+      "triangles": 33054,
+      "consoleErrors": 0
+    },
+    "signed": false,
+    "note": "Signed APK and emulator install still pending a CI run with apksigner."
+  }
 }
