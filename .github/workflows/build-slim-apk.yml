@@ -294,7 +294,9 @@ jobs:
           heap-size: 1024M
           disable-animations: true
           script: |
-            bash -o pipefail -c 'bash Tools/emulator_smoke.sh "apk/WarriorsOfPersia_${VERSION_NAME}.apk" 2>&1 | tee "$RUNNER_TEMP/smoke.log"'
+            apk="$(find apk -name 'WarriorsOfPersia_*.apk' | head -1)"
+            echo "testing $apk"
+            bash -o pipefail -c 'bash Tools/emulator_smoke.sh "'"$apk"'" 2>&1 | tee "$RUNNER_TEMP/smoke.log"'
 
       - name: Surface the failure
         if: failure()

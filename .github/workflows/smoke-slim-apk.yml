@@ -1,6 +1,6 @@
 name: Emulator smoke test of the published APK
 
-# Installs the APK that is already published, boots it on an emulator, checks that
+# Re-runnable check (no rebuild): installs the APK that is already published, boots it on an emulator, checks that
 # the WebView shell really runs the game, then downloads the HD graphics pack
 # through the game itself and confirms the textures switch over after a relaunch.
 on:
