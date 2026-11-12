@@ -17,6 +17,7 @@ import android.view.WindowManager;
 import android.webkit.ConsoleMessage;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
+import android.webkit.ValueCallback;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
@@ -159,7 +160,12 @@ public class MainActivity extends Activity {
                         + "pack:!!(window.WoPPack&&window.WoPPack.status),ui:!!window.__wopPack,"
                         + "status:window.WoPPack?window.WoPPack.status():null,origin:location.origin};"
                         + "return JSON.stringify(r);}catch(e){return 'probe-error:'+e.message;}})()",
-                        value -> Log.i(TAG, "probe " + value));
+                        new ValueCallback<String>() {
+                            @Override
+                            public void onReceiveValue(String value) {
+                                Log.i(TAG, "probe " + value);
+                            }
+                        });
             }
         }, delayMs);
     }
