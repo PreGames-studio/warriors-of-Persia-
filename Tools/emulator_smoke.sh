@@ -15,6 +15,8 @@ OUT="${RUNNER_TEMP:-/tmp}"
 mkdir -p "$OUT"
 
 log() { echo "[smoke] $*"; }
+# logcat shows the JSON strings returned by evaluateJavascript with escaped quotes.
+normalize() { sed 's/\\"/"/g' "$1" > "$1.norm" 2>/dev/null || cp "$1" "$1.norm"; }
 fail() { echo "$1"; exit "${2:-1}"; }
 
 adb wait-for-device
@@ -32,16 +34,18 @@ adb shell am start -n "$PACKAGE/.MainActivity" >/dev/null || fail LAUNCH-FAILED 
 sleep 60
 
 adb logcat -d -s WoP:V >"$OUT/boot.txt" 2>&1 || true
+normalize "$OUT/boot.txt"
 log "---- boot log ----"
-cat "$OUT/boot.txt"
+cat "$OUT/boot.txt.norm"
+
 adb shell run-as "$PACKAGE" ls -la files >"$OUT/files.txt" 2>&1 || true
 cat "$OUT/files.txt"
 adb shell dumpsys activity activities | grep -i "$PACKAGE" | head -3 || true
 
-grep -q '"ui":true' "$OUT/boot.txt" || fail MISSING-UI 5
-grep -q '"gl":true' "$OUT/boot.txt" || fail NO-WEBGL 6
-grep -q 'Uncaught' "$OUT/boot.txt" && fail JS-ERROR 7
-grep -q '"installed":false' "$OUT/boot.txt" || log "warning: pack already reported installed"
+grep -q '"ui":true' "$OUT/boot.txt.norm" || fail MISSING-UI 5
+grep -q '"gl":true' "$OUT/boot.txt.norm" || fail NO-WEBGL 6
+grep -q 'Uncaught' "$OUT/boot.txt.norm" && fail JS-ERROR 7
+grep -q '"installed":false' "$OUT/boot.txt.norm" || log "warning: pack already reported installed"
 
 log "---- downloading the HD pack through the shell ----"
 adb logcat -c
@@ -69,8 +73,10 @@ adb logcat -c
 adb shell am start -n "$PACKAGE/.MainActivity" >/dev/null || fail LAUNCH-FAILED 11
 sleep 60
 adb logcat -d -s WoP:V >"$OUT/installed.txt" 2>&1 || true
-tail -20 "$OUT/installed.txt"
-grep -q '"installed":true' "$OUT/installed.txt" || fail PACK-NOT-ACTIVE 12
+normalize "$OUT/installed.txt"
+tail -20 "$OUT/installed.txt.norm"
+grep -q '"installed":true' "$OUT/installed.txt.norm" || fail PACK-NOT-ACTIVE 12
+grep -q '"tier":"hd"' "$OUT/installed.txt.norm" || log "warning: tier not reported as hd"
 adb shell screencap -p /sdcard/pack.png && adb pull /sdcard/pack.png "$OUT/pack.png" >/dev/null 2>&1 || true
 
 echo "SMOKE OK"

@@ -10,6 +10,7 @@ on:
       - arena/c0915d8c-warriors-of-persia
     paths:
       - ".github/workflows/smoke-slim-apk.yml"
+      - "Tools/emulator_smoke.sh"
 
 permissions:
   contents: read
