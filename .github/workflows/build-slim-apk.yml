@@ -1,0 +1,318 @@
+name: Build and publish the slim APK with the graphics pack
+
+# v1.0.13 shipped every 4K/8K map inside the APK (272 MB). This workflow builds
+# the slim variant instead: the game and a lossless 2K texture set stay in the
+# APK, and the 4K/8K maps become a downloadable pack the player installs from
+# inside the game (the launcher downloads, checksums and unpacks it).
+on:
+  workflow_dispatch:
+    inputs:
+      version_code:
+        description: Android versionCode
+        required: false
+        default: "14"
+      version_name:
+        description: Android versionName
+        required: false
+        default: "1.0.14"
+  push:
+    branches:
+      - arena/c0915d8c-warriors-of-persia
+    paths:
+      - ".github/workflows/build-slim-apk.yml"
+      - "android/launcher/**"
+      - "unity_preview/graphics-pack.js"
+      - "Tools/build_pack_apk.py"
+      - "Tools/build_graphics_pack.py"
+      - "Tools/build_android_launcher.py"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-slim-apk
+  cancel-in-progress: true
+
+env:
+  VERSION_CODE: ${{ github.event.inputs.version_code || '14' }}
+  VERSION_NAME: ${{ github.event.inputs.version_name || '1.0.14' }}
+  TAG: v1.0.14
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install build tooling
+        run: |
+          python -m pip install --disable-pip-version-check \
+            numpy==2.4.6 pillow==13.0.0 cryptography==50.0.2 asn1crypto==1.5.1
+          npm install --global esbuild@0.21.5
+          java -version
+          esbuild --version
+
+      - name: Locate the Android SDK
+        run: |
+          set -euo pipefail
+          sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          echo "SDK=$sdk" >> "$GITHUB_ENV"
+          ls "$sdk/build-tools" "$sdk/platforms"
+          platform="$(ls "$sdk/platforms" | sort -V | tail -1)"
+          tools="$(ls "$sdk/build-tools" | sort -V | tail -1)"
+          echo "PLATFORM=$platform" >> "$GITHUB_ENV"
+          echo "BUILD_TOOLS=$tools" >> "$GITHUB_ENV"
+
+      - name: Compile the WebView shell
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import zipfile
+          from pathlib import Path
+          apk = Path('artifacts/releases/WarriorsOfPersia_1.0.12.apk')
+          data = zipfile.ZipFile(apk).read('res/drawable-nodpi-v4/app_icon.png')
+          Path('build/icon.png').parent.mkdir(parents=True, exist_ok=True)
+          Path('build/icon.png').write_bytes(data)
+          print('icon bytes', len(data))
+          PY
+          python Tools/build_android_launcher.py \
+            --sdk "$SDK" --platform "$PLATFORM" --build-tools "$BUILD_TOOLS" \
+            --icon build/icon.png \
+            --version-code "$VERSION_CODE" --version-name "$VERSION_NAME" \
+            --out-dir build/launcher
+
+      - name: Generate the graphics maps
+        run: |
+          set -euo pipefail
+          hd="$RUNNER_TEMP/hd"; ultra="$RUNNER_TEMP/ultra"
+          mkdir -p "$hd" "$ultra"
+          for family in stone wood roof cobble metal; do
+            echo "::group::$family 4096"
+            python Tools/generate_hq_web_pbr.py "$family" --size 4096 --output "$hd"
+            echo "::endgroup::"
+          done
+          echo "::group::metal 8192"
+          python Tools/generate_hq_web_pbr.py metal --size 8192 --output "$ultra"
+          echo "::endgroup::"
+          for family in stone wood roof cobble; do
+            cp "$hd/${family}_"*.webp "$ultra/"
+          done
+          ls -l "$hd" "$ultra"
+
+      - name: Pack the downloads and write the catalogue
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/out"
+          python Tools/build_graphics_pack.py build hd --maps "$RUNNER_TEMP/hd" \
+            --output "$RUNNER_TEMP/out/wop-graphics-hd.zip"
+          python Tools/build_graphics_pack.py build ultra --maps "$RUNNER_TEMP/ultra" \
+            --output "$RUNNER_TEMP/out/wop-graphics-ultra.zip"
+          python Tools/build_graphics_pack.py catalogue \
+            --hd "$RUNNER_TEMP/out/wop-graphics-hd.zip" \
+            --ultra "$RUNNER_TEMP/out/wop-graphics-ultra.zip" \
+            --base-url "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG" \
+            --output "$RUNNER_TEMP/pack-config.json"
+          cat "$RUNNER_TEMP/pack-config.json"
+
+      - name: Extract the approved 2K texture set
+        run: python Tools/prepare_apk_textures.py --output build/apk-textures
+
+      - name: Assemble the slim APK
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/releases artifacts/quality
+          python Tools/build_pack_apk.py \
+            --base-apk artifacts/releases/WarriorsOfPersia_1.0.12.apk \
+            --launcher-apk build/launcher/launcher.apk \
+            --dex build/launcher/classes.dex \
+            --pack-config "$RUNNER_TEMP/pack-config.json" \
+            --texture-dir build/apk-textures \
+            --output "artifacts/releases/WarriorsOfPersia_${VERSION_NAME}.apk.unsigned" \
+            --manifest "artifacts/quality/build-${VERSION_NAME}.json"
+
+          python Tools/sign_release_apk.py \
+            --input "artifacts/releases/WarriorsOfPersia_${VERSION_NAME}.apk.unsigned" \
+            --output "artifacts/releases/WarriorsOfPersia_${VERSION_NAME}.apk" \
+            --keystore Tools/keys/wop-release.p12 --storepass wop-release-2026 \
+            --version-code "$VERSION_CODE" --version-name "$VERSION_NAME" \
+            --report "artifacts/quality/build-${VERSION_NAME}.signed.json" | tee "$RUNNER_TEMP/sign.txt"
+
+          python Tools/verify_apk.py "artifacts/releases/WarriorsOfPersia_${VERSION_NAME}.apk" \
+            --no-aapt2 --json "$RUNNER_TEMP/audit.json" | tee "$RUNNER_TEMP/audit.txt"
+          grep -q '"verdict": "pass"' "$RUNNER_TEMP/audit.txt"
+          ls -l "artifacts/releases/WarriorsOfPersia_${VERSION_NAME}.apk"
+
+      - name: Static checks on the packaged APK
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, re, zipfile
+          from pathlib import Path
+          apk = Path('artifacts/releases/WarriorsOfPersia_1.0.14.apk')
+          z = zipfile.ZipFile(apk)
+          names = z.namelist()
+          assert not any(n.startswith('assets/pbr_hq/') for n in names), 'HQ maps leaked into the APK'
+          dex = z.read('classes.dex')
+          for token in (b'wop.local', b'WoPPack', b'pack.json'):
+              assert token in dex, token
+          manifest = z.read('AndroidManifest.xml')
+          assert 'android.permission.INTERNET'.encode('utf-16le') in manifest
+          config = json.loads(z.read('assets/pack-config.json'))
+          assert len(config['packs']) == 2, config
+          html = z.read('assets/index.html')
+          assert b'"hq2k"' in html and b'"pack"' in html, 'texture roots missing'
+          assert 'assets/hq2k/stone_albedo.webp' in names
+          assert b'WoPPack' in html
+          for pack in config['packs']:
+              assert pack['url'].startswith('https://'), pack
+          print(json.dumps({'apkBytes': apk.stat().st_size, 'entries': len(names),
+                            'htmlBytes': len(html), 'dexBytes': len(dex),
+                            'packs': [{'tier': p['tier'], 'bytes': p['bytes']} for p in config['packs']]}, indent=2))
+          PY
+
+      - name: Prepare release assets
+        run: |
+          set -euo pipefail
+          apk="artifacts/releases/WarriorsOfPersia_${VERSION_NAME}.apk"
+          cp "$apk" "$RUNNER_TEMP/out/WarriorsOfPersia_${VERSION_NAME}.apk"
+          cp "$apk" "$RUNNER_TEMP/out/WarriorsOfPersia_3D.apk"
+          # Keep the historical asset name working: it now points at the slim
+          # build that downloads the HQ pack instead of embedding it.
+          cp "$apk" "$RUNNER_TEMP/out/WarriorsOfPersia_3D_HQ_8K.apk"
+          ( cd "$RUNNER_TEMP/out" && sha256sum ./* > SHA256SUMS.txt && cat SHA256SUMS.txt )
+          {
+            cat "docs/releases/${VERSION_NAME}.md"
+            echo
+            echo '## فایل‌ها'
+            ( cd "$RUNNER_TEMP/out" && for f in *; do printf -- '- `%s` — %s بایت\n' "$f" "$(stat -c%s "$f")"; done )
+          } > "$RUNNER_TEMP/notes.md"
+          head -40 "$RUNNER_TEMP/notes.md"
+
+      - name: Keep the builds for the emulator smoke job
+        uses: actions/upload-artifact@v4
+        with:
+          name: wop-slim-apk
+          path: |
+            artifacts/releases/WarriorsOfPersia_1.0.14.apk
+            artifacts/quality/build-1.0.14*.json
+          retention-days: 7
+
+      - name: Publish the release
+        run: |
+          set -euo pipefail
+          printf '%s' "Warriors of Persia ${VERSION_NAME} — نسخهٔ سبک + بستهٔ گرافیکی اختیاری" \
+            > "$RUNNER_TEMP/title.txt"
+          rel="$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
+            --jq "[.[] | select(.tag_name == \"$TAG\")][0].id // empty")"
+          if [ -z "$rel" ]; then
+            python Tools/release_payload.py create \
+              --title-file "$RUNNER_TEMP/title.txt" --notes-file "$RUNNER_TEMP/notes.md" \
+              > "$RUNNER_TEMP/create.json"
+            rel="$(gh api -X POST "repos/$GITHUB_REPOSITORY/releases" \
+              --input "$RUNNER_TEMP/create.json" --jq '.id')"
+          fi
+          gh release upload "$TAG" "$RUNNER_TEMP"/out/* --clobber
+          python Tools/release_payload.py publish \
+            --title-file "$RUNNER_TEMP/title.txt" --notes-file "$RUNNER_TEMP/notes.md" \
+            > "$RUNNER_TEMP/publish.json"
+          gh api -X PATCH "repos/$GITHUB_REPOSITORY/releases/$rel" \
+            --input "$RUNNER_TEMP/publish.json" --jq '{tag_name, html_url}'
+          gh api "repos/$GITHUB_REPOSITORY/releases/$rel" \
+            --jq '{tag_name, html_url, draft, assets: [.assets[] | {name, size, state}]}'
+
+  # Real-device check: install the published APK on an emulator, confirm the game
+  # boots inside the new WebView shell, then let the shell download the real HD
+  # pack from the release and confirm it is served from app storage afterwards.
+  smoke:
+    needs: [build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: wop-slim-apk
+          path: apk
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run the game on an emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          target: default
+          arch: x86_64
+          ram-size: 4096M
+          heap-size: 1024M
+          disable-animations: true
+          script: |
+            set -euo pipefail
+            apk="apk/WarriorsOfPersia_1.0.14.apk"
+            adb install -r "$apk"
+            adb shell settings put global window_animation_scale 0
+            adb logcat -c
+            adb shell am start -n com.pregames.warriorsofpersia/.MainActivity
+            sleep 50
+            adb shell screencap -p /sdcard/boot.png
+            adb pull /sdcard/boot.png boot.png
+            adb logcat -d -s WoP:V > boot.txt || true
+            echo "---- shell log ----"; cat boot.txt
+            grep -q '"ui":true' boot.txt
+            grep -q '"gl":true' boot.txt
+            if grep -q 'Uncaught' boot.txt; then echo "javascript errors on boot"; exit 1; fi
+
+            # The pack installer must report "not installed" on a fresh device.
+            grep -q '"installed":false' boot.txt
+
+            echo "== downloading the HD pack through the game shell =="
+            adb logcat -c
+            adb shell am start -n com.pregames.warriorsofpersia/.MainActivity \
+              --es wop_pack_autostart hd
+            for i in $(seq 1 90); do
+              sleep 10
+              adb logcat -d -s WoP:V > pack.txt || true
+              if grep -q '"state":"done"' pack.txt; then break; fi
+              if grep -q '"state":"error"' pack.txt; then echo "pack download failed"; tail -40 pack.txt; exit 1; fi
+              echo "waiting for the pack ($i)…"
+            done
+            cat pack.txt | tail -30
+            grep -q '"state":"done"' pack.txt
+
+            echo "== relaunch: the game must now serve pack/ textures =="
+            adb shell am force-stop com.pregames.warriorsofpersia
+            adb logcat -c
+            adb shell am start -n com.pregames.warriorsofpersia/.MainActivity
+            sleep 50
+            adb logcat -d -s WoP:V > installed.txt || true
+            cat installed.txt | tail -20
+            grep -q '"installed":true' installed.txt
+            adb shell screencap -p /sdcard/pack.png
+            adb pull /sdcard/pack.png pack.png
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: emulator-evidence
+          path: |
+            boot.png
+            boot.txt
+            pack.png
+            pack.txt
+            installed.txt
+          retention-days: 7

@@ -1474,6 +1474,10 @@
     import { combatBounds, combatHeight, createCombatPlan, buildCombatLandscape } from './world-landscape.js';
     import { createPotionShop } from './potion-shop.js';
     import { createPersianVillageKit } from './village-theme.js';
+    import { mountGraphicsPack } from './graphics-pack.js';
+
+    // The Android shell exposes window.WoPPack; in a browser this is a no-op.
+    mountGraphicsPack();
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').catch(() => {});
