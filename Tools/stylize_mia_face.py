@@ -331,6 +331,30 @@ def paint_skin(image: Image.Image) -> tuple[Image.Image, list[str]]:
     image = _composite(image, brows, blur=0.9)
     notes.append("slender painted brow arch replaces the wide authored card")
 
+    # --- sculpture clean-up ----------------------------------------------
+    # The sculpted nose base, the nasolabial folds and the chin/jaw ridge carry
+    # hard painted shading. On a stylised face they read as age and a bad mood,
+    # so they are flattened to their own smooth neighbourhood before the new
+    # paint goes on. The eyes and the mouth are excluded so detail survives.
+    sculpt = Image.new("L", image.size, 0)
+    sculpt_draw = ImageDraw.Draw(sculpt)
+    nx, ny = NOSE[0], NOSE[1]
+    sculpt_draw.ellipse([nx - 62, ny + 20, nx + 62, ny + 62], fill=255)      # nose base
+    sculpt_draw.ellipse([nx - 98, ny + 44, nx - 28, ny + 100], fill=170)     # left fold
+    sculpt_draw.ellipse([nx + 28, ny + 44, nx + 98, ny + 100], fill=170)     # right fold
+    sculpt_draw.ellipse([nx - 90, ny + 104, nx + 90, ny + 150], fill=150)    # chin crease
+    keep_out = Image.new("L", image.size, 0)
+    keep_draw = ImageDraw.Draw(keep_out)
+    for eye in (LEFT_EYE, RIGHT_EYE):
+        cx, cy, rx, ry = eye
+        keep_draw.ellipse([cx - rx * 1.7, cy - ry * 2.6, cx + rx * 1.7, cy + ry * 2.2], fill=255)
+    keep_draw.ellipse([OLD_MOUTH[0] - OLD_MOUTH[2] * 1.15, OLD_MOUTH[1] - OLD_MOUTH[3] * 1.8,
+                       OLD_MOUTH[0] + OLD_MOUTH[2] * 1.15, MOUTH[1] + MOUTH[3] * 1.9], fill=255)
+    sculpt = Image.composite(Image.new("L", image.size, 0), sculpt.filter(ImageFilter.GaussianBlur(10)),
+                             keep_out.filter(ImageFilter.GaussianBlur(10)))
+    image = paint_region(image, sculpt, 0.72, radius=15.0)
+    notes.append("sculpted nose base, folds and chin crease softened")
+
     # --- nose: slim highlight, softened nostrils -------------------------
     nose = Image.new("RGBA", image.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(nose)

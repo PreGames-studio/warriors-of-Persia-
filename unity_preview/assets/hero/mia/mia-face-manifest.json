@@ -17,13 +17,14 @@
         "baked liner erased; fresh lash line, outer wing, crease and aegyo-sal",
         "authored mouth cleared; small rose mouth with cupid's bow and gloss",
         "slender painted brow arch replaces the wide authored card",
+        "sculpted nose base, folds and chin crease softened",
         "nose bridge highlight and softer nostrils",
         "cheek and nose blush"
       ],
       "bytesBefore": 434212,
-      "bytesAfter": 461850,
+      "bytesAfter": 463440,
       "sha256Before": "e9e7ed4fbde6dd862a42a255a7dda3b1fe88759de46d7738394a3c94a36a05cd",
-      "sha256After": "cb34c7771fb3a200d23190ec663ea294be786eceefc92b1b423f22dc6f2cea27"
+      "sha256After": "5a535c4416d9f7c2f37eae23c4d6e901df5e4855f5f6cf5e6c3b3be5e13202b6"
     },
     {
       "map": "T_Eye_Brown",
@@ -38,7 +39,7 @@
     }
   ],
   "eyebrows": "painted on the skin atlas; authored card hidden at load time",
-  "bytes": 3214288,
-  "sha256": "8821925b8a19e51463ec064cd9043db63ad3c59bb01d9d2b1182d7dc6cce6187",
+  "bytes": 3215876,
+  "sha256": "8423bff3c79021a7aa2fed2a797e4c5d69e082ccc02c5a7d5d458fcd8429bbf9",
   "pipeline": "Tools/prepare_mia_hq_assets.py (cloth) -> Tools/polish_mia_materials.py (grade) -> Tools/stylize_mia_face.py (face)"
 }

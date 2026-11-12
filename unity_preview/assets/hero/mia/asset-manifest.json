@@ -9,8 +9,8 @@
     {
       "source": "/tmp/wop-hero-f-hd.glb",
       "file": "mia_base.glb",
-      "bytes": 3214288,
-      "sha256": "8821925b8a19e51463ec064cd9043db63ad3c59bb01d9d2b1182d7dc6cce6187",
+      "bytes": 3215876,
+      "sha256": "8423bff3c79021a7aa2fed2a797e4c5d69e082ccc02c5a7d5d458fcd8429bbf9",
       "sourceSha256": "a2120d29861c1403afed192318839ca53b615370fe747848205d04eaf36de9d8",
       "copiedByteForByte": false,
       "rangerAlbedoRecoloured": true,
@@ -67,6 +67,6 @@
   ],
   "generatedModule": {
     "file": "mia-assets.js",
-    "bytes": 6575196
+    "bytes": 6577312
   }
 }
