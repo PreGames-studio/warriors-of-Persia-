@@ -286,7 +286,7 @@ public class MainActivity extends Activity {
     private boolean packComplete() {
         String tier = installedTier();
         if (tier == null) return false;
-        PackConfig.Entry entry = config.find(tier);
+        Entry entry = config.find(tier);
         File[] files = packDir().listFiles();
         if (entry == null || files == null) return files != null && files.length >= 15;
         return files.length >= entry.maps;
@@ -314,7 +314,7 @@ public class MainActivity extends Activity {
                 json.put("downloading", downloading.get());
                 json.put("packBytes", dirSize(packDir()));
                 JSONArray packs = new JSONArray();
-                for (PackConfig.Entry entry : config.entries) {
+                for (Entry entry : config.list()) {
                     JSONObject item = new JSONObject();
                     item.put("tier", entry.tier);
                     item.put("label", entry.label);
@@ -393,7 +393,7 @@ public class MainActivity extends Activity {
     }
 
     private void download(final String tier) {
-        final PackConfig.Entry entry = config.find(tier);
+        final Entry entry = config.find(tier);
         if (entry == null) {
             notifyJs("{\"state\":\"error\",\"message\":\"unknown pack\"}");
             return;
@@ -538,6 +538,24 @@ public class MainActivity extends Activity {
             } catch (Exception error) {
                 return new PackConfig(new JSONArray());
             }
+        }
+
+        java.util.List<Entry> list() {
+            java.util.List<Entry> result = new java.util.ArrayList<Entry>();
+            for (int index = 0; index < entries.length(); index++) {
+                JSONObject item = entries.optJSONObject(index);
+                if (item == null) continue;
+                Entry entry = new Entry();
+                entry.tier = item.optString("tier");
+                entry.label = item.optString("label", entry.tier);
+                entry.detail = item.optString("detail", "");
+                entry.bytes = item.optLong("bytes", 0);
+                entry.sha256 = item.optString("sha256", "");
+                entry.url = item.optString("url", "");
+                entry.maps = item.optInt("maps", 15);
+                result.add(entry);
+            }
+            return result;
         }
 
         Entry find(String tier) {
