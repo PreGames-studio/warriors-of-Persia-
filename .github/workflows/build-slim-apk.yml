@@ -10,11 +10,11 @@ on:
       version_code:
         description: Android versionCode
         required: false
-        default: "14"
+        default: "15"
       version_name:
         description: Android versionName
         required: false
-        default: "1.0.14"
+        default: "1.0.15"
   push:
     branches:
       - arena/c0915d8c-warriors-of-persia
@@ -34,9 +34,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  VERSION_CODE: ${{ github.event.inputs.version_code || '14' }}
-  VERSION_NAME: ${{ github.event.inputs.version_name || '1.0.14' }}
-  TAG: v1.0.14
+  VERSION_CODE: ${{ github.event.inputs.version_code || '15' }}
+  VERSION_NAME: ${{ github.event.inputs.version_name || '1.0.15' }}
+  TAG: v1.0.15
 
 jobs:
   build:
@@ -175,7 +175,7 @@ jobs:
           python - <<'PY'
           import json, re, zipfile
           from pathlib import Path
-          apk = Path('artifacts/releases/WarriorsOfPersia_1.0.14.apk')
+          apk = Path('artifacts/releases/WarriorsOfPersia_1.0.15.apk')
           z = zipfile.ZipFile(apk)
           names = z.namelist()
           assert not any(n.startswith('assets/pbr_hq/') for n in names), 'HQ maps leaked into the APK'
@@ -233,8 +233,8 @@ jobs:
         with:
           name: wop-slim-apk
           path: |
-            artifacts/releases/WarriorsOfPersia_1.0.14.apk
-            artifacts/quality/build-1.0.14*.json
+            artifacts/releases/WarriorsOfPersia_1.0.15.apk
+            artifacts/quality/build-1.0.15*.json
           retention-days: 7
 
       - name: Publish the release
@@ -261,14 +261,16 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY/releases/$rel" \
             --jq '{tag_name, html_url, draft, assets: [.assets[] | {name, size, state}]}'
 
-  # Real-device check: install the published APK on an emulator, confirm the game
-  # boots inside the new WebView shell, then let the shell download the real HD
-  # pack from the release and confirm it is served from app storage afterwards.
+  # Real-device check: install the freshly published APK on an emulator, confirm
+  # the game boots inside the new WebView shell, download the real HD pack through
+  # the game and confirm it is served from app storage after a relaunch.
   smoke:
     needs: [build]
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           name: wop-slim-apk
@@ -280,8 +282,9 @@ jobs:
             | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+          ls -l /dev/kvm
 
-      - name: Run the game on an emulator
+      - name: Boot the game on an emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 30
@@ -291,57 +294,17 @@ jobs:
           heap-size: 1024M
           disable-animations: true
           script: |
-            set -euo pipefail
-            apk="apk/WarriorsOfPersia_1.0.14.apk"
-            adb install -r "$apk"
-            adb shell settings put global window_animation_scale 0
-            adb logcat -c
-            adb shell am start -n com.pregames.warriorsofpersia/.MainActivity
-            sleep 50
-            adb shell screencap -p /sdcard/boot.png
-            adb pull /sdcard/boot.png boot.png
-            adb logcat -d -s WoP:V > boot.txt || true
-            echo "---- shell log ----"; cat boot.txt
-            grep -q '"ui":true' boot.txt
-            grep -q '"gl":true' boot.txt
-            if grep -q 'Uncaught' boot.txt; then echo "javascript errors on boot"; exit 1; fi
+            bash -o pipefail -c 'bash Tools/emulator_smoke.sh "apk/WarriorsOfPersia_${VERSION_NAME}.apk" 2>&1 | tee "$RUNNER_TEMP/smoke.log"'
 
-            # The pack installer must report "not installed" on a fresh device.
-            grep -q '"installed":false' boot.txt
-
-            echo "== downloading the HD pack through the game shell =="
-            adb logcat -c
-            adb shell am start -n com.pregames.warriorsofpersia/.MainActivity \
-              --es wop_pack_autostart hd
-            for i in $(seq 1 90); do
-              sleep 10
-              adb logcat -d -s WoP:V > pack.txt || true
-              if grep -q '"state":"done"' pack.txt; then break; fi
-              if grep -q '"state":"error"' pack.txt; then echo "pack download failed"; tail -40 pack.txt; exit 1; fi
-              echo "waiting for the pack ($i)…"
-            done
-            cat pack.txt | tail -30
-            grep -q '"state":"done"' pack.txt
-
-            echo "== relaunch: the game must now serve pack/ textures =="
-            adb shell am force-stop com.pregames.warriorsofpersia
-            adb logcat -c
-            adb shell am start -n com.pregames.warriorsofpersia/.MainActivity
-            sleep 50
-            adb logcat -d -s WoP:V > installed.txt || true
-            cat installed.txt | tail -20
-            grep -q '"installed":true' installed.txt
-            adb shell screencap -p /sdcard/pack.png
-            adb pull /sdcard/pack.png pack.png
-
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: emulator-evidence
-          path: |
-            boot.png
-            boot.txt
-            pack.png
-            pack.txt
-            installed.txt
-          retention-days: 7
+      - name: Surface the failure
+        if: failure()
+        run: |
+          python3 - <<'PY'
+          import os, urllib.parse
+          parts = []
+          for name in ("smoke.log", "boot.txt", "pack.txt", "installed.txt"):
+              full = os.path.join(os.environ.get("RUNNER_TEMP", "/tmp"), name)
+              if os.path.exists(full):
+                  parts.append("### " + name + "\n" + open(full, encoding="utf-8", errors="replace").read()[-1800:])
+          print("::error title=emulator-smoke::" + urllib.parse.quote("\n".join(parts) or "no log", safe=" :;,._-/()[]{}"))
+          PY

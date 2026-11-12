@@ -70,6 +70,43 @@ export { BLACKSMITH_FX };
 """
 
 
+
+# Old Android System WebView builds (the API 30 emulator runs Chrome 83) do not
+# ship ES2022 runtime helpers. esbuild lowers syntax but never polyfills APIs, and
+# the game (and three.js) call Array.prototype.at, which threw
+# "T.at is not a function" and aborted the whole bundle on such devices.
+POLYFILL = """// Runtime helpers for older Android System WebView builds.
+(function () {
+  var define = function (target, name, value) {
+    if (typeof target[name] !== 'function') {
+      Object.defineProperty(target, name, { value: value, writable: true, configurable: true });
+    }
+  };
+  var at = function at(index) {
+    var length = this.length >>> 0;
+    var key = Math.trunc(index) || 0;
+    if (key < 0) key += length;
+    return key < 0 || key >= length ? undefined : this[key];
+  };
+  define(Array.prototype, 'at', at);
+  define(String.prototype, 'at', function (index) { return at.call(this, index); });
+  define(String.prototype, 'replaceAll', function (search, replacement) {
+    return this.split(search).join(replacement);
+  });
+  if (typeof Object.fromEntries !== 'function') {
+    Object.fromEntries = function (entries) {
+      var result = {};
+      for (var i = 0; i < entries.length; i++) result[entries[i][0]] = entries[i][1];
+      return result;
+    };
+  }
+  define(Array.prototype, 'findLast', function (fn, thisArg) {
+    for (var i = this.length - 1; i >= 0; i--) if (fn.call(thisArg, this[i], i, this)) return this[i];
+    return undefined;
+  });
+})();
+"""
+
 def build_html(texture_dir: Path) -> tuple[str, dict]:
     html = (PREVIEW / "index.html").read_text(encoding="utf-8")
     # A 1254px PNG favicon/PWA icon (4.3 MB) is dead weight inside a fullscreen
@@ -79,6 +116,7 @@ def build_html(texture_dir: Path) -> tuple[str, dict]:
         if tag in html:
             html = html.replace(tag, "", 1)
     script, start, end = extract_script(html)
+    script = POLYFILL + script
     # The APK has no service worker file, and a registered one would shadow the
     # WebView request interceptor that serves the downloaded pack.
     if "if ('serviceWorker' in navigator)" in script:
@@ -99,7 +137,7 @@ def build_html(texture_dir: Path) -> tuple[str, dict]:
         bundled = work / "bundle.js"
         subprocess.run(
             [esbuild, str(work / "main.js"), "--bundle", "--format=iife", "--minify",
-             "--target=es2019", "--legal-comments=none", f"--outfile={bundled}"],
+             "--target=chrome80", "--legal-comments=none", f"--outfile={bundled}"],
             cwd=work, check=True,
         )
         code = bundled.read_text(encoding="utf-8")
