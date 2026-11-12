@@ -34,6 +34,15 @@ SkinnedMeshes.
 - **Pose corrections**: a wrist offset that drops the resting blade to her side
   and a slight shoulder roll. Both fade to zero during one-shot combat clips, so
   authored slash poses are untouched.
+- **Moonlit palette** (art direction from the supplied reference screenshot): the
+  crimson garment atlas is re-hued to midnight indigo (hue-locked to 0.96-1.0 so
+  the brown leather straps keep their colour), the charcoal sleeve atlas becomes
+  blue-black, the brown hair atlas becomes silver, the "dark" skin atlas is
+  lifted to a fair porcelain tone and the eye atlas loses its blue cast. Every
+  map is written as lossless WebP at its original resolution.
+- **Crystal accents and a ponytail** (`unity_preview/mia-hero.js`): procedural
+  shards on the pauldron and chest + a tapered hair tail and bun, all authored in
+  the unscaled body unit and baked into bone space alongside the existing rig.
 - **Hand-painted material polish** (`Tools/polish_mia_materials.py`): the Ranger
   leather albedo and the skin albedo get masked local contrast, saturation and
   value, bounded to ±14 % per pixel, and the charcoal sleeve atlas gets a

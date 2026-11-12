@@ -189,6 +189,7 @@ function upgradeMaterials(meshes, environment) {
     if (mesh.name === 'Superhero_Female') return 'skin';
     // Steel has its own re-graded albedo; cloth detail passes must not touch it.
     if (mesh.name === 'Female_Ranger_Acc_Pauldrons') return 'steel';
+    if (mesh.name === 'Female_Ranger_Legs') return 'leather';
     return 'cloth';
   };
 
@@ -207,33 +208,40 @@ function upgradeMaterials(meshes, environment) {
         side: surface === 'hair' ? THREE.DoubleSide : THREE.FrontSide,
         envMap: environment,
         envMapIntensity: surface === 'eye' ? 0.9
-          : surface === 'skin' ? 0.32
-            : surface === 'hair' ? 0.42
-              : surface === 'steel' ? 0.34
-                : 0.26
+          : surface === 'skin' ? 0.34
+            : surface === 'hair' ? 0.55
+              : surface === 'steel' ? 0.75
+                : surface === 'leather' ? 0.3
+                  : 0.4
       });
       if (source.normalScale) material.normalScale.copy(source.normalScale);
       material.specularIntensity = 0.5;
       material.ior = 1.4;
 
       if (surface === 'skin') {
-        material.sheen = 0.16;
-        material.sheenRoughness = 0.85;
-        material.sheenColor.setHex(0xff9c80);
-        material.specularIntensity = 0.34;
-        material.envMapIntensity = 0.22;
-      } else if (surface === 'cloth') {
+        // Moonlight is cold, but skin has to stay warm or the face turns lilac.
         material.sheen = 0.2;
-        material.sheenRoughness = 0.9;
-        material.sheenColor.setHex(0x8a5a52);
-        material.specularIntensity = 0.28;
-        material.envMapIntensity = 0.14;
+        material.sheenRoughness = 0.8;
+        material.sheenColor.setHex(0xffbb9c);
+        material.specularIntensity = 0.26;
+        material.envMapIntensity = 0.1;
+        material.attenuationColor = new THREE.Color(0xffb4a0);
+      } else if (surface === 'cloth') {
+        // Moonlit satin: a cool sheen and a high, tight specular instead of the
+        // warm wool response the atlas was painted for.
+        material.sheen = 0.3;
+        material.sheenRoughness = 0.72;
+        material.sheenColor.setHex(0x8497e4);
+        material.specularIntensity = 0.42;
+        material.envMapIntensity = 0.55;
+        material.roughness = Math.min(1, (material.roughness ?? 0.8) * 0.82);
       } else if (surface === 'hair') {
-        material.sheen = 0.4;
-        material.sheenRoughness = 0.58;
-        material.sheenColor.setHex(0xb07c52);
-        material.specularIntensity = 0.55;
-        material.envMapIntensity = 0.3;
+        material.sheen = 0.38;
+        material.sheenRoughness = 0.5;
+        material.sheenColor.setHex(0x9db6e0);
+        material.specularIntensity = 0.6;
+        material.envMapIntensity = 0.45;
+        material.roughness = 0.56;
       } else if (surface === 'eye') {
         material.clearcoat = 1;
         material.clearcoatRoughness = 0.06;
@@ -241,12 +249,21 @@ function upgradeMaterials(meshes, environment) {
         material.specularIntensity = 0.9;
       } else if (surface === 'steel') {
         material.sheen = 0;
-        material.metalness = 0.55;
-        material.roughness = 0.38;
-        material.specularIntensity = 0.6;
+        material.metalness = 0.78;
+        material.roughness = 0.3;
+        material.specularIntensity = 0.7;
+        material.color.setHex(0xa8bcca);
+        // A cold, faint self-light at the plate edges, like the reference armour.
+        material.emissive.setHex(0x0a1f2b);
+        material.emissiveIntensity = 1;
+      } else if (surface === 'leather') {
+        material.sheen = 0.14;
+        material.sheenRoughness = 0.8;
+        material.sheenColor.setHex(0x7d7ba4);
+        material.specularIntensity = 0.4;
       } else if (surface === 'brow') {
-        material.color.setHex(0x4d3527);
-        material.roughness = 0.94;
+        material.color.setHex(0x8b8b98);
+        material.roughness = 0.92;
         material.specularIntensity = 0.15;
         material.sheen = 0.2;
       }
@@ -258,12 +275,157 @@ function upgradeMaterials(meshes, environment) {
   });
 }
 
+
+
+/**
+ * The supplied hair mesh is a shoulder-length bob. The reference hero wears a
+ * high, sweeping ponytail, so a tapered strand group is authored procedurally
+ * and baked into the head bone's local space: no rig edits, no new textures and
+ * it inherits every clip.
+ *
+ * Every length is a fraction of the *unscaled* body height, because the root is
+ * normalised to HERO_HEIGHT after the rig is built; authoring in final world
+ * units would make the hair nearly twice its intended size.
+ */
+function buildPonytail(bone, hairMaterial, forward, up, unit) {
+  const group = new THREE.Group();
+  group.name = 'MiaPonytail';
+  if (!bone || !hairMaterial) return group;
+
+  const head = bone.getWorldPosition(new THREE.Vector3());
+  const inverse = new THREE.Matrix4().copy(bone.matrixWorld).invert();
+  const back = forward.clone().negate();
+  const side = new THREE.Vector3().crossVectors(up, forward).normalize();
+  const u = unit;
+
+  const strand = (lateral, lift, length, radius, taper, phase, sides = 8) => {
+    const at = (height, backness, sway) => head.clone()
+      .addScaledVector(up, height * u)
+      .addScaledVector(back, backness * u)
+      .addScaledVector(side, (lateral + sway) * u);
+    // Crown → back of the skull → a long sweep down the spine.
+    const points = [
+      at(0.105 + lift, 0.015, 0),
+      at(0.125 + lift, 0.055, 0.002),
+      at(0.1 + lift, 0.115, 0.012 + phase),
+      at(0.01 + lift, 0.135, 0.008 + phase),
+      at(-0.09 * length + lift, 0.115, -0.006 + phase),
+      at(-0.17 * length + lift, 0.09, -0.014 + phase * 0.5),
+      at(-0.23 * length + lift, 0.06, -0.008)
+    ];
+    const geometry = taperedTube(sides, points, [radius * u, radius * taper * u]);
+    geometry.applyMatrix4(inverse);
+    const mesh = new THREE.Mesh(geometry, hairMaterial);
+    mesh.castShadow = true;
+    return mesh;
+  };
+
+  // One thick mass with two thinner locks lying against it: separate tubes read
+  // as dreadlocks, a single silhouette reads as gathered hair.
+  group.add(strand(0, 0, 1.0, 0.03, 0.2, 0, 12));
+  group.add(strand(0.019, -0.002, 0.92, 0.014, 0.28, 0.004));
+  group.add(strand(-0.02, -0.004, 0.88, 0.013, 0.26, 0.006));
+
+  // A soft bun where the hair is gathered, so the tail grows out of the head
+  // instead of hovering behind it.
+  const bun = new THREE.Mesh(new THREE.SphereGeometry(0.026 * u, 16, 12), hairMaterial);
+  bun.scale.set(1.25, 0.9, 1);
+  bun.position.copy(head).addScaledVector(up, 0.105 * u).addScaledVector(back, 0.045 * u);
+  bun.position.applyMatrix4(inverse);
+  bun.castShadow = true;
+  group.add(bun);
+
+  // The leather tie that gathers the hair.
+  const tie = new THREE.Mesh(new THREE.TorusGeometry(0.014 * u, 0.004 * u, 8, 18), hairMaterial);
+  tie.position.copy(head).addScaledVector(up, 0.108 * u).addScaledVector(back, 0.04 * u);
+  tie.position.applyMatrix4(inverse);
+  const boneRotation = new THREE.Quaternion();
+  bone.matrixWorld.decompose(new THREE.Vector3(), boneRotation, new THREE.Vector3());
+  tie.quaternion.copy(boneRotation.invert()).multiply(new THREE.Quaternion().setFromUnitVectors(
+    new THREE.Vector3(0, 0, 1), forward.clone().addScaledVector(up, 0.5).normalize()));
+  group.add(tie);
+  return group;
+}
+
+/**
+ * A tapered tube built from a hand-authored curve: the primitive that both the
+ * crystal shards and the ponytail are made of, with a real radius falloff and
+ * smooth normals (TubeGeometry cannot taper).
+ */
+function taperedTube(sides, points, radii) {
+  const curve = new THREE.CatmullRomCurve3(points.map((point) => point.clone()));
+  const steps = Math.max(6, points.length * 5);
+  const positions = [];
+  const indices = [];
+  const frames = curve.computeFrenetFrames(steps, false);
+  for (let i = 0; i <= steps; i++) {
+    const u = i / steps;
+    const centre = curve.getPointAt(u);
+    const normal = frames.normals[i];
+    const binormal = frames.binormals[i];
+    const radius = radii[0] + (radii[1] - radii[0]) * Math.pow(u, 0.8);
+    for (let j = 0; j < sides; j++) {
+      const angle = (j / sides) * Math.PI * 2;
+      const offset = normal.clone().multiplyScalar(Math.cos(angle) * radius)
+        .addScaledVector(binormal, Math.sin(angle) * radius);
+      positions.push(centre.x + offset.x, centre.y + offset.y, centre.z + offset.z);
+    }
+  }
+  for (let i = 0; i < steps; i++) {
+    for (let j = 0; j < sides; j++) {
+      const a = i * sides + j;
+      const b = i * sides + ((j + 1) % sides);
+      const c = a + sides;
+      const d = b + sides;
+      indices.push(a, c, b, b, c, d);
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+/**
+ * Cold crystal accents on the shoulder plate and the chest harness, exactly the
+ * motif of the reference armour. They are parented to bones, so they inherit
+ * every animation, and they cost five draw calls and no texture.
+ */
+function buildCrystals(unit) {
+  const glow = new THREE.MeshPhysicalMaterial({
+    color: 0x5fd2f5, emissive: 0x1f9fd0, emissiveIntensity: 0.85,
+    metalness: 0.35, roughness: 0.1, clearcoat: 1, clearcoatRoughness: 0.05,
+    envMapIntensity: 1.1
+  });
+  const group = new THREE.Group();
+  group.name = 'MiaCrystals';
+  group.userData.material = glow;
+
+  group.shard = (bone, worldPoint, worldAim, length, radius) => {
+    if (!bone) return null;
+    const geometry = new THREE.ConeGeometry(radius * unit, length * unit, 6, 1);
+    const mesh = new THREE.Mesh(geometry, glow);
+    const alignment = new THREE.Quaternion().setFromUnitVectors(
+      new THREE.Vector3(0, 1, 0), worldAim.clone().normalize());
+    const boneRotation = new THREE.Quaternion();
+    bone.matrixWorld.decompose(new THREE.Vector3(), boneRotation, new THREE.Vector3());
+    mesh.position.copy(worldPoint.clone().applyMatrix4(new THREE.Matrix4().copy(bone.matrixWorld).invert()));
+    mesh.quaternion.copy(boneRotation.invert().multiply(alignment));
+    group.add(mesh);
+    return mesh;
+  };
+  return group;
+}
+
 function tintHair(meshes) {
   meshes.filter((mesh) => mesh.name === 'Hair_Long').forEach((hair) => {
     const materials = Array.isArray(hair.material) ? hair.material : [hair.material];
     materials.forEach((material) => {
-      material.color.setHex(0x5f3d2b);
-      material.roughness = Math.min(1, (material.roughness ?? 0.8) + 0.08);
+      // The atlas is graded to platinum; the tint only lifts it into moonlight.
+      material.color.setHex(0xd2d8e8);
+      material.roughness = Math.min(1, (material.roughness ?? 0.8) * 0.86);
+      if ('sheenColor' in material) material.sheenColor.setHex(0x9fb9e2);
       material.needsUpdate = true;
     });
   });
@@ -427,6 +589,9 @@ class Shamshir {
     fullerMaterial.color = new THREE.Color(0x87929c);
     fullerMaterial.roughness = 0.28;
     fullerMaterial.metalness = 0.95;
+    // The reference weapon carries a cold inner glow rather than a plain groove.
+    fullerMaterial.emissive.setHex(0x1f8fb5);
+    fullerMaterial.emissiveIntensity = 0.55;
     const fuller = new THREE.Mesh(fullerGeometry, fullerMaterial);
     group.add(fuller);
 
@@ -799,7 +964,7 @@ export async function loadMiaHero(options = {}) {
 
   const clothMaterial = propMaterial('cape');
   const tailMaterial = clothMaterial.clone();
-  tailMaterial.color.setHex(0x6d1a24);
+  tailMaterial.color.setHex(0x1b2140);
   tailMaterial.roughness = 0.97;
   tailMaterial.envMapIntensity = 0.18;
   if (environment) tailMaterial.envMap = environment;
@@ -818,10 +983,58 @@ export async function loadMiaHero(options = {}) {
     waist.add(tailRight.mesh);
   }
   const scarfMaterial = clothMaterial.clone();
-  scarfMaterial.color.setHex(0x7e1d27);
-  scarfMaterial.roughness = 0.96;
-  scarfMaterial.envMapIntensity = 0.2;
+  scarfMaterial.color.setHex(0x1a1f3d);
+  scarfMaterial.roughness = 0.82;
+  scarfMaterial.envMapIntensity = 0.5;
   if (environment) scarfMaterial.envMap = environment;
+  // Geometry authored here is measured against the *unscaled* body, because the
+  // root is normalised to HERO_HEIGHT at the end of this function.
+  const unitHeight = Math.max(0.4, new THREE.Box3().setFromObject(rig).getSize(new THREE.Vector3()).y || 1.8);
+
+  // Cold crystal accents on the shoulder plate and the chest harness.
+  const crystals = buildCrystals(unitHeight / 1.8);
+  const pauldron = visibleMeshes.find((mesh) => mesh.name === 'Female_Ranger_Acc_Pauldrons');
+  const eyes = visibleMeshes.find((mesh) => mesh.name === 'Eyes');
+  const headBone = boneByName.get('Head') || boneByName.get('head');
+  const spineBone = boneByName.get('spine_03') || boneByName.get('spine_02');
+  const clavicle = boneByName.get('clavicle_r') || boneByName.get('upperarm_r');
+  if (pauldron && eyes && headBone && spineBone && clavicle) {
+    // The face is the only reliable forward reference: mirrored rigs disagree
+    // about hand order, but the eyes always point where the character looks.
+    const eyeCentre = new THREE.Box3().setFromObject(eyes).getCenter(new THREE.Vector3());
+    const headWorld = headBone.getWorldPosition(new THREE.Vector3());
+    const forward = eyeCentre.sub(headWorld).setY(0).normalize();
+    const up = new THREE.Vector3(0, 1, 0);
+    const right = new THREE.Vector3().crossVectors(up, forward).normalize().negate();
+
+    const plate = new THREE.Box3().setFromObject(pauldron);
+    const plateCentre = plate.getCenter(new THREE.Vector3());
+    const top = plate.max.y;
+    const grain = unitHeight / 1.8;
+    crystals.shard(clavicle, new THREE.Vector3(plateCentre.x, top + 0.002 * grain, plateCentre.z - 0.008 * grain),
+      up.clone().addScaledVector(right, -0.3).addScaledVector(forward, 0.1), 0.032, 0.008);
+    crystals.shard(clavicle, new THREE.Vector3(plateCentre.x + 0.022 * grain, top - 0.01 * grain, plateCentre.z + 0.016 * grain),
+      up.clone().addScaledVector(right, -0.85).addScaledVector(forward, 0.25), 0.022, 0.006);
+    crystals.shard(clavicle, new THREE.Vector3(plateCentre.x - 0.024 * grain, top - 0.014 * grain, plateCentre.z - 0.026 * grain),
+      up.clone().addScaledVector(forward, -0.7), 0.018, 0.005);
+
+    const spine = spineBone.getWorldPosition(new THREE.Vector3());
+    // One small shard above the harness, not a gem cluster on the collar.
+    const chest = spine.clone().addScaledVector(forward, 0.085 * grain).addScaledVector(up, 0.02);
+    crystals.shard(spineBone, chest, forward.clone().addScaledVector(up, 0.2), 0.018, 0.006);
+    clavicle.add(crystals);
+  }
+
+  const hairMesh = visibleMeshes.find((mesh) => mesh.name === 'Hair_Long');
+  if (hairMesh && headBone && eyes) {
+    const eyeCentre = new THREE.Box3().setFromObject(eyes).getCenter(new THREE.Vector3());
+    const headWorld = headBone.getWorldPosition(new THREE.Vector3());
+    const facing = eyeCentre.sub(headWorld).setY(0).normalize();
+    const ponytail = buildPonytail(headBone, Array.isArray(hairMesh.material) ? hairMesh.material[0] : hairMesh.material,
+      facing, new THREE.Vector3(0, 1, 0), unitHeight);
+    headBone.add(ponytail);
+  }
+
   const scarf = buildScarf(scarfMaterial);
   const neck = boneByName.get('neck_01');
   if (neck) {

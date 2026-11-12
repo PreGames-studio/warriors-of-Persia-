@@ -27,12 +27,103 @@ from PIL import Image
 
 TARGETS = {
     # atlas name: (family, saturation gain, contrast gain, value gain)
-    "T_Ranger_BaseColor": ("leather", 0.14, 0.16, 0.0),
+    # The ranger cloth is graded in two passes: the warm garments are retuned to
+    # the moonlit indigo palette, then the surviving leather gets local contrast.
+    "T_Ranger_BaseColor": ("mooncloth", 0.14, 0.16, 0.0),
     "T_Superhero_Female_Dark_BaseColor": ("skin", 0.03, 0.05, 0.005),
-    # The charcoal sleeves were recoloured from green; they crush to black at
-    # gameplay distance, so shadows get a small toe lift that keeps the colour.
-    "T_Regular_Female_Dark_BaseColor": ("cloth", 0.06, 0.02, 0.0),
+    # Sleeves/trousers: blue-black instead of crushed charcoal.
+    "T_Regular_Female_Dark_BaseColor": ("moonlegs", 0.0, 0.0, 0.0),
+    # Long hair: brown paint retuned to a cool platinum, keeping every strand.
+    "T_Hair_2_BaseColor": ("silverhair", 0.0, 0.0, 0.0),
+    # Eye atlas: the painted liner carries a blue cast under cool light.
+    "T_Eye_Brown": ("warmeye", 0.0, 0.0, 0.0),
 }
+
+
+def rgb_to_hsv(rgb: np.ndarray):
+    red, green, blue = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    maximum = rgb.max(axis=-1)
+    minimum = rgb.min(axis=-1)
+    delta = maximum - minimum
+    hue = np.zeros_like(maximum)
+    saturated = delta > 1e-6
+    index = saturated & (maximum == red)
+    hue[index] = (((green - blue)[index] / delta[index]) % 6.0)
+    index = saturated & (maximum == green)
+    hue[index] = ((blue - red)[index] / delta[index]) + 2.0
+    index = saturated & (maximum == blue)
+    hue[index] = ((red - green)[index] / delta[index]) + 4.0
+    hue = (hue / 6.0) % 1.0
+    saturation = np.where(maximum > 1e-6, delta / np.maximum(maximum, 1e-6), 0.0)
+    return hue, saturation, maximum
+
+
+def hsv_to_rgb(hue: np.ndarray, saturation: np.ndarray, value: np.ndarray) -> np.ndarray:
+    h = (hue % 1.0) * 6.0
+    sector = np.floor(h).astype(np.int32) % 6
+    fraction = h - np.floor(h)
+    p = value * (1 - saturation)
+    q = value * (1 - saturation * fraction)
+    t = value * (1 - saturation * (1 - fraction))
+    out = np.zeros(value.shape + (3,), dtype=np.float32)
+    choices = [
+        (value, t, p), (q, value, p), (p, value, t),
+        (p, q, value), (t, p, value), (value, p, q)
+    ]
+    for index, (r, g, b) in enumerate(choices):
+        mask = sector == index
+        out[..., 0][mask] = r[mask]
+        out[..., 1][mask] = g[mask]
+        out[..., 2][mask] = b[mask]
+    return out
+
+
+def moonlit_cloth(rgb: np.ndarray) -> np.ndarray:
+    """Turn the warm crimson garments into the reference's indigo satin.
+
+    Only saturated red/orange cloth pixels move; the brown leather straps,
+    buckles, stitching and the skin atlas keep their own hue.
+    """
+    hue, saturation, value = rgb_to_hsv(rgb)
+    # Measured on the atlas: the crimson garment sits at hue 0.96-1.0 while the
+    # brown leather straps live at 0.04-0.12. The split has to be tight, or the
+    # belts and the skirt turn blue along with the tunic.
+    warm = ((hue > 0.93) | (hue < 0.02)) & (saturation > 0.34) & (value > 0.07)
+    mask = soften(warm.astype(np.float32))
+    # Keep the painted shading: only the hue/saturation rotate, value is nudged.
+    new_hue = np.full_like(hue, 0.638)
+    # Satin, not poster blue: the reference armour is a desaturated midnight
+    # indigo with bright edge highlights, so saturation is pulled down while the
+    # painted shading (and therefore the fold lighting) is kept.
+    new_saturation = np.clip(saturation * 0.5 + 0.06, 0.16, 0.42)
+    new_value = np.clip(value * 0.95 + 0.02, 0, 1)
+    shifted = hsv_to_rgb(new_hue, new_saturation, new_value)
+    result = rgb * (1 - mask[..., None]) + shifted * mask[..., None]
+    return result
+
+
+def moonlit_legs(rgb: np.ndarray) -> np.ndarray:
+    """Blue-black trousers instead of crushed charcoal, with a shadow toe lift."""
+    tinted = rgb * np.array([0.74, 0.86, 1.36], dtype=np.float32)
+    lift = np.clip((0.16 - rgb.max(axis=-1)) / 0.16, 0, 1)[..., None] * np.array([0.018, 0.024, 0.045], dtype=np.float32)
+    return np.clip(tinted + lift, 0, 1)
+
+
+def warm_eye(rgb: np.ndarray) -> np.ndarray:
+    """Remove the blue cast the painted liner picks up under cool light."""
+    return np.clip(rgb * np.array([1.04, 1.0, 0.93], dtype=np.float32), 0, 1)
+
+
+def platinum_hair(rgb: np.ndarray) -> np.ndarray:
+    """Brown hair atlas → cool platinum, preserving strand shading."""
+    luminance = (rgb[..., 0] * 0.299 + rgb[..., 1] * 0.587 + rgb[..., 2] * 0.114)
+    ramp = np.clip((luminance - 0.04) / 0.55, 0, 1) ** 1.05
+    ramp = np.clip(0.5 + (ramp - 0.5) * 1.06, 0, 1)[..., None]
+    # Silver, not white: the darkest strands stay a deep blue-grey so the hair
+    # keeps its painted separation under a bright rim light.
+    dark = np.array([0.20, 0.22, 0.31], dtype=np.float32)
+    light = np.array([0.66, 0.69, 0.79], dtype=np.float32)
+    return dark + (light - dark) * ramp
 
 
 def read_glb(path: Path):
@@ -98,12 +189,28 @@ def soften(mask: np.ndarray) -> np.ndarray:
 
 def polish(image: Image.Image, family: str, saturation_gain: float, contrast_gain: float, value_gain: float):
     rgb = np.asarray(image.convert("RGB"), dtype=np.float32) / 255.0
+    if family == "silverhair":
+        return Image.fromarray((platinum_hair(rgb) * 255).round().astype(np.uint8), "RGB"), 1.0
+    if family == "warmeye":
+        return Image.fromarray((warm_eye(rgb) * 255).round().astype(np.uint8), "RGB"), 1.0
+    if family == "moonlegs":
+        return Image.fromarray((moonlit_legs(rgb) * 255).round().astype(np.uint8), "RGB"), 1.0
+    if family == "mooncloth":
+        rgb = moonlit_cloth(rgb)
+        family = "leather"
     if family == "leather":
         mask = soften(leather_mask(rgb))
     elif family == "cloth":
         mask = soften(cloth_mask(rgb))
     else:
         mask = soften(skin_mask(rgb))
+        # Moonlit skin: a little brighter and a touch cooler than the warm paint.
+        # The supplied skin atlas is a "dark" variant; the reference hero has a
+        # fair, porcelain tone. Lift the value and pull a little saturation out
+        # of the mid-tones, then keep the painted shading untouched.
+        lifted = np.clip(rgb * np.array([1.34, 1.3, 1.26], dtype=np.float32) + 0.02, 0, 1)
+        grey = lifted.mean(axis=-1, keepdims=True)
+        rgb = np.clip(grey + (lifted - grey) * 0.88, 0, 1)
     if mask.max() <= 0.001:
         return image, 0.0
 
