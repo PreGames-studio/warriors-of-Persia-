@@ -37,3 +37,7 @@ artifacts/releases/
 # Generated review galleries and large signed release outputs (published as release assets).
 artifacts/previews/
 build/
+
+# Local 4K/8K authoring output and Python bytecode caches.
+artifacts/hq-pbr/
+__pycache__/
