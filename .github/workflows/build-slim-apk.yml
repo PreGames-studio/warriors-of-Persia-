@@ -58,6 +58,8 @@ jobs:
 
       - name: Install build tooling
         run: |
+          set -euo pipefail
+          exec > >(tee -a "$RUNNER_TEMP/step.log") 2>&1
           python -m pip install --disable-pip-version-check \
             numpy==2.4.6 pillow==13.0.0 cryptography==50.0.2 asn1crypto==1.5.1
           npm install --global esbuild@0.21.5
@@ -67,6 +69,7 @@ jobs:
       - name: Locate the Android SDK
         run: |
           set -euo pipefail
+          exec > >(tee -a "$RUNNER_TEMP/step.log") 2>&1
           sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
           echo "SDK=$sdk" >> "$GITHUB_ENV"
           ls "$sdk/build-tools" "$sdk/platforms"
@@ -78,6 +81,7 @@ jobs:
       - name: Compile the WebView shell
         run: |
           set -euo pipefail
+          exec > >(tee -a "$RUNNER_TEMP/step.log") 2>&1
           python - <<'PY'
           import zipfile
           from pathlib import Path
@@ -96,6 +100,7 @@ jobs:
       - name: Generate the graphics maps
         run: |
           set -euo pipefail
+          exec > >(tee -a "$RUNNER_TEMP/step.log") 2>&1
           hd="$RUNNER_TEMP/hd"; ultra="$RUNNER_TEMP/ultra"
           mkdir -p "$hd" "$ultra"
           for family in stone wood roof cobble metal; do
@@ -114,6 +119,7 @@ jobs:
       - name: Pack the downloads and write the catalogue
         run: |
           set -euo pipefail
+          exec > >(tee -a "$RUNNER_TEMP/step.log") 2>&1
           mkdir -p "$RUNNER_TEMP/out"
           python Tools/build_graphics_pack.py build hd --maps "$RUNNER_TEMP/hd" \
             --output "$RUNNER_TEMP/out/wop-graphics-hd.zip"
@@ -132,6 +138,7 @@ jobs:
       - name: Assemble the slim APK
         run: |
           set -euo pipefail
+          exec > >(tee -a "$RUNNER_TEMP/step.log") 2>&1
           mkdir -p artifacts/releases artifacts/quality
           python Tools/build_pack_apk.py \
             --base-apk artifacts/releases/WarriorsOfPersia_1.0.12.apk \
@@ -157,6 +164,7 @@ jobs:
       - name: Static checks on the packaged APK
         run: |
           set -euo pipefail
+          exec > >(tee -a "$RUNNER_TEMP/step.log") 2>&1
           python - <<'PY'
           import json, re, zipfile
           from pathlib import Path
@@ -185,6 +193,7 @@ jobs:
       - name: Prepare release assets
         run: |
           set -euo pipefail
+          exec > >(tee -a "$RUNNER_TEMP/step.log") 2>&1
           apk="artifacts/releases/WarriorsOfPersia_${VERSION_NAME}.apk"
           cp "$apk" "$RUNNER_TEMP/out/WarriorsOfPersia_${VERSION_NAME}.apk"
           cp "$apk" "$RUNNER_TEMP/out/WarriorsOfPersia_3D.apk"
@@ -200,6 +209,18 @@ jobs:
           } > "$RUNNER_TEMP/notes.md"
           head -40 "$RUNNER_TEMP/notes.md"
 
+      - name: Surface the failure
+        if: failure()
+        run: |
+          python3 - <<'PY'
+          import os, urllib.parse
+          path = os.path.join(os.environ.get("RUNNER_TEMP", "/tmp"), "step.log")
+          try:
+              text = open(path, encoding="utf-8", errors="replace").read()[-2500:]
+          except FileNotFoundError:
+              text = "no step log captured"
+          print("::error title=build-log::" + urllib.parse.quote(text, safe=" :;,._-/()[]{}"))
+          PY
       - name: Keep the builds for the emulator smoke job
         uses: actions/upload-artifact@v4
         with:
@@ -212,6 +233,7 @@ jobs:
       - name: Publish the release
         run: |
           set -euo pipefail
+          exec > >(tee -a "$RUNNER_TEMP/step.log") 2>&1
           printf '%s' "Warriors of Persia ${VERSION_NAME} — نسخهٔ سبک + بستهٔ گرافیکی اختیاری" \
             > "$RUNNER_TEMP/title.txt"
           rel="$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
