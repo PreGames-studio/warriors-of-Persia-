@@ -138,18 +138,33 @@ def load_pack_config(path: Path) -> tuple[bytes, dict]:
 
 
 def optimized_merchants(base_apk: Path, cache: Path) -> dict[str, tuple[bytes, dict]]:
-    """Re-encode the packaged merchant PNGs with the quality-gated policy."""
+    """Re-encode the packaged merchant PNGs with the quality-gated policy.
+
+    Files that are already WebP (the 1.0.12 container stores them that way under
+    `.png` names, which WebView sniffs) are passed through untouched: decoding and
+    re-encoding 46 large lossless images costs minutes and cannot gain a byte.
+    """
+    results: dict[str, tuple[bytes, dict]] = {}
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
+        pending = False
         with ZipFile(base_apk) as base:
-            names = [n for n in base.namelist()
-                     if n.startswith("assets/assets/merchants/") and n.endswith(".png")]
-            for name in names:
+            for name in [n for n in base.namelist()
+                         if n.startswith("assets/assets/merchants/") and n.endswith(".png")]:
+                data = base.read(name)
+                key = "assets/" + name[len("assets/"):]
+                if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+                    results[key] = (data, {"format": "original", "reason": "already WebP",
+                                           "sourceBytes": len(data), "outputBytes": len(data)})
+                    continue
                 target = root / name[len("assets/"):]
                 target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_bytes(base.read(name))
-        results = optimize_assets(root, cache)
-    return {("assets/" + key): value for key, value in results.items()}
+                target.write_bytes(data)
+                pending = True
+        if pending:
+            for key, value in optimize_assets(root, cache).items():
+                results["assets/" + key] = value
+    return results
 
 
 def main() -> int:
@@ -176,7 +191,7 @@ def main() -> int:
     replaced_merchants: dict[str, tuple[bytes, int]] = {}
     if not args.no_merchant_optimization:
         for name, (data, details) in optimized_merchants(args.base_apk, args.merchant_cache).items():
-            if details["format"] != "original":
+            if details["format"] != "original" and details.get("reason") != "already WebP":
                 replaced_merchants[name] = (data, details["sourceBytes"])
 
     launcher: dict[str, bytes] = {}

@@ -1,0 +1,114 @@
+name: Emulator smoke test of the published APK
+
+# Installs the APK that is already published, boots it on an emulator, checks that
+# the WebView shell really runs the game, then downloads the HD graphics pack
+# through the game itself and confirms the textures switch over after a relaunch.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - arena/c0915d8c-warriors-of-persia
+    paths:
+      - ".github/workflows/smoke-slim-apk.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: smoke-slim-apk
+  cancel-in-progress: true
+
+env:
+  VERSION_NAME: "1.0.14"
+  TAG: v1.0.14
+  PACKAGE: com.pregames.warriorsofpersia
+
+jobs:
+  emulator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Download the published APK
+        run: |
+          set -euo pipefail
+          mkdir -p apk
+          curl -sSL --retry 3 -o "apk/WarriorsOfPersia_${VERSION_NAME}.apk" \
+            "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/WarriorsOfPersia_${VERSION_NAME}.apk"
+          ls -l apk
+          sha256sum apk/*.apk
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          ls -l /dev/kvm
+
+      - name: Boot the game on an emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          target: default
+          arch: x86_64
+          ram-size: 4096M
+          heap-size: 1024M
+          disable-animations: true
+          script: |
+            set -uo pipefail
+            LOG="$RUNNER_TEMP/smoke.log"
+            exec > >(tee -a "$LOG") 2>&1
+            adb wait-for-device
+            echo "== install =="
+            adb install -r "apk/WarriorsOfPersia_${VERSION_NAME}.apk" || exit 2
+            adb logcat -c
+            echo "== launch =="
+            adb shell am start -n "$PACKAGE/.MainActivity" || exit 3
+            sleep 60
+            adb logcat -d -s WoP:V > "$RUNNER_TEMP/boot.txt"
+            cat "$RUNNER_TEMP/boot.txt"
+            echo "== files =="
+            adb shell run-as "$PACKAGE" ls -la files || true
+            echo "== checks =="
+            grep -q '"ui":true' "$RUNNER_TEMP/boot.txt" || { echo "MISSING-UI"; exit 4; }
+            grep -q '"gl":true' "$RUNNER_TEMP/boot.txt" || { echo "NO-WEBGL"; exit 5; }
+            if grep -q 'Uncaught' "$RUNNER_TEMP/boot.txt"; then echo "JS-ERROR"; exit 6; fi
+
+            echo "== download the HD pack through the shell =="
+            adb logcat -c
+            adb shell am start -n "$PACKAGE/.MainActivity" --es wop_pack_autostart hd || exit 7
+            for i in $(seq 1 60); do
+              sleep 10
+              adb logcat -d -s WoP:V > "$RUNNER_TEMP/pack.txt"
+              grep -q '"state":"done"' "$RUNNER_TEMP/pack.txt" && break
+              grep -q '"state":"error"' "$RUNNER_TEMP/pack.txt" && { echo "PACK-ERROR"; tail -30 "$RUNNER_TEMP/pack.txt"; exit 8; }
+              echo "waiting $i"
+            done
+            tail -20 "$RUNNER_TEMP/pack.txt"
+            grep -q '"state":"done"' "$RUNNER_TEMP/pack.txt" || { echo "PACK-TIMEOUT"; exit 9; }
+            adb shell run-as "$PACKAGE" ls -la files files/pack | head -25 || true
+
+            echo "== relaunch with the pack installed =="
+            adb shell am force-stop "$PACKAGE"
+            adb logcat -c
+            adb shell am start -n "$PACKAGE/.MainActivity" || exit 10
+            sleep 60
+            adb logcat -d -s WoP:V > "$RUNNER_TEMP/installed.txt"
+            tail -20 "$RUNNER_TEMP/installed.txt"
+            grep -q '"installed":true' "$RUNNER_TEMP/installed.txt" || { echo "PACK-NOT-ACTIVE"; exit 11; }
+            adb shell screencap -p /sdcard/pack.png && adb pull /sdcard/pack.png /tmp/pack.png || true
+            echo "SMOKE OK"
+
+      - name: Surface the failure
+        if: failure()
+        run: |
+          python3 - <<'PY'
+          import glob, os, urllib.parse
+          parts = []
+          for path in ("smoke.log", "boot.txt", "pack.txt", "installed.txt"):
+              full = os.path.join(os.environ.get("RUNNER_TEMP", "/tmp"), path)
+              if os.path.exists(full):
+                  parts.append(f"### {path}\n" + open(full, encoding="utf-8", errors="replace").read()[-1800:])
+          text = "\n".join(parts) or "no log captured"
+          print("::error title=emulator-smoke::" + urllib.parse.quote(text, safe=" :;,._-/()[]{}"))
+          PY
