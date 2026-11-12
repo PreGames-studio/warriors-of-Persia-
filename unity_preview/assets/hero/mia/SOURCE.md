@@ -55,6 +55,20 @@ SkinnedMeshes.
 - **Review harness** (`Tools/mia-review/`): a standalone page and a Playwright
   capture script that render the hero from seven angles (front, bust, head,
   side, back, grip, gameplay) so each pass can be compared frame by frame.
+- **Anime face pass** (`Tools/stylize_mia_face.py`): the face is repainted at the
+  native 2048² atlas resolution — clean warm skin, baked studio shadow
+  flattened, a fresh upper lash line with an outer wing and crease, a slender
+  painted brow arch, a small rose mouth with a cupid's bow and gloss, blush and
+  a slimmer nose highlight. The 256² eye atlas gets a large amber iris (38 px
+  radius), a hard limbal ring, 34 radial fibres, a pupil lumen and two
+  highlights. Only the skin and eye albedo change, both re-encoded *lossless*
+  WebP: every normal map, ORM map, the geometry, the skeleton and the other 14
+  textures are byte-for-byte untouched. Recorded in `mia-face-manifest.json`.
+- **Face runtime tuning** (`unity_preview/mia-hero.js`): because the slender
+  brows now live in the skin atlas, the wide authored eyebrow card is hidden at
+  load time; the skin keeps its albedo detail but runs with a softer normal
+  scale (0.5) and a small warm emissive so the stylised face does not double-
+  shade into hollows under the village light.
 - **Steel re-grade** for `Female_Ranger_Acc_Pauldrons`: the atlas paints a red
   sash across that UV island; the albedo is re-rendered to a narrow gunmetal
   luminance band so the plate reads as forged steel from every angle.
@@ -65,6 +79,23 @@ SkinnedMeshes.
 python3 Tools/prepare_mia_hq_assets.py \
   --model <base.glb> --locomotion <anims.glb> --actions <anims2.glb> \
   --combat <ual2.glb> --output-dir unity_preview/assets/hero/mia
+```
+
+`mia_base.glb` in this folder is the final build of that chain — cloth
+recolour, material polish and the anime face pass — and it is what
+`mia-assets.js` embeds. After any art pass that rewrites one of the four GLBs,
+re-embed them with:
+
+```bash
+python3 Tools/bundle_mia_assets.py          # rewrites mia-assets.js + manifest
+python3 Tools/bundle_mia_assets.py --check  # report drift only
+```
+
+The face pass is reproducible from the polished base:
+
+```bash
+python3 Tools/stylize_mia_face.py --source <polished.glb> \
+  --output mia_base.glb --manifest mia-face-manifest.json
 ```
 
 Hashes and byte counts of every produced file are recorded in

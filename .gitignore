@@ -19,6 +19,7 @@ Thumbs.db
 
 # Native 4K/8K authoring output is large and must stay out of Git.
 artifacts/hq-pbr/
+artifacts/face/
 __pycache__/
 
 # Local mirror of the tracked APK, used only by Tools/serve_apk_downloads.py

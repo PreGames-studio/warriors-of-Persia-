@@ -55,6 +55,20 @@ function parseGLB(loader, base64) {
   });
 }
 
+/**
+ * Load a candidate character GLB from a URL. Only the review harness uses this:
+ * it lets us render an art pass straight from a build artefact, without first
+ * re-embedding it in mia-assets.js.
+ */
+export async function parseGLBFromUrl(loader, url) {
+  const response = await fetch(url, { cache: 'no-store' });
+  if (!response.ok) throw new Error(`Mia GLB fetch failed: ${url} (${response.status})`);
+  const buffer = await response.arrayBuffer();
+  return new Promise((resolve, reject) => {
+    loader.parse(buffer, '', resolve, reject);
+  });
+}
+
 /** Studio-like reflection probe so steel and gold read as metal, not paint. */
 export function createHeroEnvironment(renderer) {
   const canvas = document.createElement('canvas');
@@ -217,6 +231,12 @@ function upgradeMaterials(meshes, environment) {
       material.ior = 1.4;
 
       if (surface === 'skin') {
+        // The anime face pass (Tools/stylize_mia_face.py) reads best on smooth,
+        // evenly lit skin: the sculpted normal detail is eased off and a small
+        // warm emissive keeps the soft shadows from going grim.
+        material.normalScale.set(0.5, 0.5);
+        material.emissive.setHex(0x241610);
+        material.emissiveIntensity = 1;
         material.sheen = 0.16;
         material.sheenRoughness = 0.85;
         material.sheenColor.setHex(0xff9c80);
@@ -245,7 +265,9 @@ function upgradeMaterials(meshes, environment) {
         material.roughness = 0.38;
         material.specularIntensity = 0.6;
       } else if (surface === 'brow') {
-        material.color.setHex(0x4d3527);
+        // Warm mid-brown instead of near-black: the authored card is wide, so a
+        // dark tint read as a heavy frown on an otherwise soft face.
+        material.color.setHex(0x7d5540);
         material.roughness = 0.94;
         material.specularIntensity = 0.15;
         material.sheen = 0.2;
@@ -508,10 +530,10 @@ function gripOrientation(fist) {
 }
 
 export async function loadMiaHero(options = {}) {
-  const { renderer = null, materials = {} } = options;
+  const { renderer = null, materials = {}, baseGlbUrl = null } = options;
   const loader = new GLTFLoader();
   const [base, locomotion, actions, combat] = await Promise.all([
-    parseGLB(loader, MIA_BASE_GLB_BASE64),
+    baseGlbUrl ? parseGLBFromUrl(loader, baseGlbUrl) : parseGLB(loader, MIA_BASE_GLB_BASE64),
     parseGLB(loader, MIA_LOCOMOTION_GLB_BASE64),
     parseGLB(loader, MIA_ACTIONS_GLB_BASE64),
     parseGLB(loader, MIA_COMBAT_GLB_BASE64)
@@ -544,6 +566,11 @@ export async function loadMiaHero(options = {}) {
       visibleMeshes.push(mesh);
     });
   });
+
+  // Mia's face is painted as an anime-leaning portrait (Tools/stylize_mia_face.py):
+  // the slender brows live in the skin atlas, so the wide authored card is hidden
+  // rather than left as a second, heavier brow above it.
+  visibleMeshes.filter((mesh) => mesh.name === 'Eyebrows').forEach((mesh) => { mesh.visible = false; });
 
   upgradeMaterials(visibleMeshes, environment);
   // The atlas paints the shoulder plate cream; Mia wears gunmetal. Tint only the

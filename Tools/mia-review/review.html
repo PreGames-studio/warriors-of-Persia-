@@ -90,8 +90,11 @@ window.__only = (name) => { if (!hero) return; hero.meshes.forEach(m => { m.visi
 
 const clock = new THREE.Clock();
 function frame() { const dt = Math.min(clock.getDelta(), .05); window.__step(dt); renderer.render(scene, camera); requestAnimationFrame(frame); }
+// `?base=/path/to/candidate.glb` renders an art-pass build straight from disk;
+// without it the harness uses the embedded mia-assets.js bundle, as the game does.
+const baseGlbUrl = new URLSearchParams(location.search).get('base');
 const t0 = performance.now();
-loadMiaHero({ renderer, materials, environment: environment }).then((loaded) => {
+loadMiaHero({ renderer, materials, environment: environment, baseGlbUrl }).then((loaded) => {
   hero = loaded; window.__hero = loaded; window.__THREE = THREE;
   scene.add(hero.root);
   window.__timing = { loadMs: Math.round(performance.now() - t0) };
