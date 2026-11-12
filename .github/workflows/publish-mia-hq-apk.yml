@@ -1,0 +1,144 @@
+name: Publish Mia HQ 8K APK
+
+# Rebuilds the 4K/8K PBR maps from source, assembles the installable APK with the
+# current Mia art, signs it with the project release key and publishes the
+# release asset. GitHub-hosted runners are used because release uploads cannot be
+# made from the sandbox that authors the change.
+on:
+  push:
+    paths:
+      - ".github/workflows/publish-mia-hq-apk.yml"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish
+        required: false
+        default: v1.0.13
+      version_code:
+        description: Android versionCode
+        required: false
+        default: "13"
+      version_name:
+        description: Android versionName
+        required: false
+        default: "1.0.13"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-mia-hq-apk
+  cancel-in-progress: true
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      TAG: ${{ github.event.inputs.tag || 'v1.0.13' }}
+      VERSION_CODE: ${{ github.event.inputs.version_code || '13' }}
+      VERSION_NAME: ${{ github.event.inputs.version_name || '1.0.13' }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python and Node tooling
+        run: |
+          python -m pip install --disable-pip-version-check \
+            numpy==2.4.6 pillow==13.0.0 cryptography==50.0.2 asn1crypto==1.5.1
+          npm install --global esbuild@0.21.5
+          python -c "import PIL, numpy; print('Pillow', PIL.__version__, 'numpy', numpy.__version__)"
+          esbuild --version
+
+      - name: Generate the native 4K/8K PBR maps
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/hq-pbr"
+          mkdir -p "$out"
+          for spec in stone:4096 wood:4096 roof:4096 cobble:4096 metal:8192; do
+            family="${spec%%:*}"; size="${spec##*:}"
+            echo "::group::$family $size"
+            python Tools/generate_hq_web_pbr.py "$family" --size "$size" --output "$out"
+            echo "::endgroup::"
+          done
+          ls -l "$out"
+          python - <<'PY'
+          import glob, json
+          families = [json.load(open(p)) for p in glob.glob(__import__('os').environ['RUNNER_TEMP'] + '/hq-pbr/*.json')]
+          assert len(families) == 5, len(families)
+          assert sum(len(f['maps']) for f in families) == 15
+          print('maps', sum(len(f['maps']) for f in families))
+          PY
+
+      - name: Stage the maps into the base container
+        run: |
+          python Tools/stage_hq_maps_apk.py \
+            --base-apk artifacts/releases/WarriorsOfPersia_1.0.12.apk \
+            --maps "$RUNNER_TEMP/hq-pbr" \
+            --output "$RUNNER_TEMP/staged.apk" \
+            --manifest "$RUNNER_TEMP/staged.json"
+
+      - name: Assemble, sign and verify the APK
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/releases artifacts/quality
+          python Tools/build_face_apk.py \
+            --base-apk artifacts/releases/WarriorsOfPersia_1.0.12.apk \
+            --staged-apk "$RUNNER_TEMP/staged.apk" \
+            --output "artifacts/releases/WarriorsOfPersia_${VERSION_NAME}_HQ_8K-unsigned.apk" \
+            --manifest artifacts/quality/build-${TAG}.json
+
+          python Tools/sign_release_apk.py \
+            --input "artifacts/releases/WarriorsOfPersia_${VERSION_NAME}_HQ_8K-unsigned.apk" \
+            --output "artifacts/releases/WarriorsOfPersia_${VERSION_NAME}_HQ_8K.apk" \
+            --keystore Tools/keys/wop-release.p12 \
+            --storepass wop-release-2026 \
+            --version-code "$VERSION_CODE" \
+            --version-name "$VERSION_NAME" \
+            --report "artifacts/releases/WarriorsOfPersia_${VERSION_NAME}_HQ_8K.build.json"
+
+          python Tools/verify_apk.py "artifacts/releases/WarriorsOfPersia_${VERSION_NAME}_HQ_8K.apk" \
+            --no-aapt2 --json "$RUNNER_TEMP/audit.json" | tee "$RUNNER_TEMP/audit.txt"
+          grep -q '"verdict": "pass"' "$RUNNER_TEMP/audit.txt"
+
+          sha256sum "artifacts/releases/WarriorsOfPersia_${VERSION_NAME}_HQ_8K.apk"
+
+      - name: Prepare release assets and notes
+        run: |
+          set -euo pipefail
+          apk="artifacts/releases/WarriorsOfPersia_${VERSION_NAME}_HQ_8K.apk"
+          cp "$apk" "$RUNNER_TEMP/WarriorsOfPersia_3D_HQ_8K.apk"
+          cp "$apk" "$RUNNER_TEMP/WarriorsOfPersia_${VERSION_NAME}_HQ_8K.apk"
+          sha="$(sha256sum "$apk" | cut -d' ' -f1)"
+          bytes="$(stat -c%s "$apk")"
+          printf 'sha256  %s\nbytes   %s\nfile    WarriorsOfPersia_3D_HQ_8K.apk\n' "$sha" "$bytes" \
+            > "$RUNNER_TEMP/WarriorsOfPersia_${VERSION_NAME}_HQ_8K.apk.sha256"
+          {
+            cat "docs/releases/${VERSION_NAME}.md"
+            printf '\n## چک‌سام این بیلد\n\n| | |\n| --- | --- |\n| حجم | %s بایت |\n| SHA-256 | `%s` |\n' "$bytes" "$sha"
+          } > "$RUNNER_TEMP/notes.md"
+          cat "$RUNNER_TEMP/notes.md"
+
+      - name: Publish the release
+        run: |
+          set -euo pipefail
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --title "Warriors of Persia — Mia HQ 8K ${VERSION_NAME} (چهرهٔ کارتونی)" \
+              --notes-file "$RUNNER_TEMP/notes.md" --target "$GITHUB_SHA"
+          fi
+          gh release upload "$TAG" \
+            "$RUNNER_TEMP/WarriorsOfPersia_3D_HQ_8K.apk" \
+            "$RUNNER_TEMP/WarriorsOfPersia_${VERSION_NAME}_HQ_8K.apk" \
+            "$RUNNER_TEMP/WarriorsOfPersia_${VERSION_NAME}_HQ_8K.apk.sha256" \
+            --clobber
+          gh release edit "$TAG" \
+            --title "Warriors of Persia — Mia HQ 8K ${VERSION_NAME} (چهرهٔ کارتونی)" \
+            --notes-file "$RUNNER_TEMP/notes.md" --draft=false --latest
+          gh release view "$TAG" --json assets,url,tagName,isLatest \
+            --jq '{url, tagName, isLatest, assets: [.assets[] | {name, size}]}'
