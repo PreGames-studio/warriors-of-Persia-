@@ -128,17 +128,32 @@ jobs:
       - name: Publish the release
         run: |
           set -euo pipefail
-          if ! gh release view "$TAG" >/dev/null 2>&1; then
-            gh release create "$TAG" --title "Warriors of Persia — Mia HQ 8K ${VERSION_NAME} (چهرهٔ کارتونی)" \
-              --notes-file "$RUNNER_TEMP/notes.md" --target "$GITHUB_SHA"
+          printf '%s' "Warriors of Persia — Mia HQ 8K ${VERSION_NAME} (چهرهٔ کارتونی)" \
+            > "$RUNNER_TEMP/title.txt"
+
+          # Drafts are not addressable by tag through the REST tag endpoint, so look
+          # the release up in the list (which includes drafts) and create it only
+          # when it is genuinely missing.
+          rel="$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
+            --jq "[.[] | select(.tag_name == \"$TAG\")][0].id // empty")"
+          if [ -z "$rel" ]; then
+            python Tools/release_payload.py create \
+              --title-file "$RUNNER_TEMP/title.txt" \
+              --notes-file "$RUNNER_TEMP/notes.md" > "$RUNNER_TEMP/create.json"
+            rel="$(gh api -X POST "repos/$GITHUB_REPOSITORY/releases" \
+              --input "$RUNNER_TEMP/create.json" --jq '.id')"
           fi
+
           gh release upload "$TAG" \
             "$RUNNER_TEMP/WarriorsOfPersia_3D_HQ_8K.apk" \
             "$RUNNER_TEMP/WarriorsOfPersia_${VERSION_NAME}_HQ_8K.apk" \
             "$RUNNER_TEMP/WarriorsOfPersia_${VERSION_NAME}_HQ_8K.apk.sha256" \
             --clobber
-          gh release edit "$TAG" \
-            --title "Warriors of Persia — Mia HQ 8K ${VERSION_NAME} (چهرهٔ کارتونی)" \
-            --notes-file "$RUNNER_TEMP/notes.md" --draft=false --latest
-          gh release view "$TAG" --json assets,url,tagName,isLatest \
-            --jq '{url, tagName, isLatest, assets: [.assets[] | {name, size}]}'
+
+          python Tools/release_payload.py publish \
+            --title-file "$RUNNER_TEMP/title.txt" \
+            --notes-file "$RUNNER_TEMP/notes.md" > "$RUNNER_TEMP/publish.json"
+          gh api -X PATCH "repos/$GITHUB_REPOSITORY/releases/$rel" \
+            --input "$RUNNER_TEMP/publish.json" --jq '{tag_name, html_url}'
+          gh api "repos/$GITHUB_REPOSITORY/releases/$rel" \
+            --jq '{tag_name, html_url, draft, assets: [.assets[] | {name, size, state}]}'
