@@ -1,6 +1,8 @@
 # Godot 4+ specific ignores
 .godot/
 /android/
+# ...except the hand-written launcher shell this repository builds itself.
+!/android/launcher/
 export_presets.cfg
 
 # Imported translations (automatically generated from CSV files)

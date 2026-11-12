@@ -73,8 +73,15 @@ jobs:
           sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
           echo "SDK=$sdk" >> "$GITHUB_ENV"
           ls "$sdk/build-tools" "$sdk/platforms"
-          platform="$(ls "$sdk/platforms" | sort -V | tail -1)"
-          tools="$(ls "$sdk/build-tools" | sort -V | tail -1)"
+          # Pin a stable, installed platform instead of the newest beta on the image.
+          for candidate in android-34 android-35 android-33; do
+            if [ -d "$sdk/platforms/$candidate" ]; then platform="$candidate"; break; fi
+          done
+          platform="${platform:-$(ls "$sdk/platforms" | sort -V | tail -1)}"
+          for candidate in 34.0.0 35.0.0 33.0.2; do
+            if [ -d "$sdk/build-tools/$candidate" ]; then tools="$candidate"; break; fi
+          done
+          tools="${tools:-$(ls "$sdk/build-tools" | sort -V | tail -1)}"
           echo "PLATFORM=$platform" >> "$GITHUB_ENV"
           echo "BUILD_TOOLS=$tools" >> "$GITHUB_ENV"
 
