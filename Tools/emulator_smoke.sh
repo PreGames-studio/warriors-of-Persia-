@@ -45,7 +45,7 @@ adb shell dumpsys activity activities | grep -i "$PACKAGE" | head -3 || true
 grep -q '"ui":true' "$OUT/boot.txt.norm" || fail MISSING-UI 5
 grep -q '"gl":true' "$OUT/boot.txt.norm" || fail NO-WEBGL 6
 grep -q 'Uncaught' "$OUT/boot.txt.norm" && fail JS-ERROR 7
-grep -q '"installed":false' "$OUT/boot.txt.norm" || log "warning: pack already reported installed"
+grep -q 'installed[^,]*false' "$OUT/boot.txt.norm" || log "warning: pack already reported installed"
 
 log "---- downloading the HD pack through the shell ----"
 # The autostart extra is read in onCreate, so the running activity must be
@@ -79,8 +79,10 @@ sleep 60
 adb logcat -d -s WoP:V >"$OUT/installed.txt" 2>&1 || true
 normalize "$OUT/installed.txt"
 tail -20 "$OUT/installed.txt.norm"
-grep -q '"installed":true' "$OUT/installed.txt.norm" || fail PACK-NOT-ACTIVE 12
-grep -q '"tier":"hd"' "$OUT/installed.txt.norm" || log "warning: tier not reported as hd"
+# The status JSON is nested inside the probe string, so quotes arrive escaped at
+# more than one level: match the key/value pair without insisting on quoting.
+grep -q 'installed[^,]*true' "$OUT/installed.txt.norm" || fail PACK-NOT-ACTIVE 12
+grep -q 'tier[^,]*hd' "$OUT/installed.txt.norm" || log "warning: tier not reported as hd"
 adb shell screencap -p /sdcard/pack.png && adb pull /sdcard/pack.png "$OUT/pack.png" >/dev/null 2>&1 || true
 
 echo "SMOKE OK"
