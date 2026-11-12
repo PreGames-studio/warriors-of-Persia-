@@ -48,6 +48,10 @@ grep -q 'Uncaught' "$OUT/boot.txt.norm" && fail JS-ERROR 7
 grep -q '"installed":false' "$OUT/boot.txt.norm" || log "warning: pack already reported installed"
 
 log "---- downloading the HD pack through the shell ----"
+# The autostart extra is read in onCreate, so the running activity must be
+# stopped first: am start on a live task delivers onNewIntent instead.
+adb shell am force-stop "$PACKAGE"
+sleep 3
 adb logcat -c
 adb shell am start -n "$PACKAGE/.MainActivity" --es wop_pack_autostart hd >/dev/null || fail LAUNCH-FAILED 8
 done_state=""
