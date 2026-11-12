@@ -22,9 +22,9 @@
         "cheek and nose blush"
       ],
       "bytesBefore": 434212,
-      "bytesAfter": 463440,
+      "bytesAfter": 467288,
       "sha256Before": "e9e7ed4fbde6dd862a42a255a7dda3b1fe88759de46d7738394a3c94a36a05cd",
-      "sha256After": "5a535c4416d9f7c2f37eae23c4d6e901df5e4855f5f6cf5e6c3b3be5e13202b6"
+      "sha256After": "4198787f115256f58a634cc8022e2f093b4de5e46f5a4a9a49ce8e232148ed5a"
     },
     {
       "map": "T_Eye_Brown",
@@ -33,13 +33,13 @@
         "iris enlarged to 38 px with limbal ring, 34 fibres, two highlights"
       ],
       "bytesBefore": 1682,
-      "bytesAfter": 6136,
+      "bytesAfter": 7048,
       "sha256Before": "7064346edf5a5d562bd94764ee20bbfc0fd625b56dbab9b398971ed947834ab4",
-      "sha256After": "9c859829b6848dc1373372224489fccb72726159164c69c821dcba206370872a"
+      "sha256After": "f0f096904b8e769c2b9d250e0e85f0534da314d954fffdcfd29cecd2d2f4dafe"
     }
   ],
   "eyebrows": "painted on the skin atlas; authored card hidden at load time",
-  "bytes": 3215876,
-  "sha256": "8423bff3c79021a7aa2fed2a797e4c5d69e082ccc02c5a7d5d458fcd8429bbf9",
+  "bytes": 3220636,
+  "sha256": "063e1055c4865fdc7b24945fdd39b9958c8b1016ab617068249fd2a01c8f4232",
   "pipeline": "Tools/prepare_mia_hq_assets.py (cloth) -> Tools/polish_mia_materials.py (grade) -> Tools/stylize_mia_face.py (face)"
 }

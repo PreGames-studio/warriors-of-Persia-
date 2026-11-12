@@ -73,8 +73,25 @@ const views = {
   play: { pos: [0, 6.4, 7.6], target: [0, 1.5, 0], fov: 42 }
 };
 
-let hero = null, speed = 0;
+let hero = null, speed = 0, paused = false;
 window.__hero = null;
+// A frozen pose is what lets face passes be compared frame for frame: the idle
+// clip would otherwise be at a different phase for every capture.
+window.__pause = (value = true) => { paused = value; };
+window.__render = () => renderer.render(scene, camera);
+window.__heroCamera = camera;
+// Deterministic portrait framing: look at an explicit point from a fixed
+// distance, so two builds of the same pose can be compared pixel for pixel.
+window.__setFaceCamera = (x, y, z, distance = 0.46, fov = 24) => {
+  camera.fov = fov;
+  camera.updateProjectionMatrix();
+  camera.position.set(x + distance * 0.06, y + distance * 0.05, z + distance);
+  camera.lookAt(new THREE.Vector3(x, y, z));
+};
+window.__neutralHead = () => {
+  const names = /^(spine_03|neck_01|Head)$/i;
+  if (hero) hero.root.traverse((object) => { if (names.test(object.name)) object.quaternion.set(0, 0, 0, 1); });
+};
 window.__setView = (name) => { const v = views[name] || views.front; camera.fov = v.fov; camera.updateProjectionMatrix(); camera.position.set(...v.pos); camera.lookAt(new THREE.Vector3(...v.target)); };
 window.__setSpeed = (v) => { speed = v; };
 window.__step = (dt) => { if (hero) hero.update(dt, speed); };
@@ -89,7 +106,7 @@ window.__info = () => hero ? ({
 window.__only = (name) => { if (!hero) return; hero.meshes.forEach(m => { m.visible = name === 'all' || m.name === name; }); };
 
 const clock = new THREE.Clock();
-function frame() { const dt = Math.min(clock.getDelta(), .05); window.__step(dt); renderer.render(scene, camera); requestAnimationFrame(frame); }
+function frame() { const dt = Math.min(clock.getDelta(), .05); if (!paused) window.__step(dt); renderer.render(scene, camera); requestAnimationFrame(frame); }
 // `?base=/path/to/candidate.glb` renders an art-pass build straight from disk;
 // without it the harness uses the embedded mia-assets.js bundle, as the game does.
 const baseGlbUrl = new URLSearchParams(location.search).get('base');

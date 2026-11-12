@@ -49,8 +49,8 @@ NOSE = (378.0, 448.0, 52.0, 66.0)
 FACE = (378.0, 448.0, 205.0, 235.0)      # cx, cy, rx, ry of the skin mask
 
 INK = (34, 22, 26)                       # lash / brow ink
-ROSE = (232, 138, 144)
-ROSE_LIGHT = (246, 166, 162)
+ROSE = (203, 70, 82)
+ROSE_LIGHT = (231, 104, 104)
 
 # --------------------------------------------------------------- glb plumbing
 
@@ -230,13 +230,21 @@ def paint_skin(image: Image.Image) -> tuple[Image.Image, list[str]]:
         draw.polygon(_arc(cx, cy - ry * 0.55, rx * 1.12, ry * 1.55, 205, 335), fill=(184, 128, 128, 30))
     image = _composite(image, shade, blur=5.5)
 
+    lid = Image.new("RGBA", image.size, (0, 0, 0, 0))
+    lid_draw = ImageDraw.Draw(lid)
+    for eye in (LEFT_EYE, RIGHT_EYE):
+        cx, cy, rx, ry = eye
+        lid_draw.polygon(_arc(cx, cy - ry * 0.30, rx * 1.02, ry * 0.80, 196, 344),
+                         fill=(255, 246, 240, 40))
+    image = _composite(image, lid, blur=4.0)
+
     line = Image.new("RGBA", image.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(line)
     for eye, side in ((LEFT_EYE, -1), (RIGHT_EYE, 1)):
         cx, cy, rx, ry = eye
         # Upper lash: follows the lid margin, thin inside, heavier and drawn out
         # at the outer corner.
-        upper = _arc(cx, cy + 2.0, rx * 1.0, ry * 0.96, 192, 348)
+        upper = _arc(cx, cy - 1.0, rx * 1.02, ry * 0.98, 196, 344)
         if side > 0:
             upper = upper[::-1]
         _taper(draw, upper, 3.2, 9.0, INK + (234,))
@@ -265,7 +273,7 @@ def paint_skin(image: Image.Image) -> tuple[Image.Image, list[str]]:
     lips = Image.new("RGBA", image.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(lips)
     mx, my = MOUTH[0], MOUTH[1]
-    mr, mh = MOUTH[2] * 0.82, MOUTH[3] * 0.72
+    mr, mh = MOUTH[2] * 0.88, MOUTH[3] * 0.86
     upper = [
         (mx - mr, my + 2),
         (mx - mr * 0.62, my - mh * 0.44),
@@ -278,7 +286,7 @@ def paint_skin(image: Image.Image) -> tuple[Image.Image, list[str]]:
         (mx + mr, my + 2),
         (mx, my + mh * 0.08),
     ]
-    draw.polygon(upper, fill=ROSE + (206,))
+    draw.polygon(upper, fill=ROSE + (224,))
     lower = [
         (mx - mr, my + 2),
         (mx - mr * 0.55, my + mh * 0.58),
@@ -287,30 +295,39 @@ def paint_skin(image: Image.Image) -> tuple[Image.Image, list[str]]:
         (mx + mr, my + 2),
         (mx, my + mh * 0.05),
     ]
-    draw.polygon(lower, fill=ROSE_LIGHT + (206,))
+    draw.polygon(lower, fill=ROSE_LIGHT + (222,))
     draw.line([(mx - mr, my + 2), (mx, my - mh * 0.04), (mx + mr, my + 2)],
-              fill=(180, 106, 110, 122), width=3)
+              fill=(150, 52, 58, 130), width=3)
     draw.ellipse([mx - mr * 0.26, my + mh * 0.20, mx + mr * 0.02, my + mh * 0.54],
                  fill=(255, 236, 228, 118))
     for side in (-1, 1):
         cx = mx + side * mr * 0.98
         draw.ellipse([cx - 5, my - 4, cx + 5, my + 6], fill=ROSE + (110,))
-    draw.polygon(_arc(mx, my - mh * 0.30, mr * 0.72, mh * 0.42, 200, 340), fill=(255, 208, 198, 52))
+    draw.polygon(_arc(mx, my - mh * 0.30, mr * 0.70, mh * 0.40, 200, 340), fill=(255, 196, 190, 46))
     image = _composite(image, lips, blur=1.9)
     notes.append("authored mouth cleared; small rose mouth with cupid's bow and gloss")
 
     # --- brows ------------------------------------------------------------
     # The authored card is a wide slab that reads as a frown. A slender painted
-    # arch replaces it (the card is hidden by mia-hero.js at load time).
+    # arch replaces it (the card is hidden by mia-hero.js at load time). The
+    # stretch of skin above the lids is lifted first, so the new brow does not
+    # sit in the old shadow and read as a second, darker brow.
+    brow_clear = Image.new("L", image.size, 0)
+    brow_clear_draw = ImageDraw.Draw(brow_clear)
+    for eye in (LEFT_EYE, RIGHT_EYE):
+        cx = eye[0]
+        brow_clear_draw.ellipse([cx - 74, 258, cx + 74, 330], fill=235)
+    brow_clear = brow_clear.filter(ImageFilter.GaussianBlur(12))
+    image = paint_region(image, brow_clear, 0.72, radius=17.0)
     brow_mask = Image.new("L", image.size, 0)
     brow_draw = ImageDraw.Draw(brow_mask)
     for eye, out in ((LEFT_EYE, -1), (RIGHT_EYE, 1)):
         cx = eye[0]
-        inner = (cx - out * 42.0, 301.0)
-        peak = (cx + out * 10.0, 285.0)
-        tip = (cx + out * 54.0, 293.0)
+        inner = (cx - out * 44.0, 291.0)
+        peak = (cx + out * 9.0, 276.0)
+        tip = (cx + out * 55.0, 285.0)
         curve = _bezier(inner, peak, tip, 48)
-        brow_draw.line(curve, fill=255, width=9, joint="curve")
+        brow_draw.line(curve, fill=255, width=10, joint="curve")
         brow_draw.ellipse([inner[0] - 5, inner[1] - 5, inner[0] + 5, inner[1] + 5], fill=255)
     brow_mask = brow_mask.filter(ImageFilter.GaussianBlur(2.4))
     brows = Image.new("RGBA", image.size, (0, 0, 0, 0))
@@ -320,7 +337,7 @@ def paint_skin(image: Image.Image) -> tuple[Image.Image, list[str]]:
     taper = np.ones_like(alpha)
     for eye, out in ((LEFT_EYE, -1), (RIGHT_EYE, 1)):
         cx = eye[0]
-        edge = cx + out * 54.0
+        edge = cx + out * 55.0
         span = 16.0
         t = np.clip(1.0 - np.abs(xs - edge) / span, 0.0, 1.0)
         near = np.abs(xs - edge) < span
@@ -390,15 +407,15 @@ def paint_eye(image: Image.Image) -> tuple[Image.Image, list[str]]:
         tone = 228 - 26 * max(0.0, 0.42 - t) - 10 * max(0.0, t - 0.62)
         draw.line([(0, y), (size, y)], fill=(int(tone), int(tone - 4), int(tone - 8)))
 
-    ring, iris_r, pupil_r = 50.0, 44.0, 14.0
+    ring, iris_r, pupil_r = 57.0, 51.0, 17.0
     bands = [                                 # radius, colour, strength
-        (ring, (46, 26, 24), 1.0),
-        (iris_r, (112, 54, 34), 0.98),
-        (34.0, (176, 102, 44), 0.96),
-        (28.0, (214, 148, 64), 0.92),
-        (21.0, (238, 186, 100), 0.88),
-        (14.0, (132, 68, 34), 0.7),
-        (pupil_r, (28, 16, 16), 1.0),
+        (ring, (40, 22, 22), 1.0),
+        (iris_r, (118, 58, 36), 0.98),
+        (40.0, (182, 106, 46), 0.96),
+        (33.0, (220, 152, 66), 0.93),
+        (25.0, (244, 192, 104), 0.9),
+        (17.0, (138, 72, 36), 0.72),
+        (pupil_r, (26, 15, 15), 1.0),
     ]
     for radius, colour, strength in bands:
         mask = Image.new("L", image.size, 0)
@@ -410,8 +427,8 @@ def paint_eye(image: Image.Image) -> tuple[Image.Image, list[str]]:
     sdraw = ImageDraw.Draw(streaks)
     for i in range(34):                       # radial iris fibres
         angle = i / 34 * math.tau
-        start = 12 + (i % 3) * 2.0
-        end = 35 + (i % 4) * 2.5
+        start = 14 + (i % 3) * 2.5
+        end = 41 + (i % 4) * 2.5
         sdraw.line([(cx + math.cos(angle) * start, cy + math.sin(angle) * start),
                     (cx + math.cos(angle) * end, cy + math.sin(angle) * end)],
                    fill=(255, 226, 158, 92), width=2)
@@ -420,11 +437,11 @@ def paint_eye(image: Image.Image) -> tuple[Image.Image, list[str]]:
     canvas = _composite(canvas, streaks, blur=0.7)
 
     draw = ImageDraw.Draw(canvas)
-    draw.ellipse([cx - ring, cy - ring, cx + ring, cy + ring], outline=(40, 22, 22), width=5)
+    draw.ellipse([cx - ring, cy - ring, cx + ring, cy + ring], outline=(34, 19, 19), width=6)
     draw.ellipse([cx - pupil_r, cy - pupil_r, cx + pupil_r, cy + pupil_r], fill=(22, 13, 13))
-    canvas = _composite(canvas, _highlight(size, cx - 15.0, cy - 17.0, 9.0, 236), blur=0.7)
-    canvas = _composite(canvas, _highlight(size, cx - 16.0, cy - 18.0, 15.0, 46), blur=3.2)
-    canvas = _composite(canvas, _highlight(size, cx + 13.0, cy + 16.0, 5.0, 176), blur=0.6)
+    canvas = _composite(canvas, _highlight(size, cx - 17.0, cy - 19.0, 11.0, 240), blur=0.7)
+    canvas = _composite(canvas, _highlight(size, cx - 18.0, cy - 20.0, 18.0, 48), blur=3.4)
+    canvas = _composite(canvas, _highlight(size, cx + 15.0, cy + 18.0, 6.0, 180), blur=0.6)
     gloss = Image.new("RGBA", image.size, (0, 0, 0, 0))
     ImageDraw.Draw(gloss).ellipse([cx - 26, cy + 26, cx + 4, cy + 40], fill=(255, 240, 228, 40))
     canvas = _composite(canvas, gloss, blur=5.0)
