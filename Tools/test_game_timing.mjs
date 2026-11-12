@@ -1,0 +1,32 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {MP_RECOVERY_MS,ENEMY_RESPAWN_MS,recoverMP,enemySpawnKey,enemyRespawnAt,recordEnemyDeath,restoreEnemyRespawns,mpDisplayName} from '../unity_preview/game-timing.js';
+assert.equal(MP_RECOVERY_MS,600000);assert.equal(ENEMY_RESPAWN_MS,600000);
+const start=1_800_000_000_000;
+let member={mana:0,manaMax:100,mpRecoveryAt:start};
+assert.equal(recoverMP(member,start+599999),0);assert.equal(member.mana,0);
+assert.equal(recoverMP(member,start+600000),1);assert.equal(member.mana,1);
+assert.equal(recoverMP(member,start+600001),0);
+member=JSON.parse(JSON.stringify(member));
+assert.equal(recoverMP(member,start+1800000),2);assert.equal(member.mana,3,'offline intervals preserved');
+member={mana:99,manaMax:100,mpRecoveryAt:start};assert.equal(recoverMP(member,start+10*600000),1);assert.equal(member.mana,100);
+member.mana=50;assert.equal(recoverMP(member,start+10*600000+1),0,'no banked recovery when full');
+member={mana:0,manaMax:100};assert.equal(recoverMP(member,start),0,'old saves get a fresh recovery timer, not a refill');assert.equal(member.mana,0);
+member.mpRecoveryAt=start+1000;assert.equal(recoverMP(member,start),0,'clock rollback cannot add MP');
+for(const rank of ['normal','elite','boss']){
+ let records={};const key=enemySpawnKey('dungeon',3,0,-24,rank,5);
+ assert.equal(recordEnemyDeath(records,key,start),start+600000);
+ records=restoreEnemyRespawns(JSON.parse(JSON.stringify(records)),start+300000);
+ assert.equal(enemyRespawnAt(records,key,start+599999),start+600000);
+ assert.equal(enemyRespawnAt(records,key,start+600000),0);assert.ok(!(key in records));
+}
+assert.notEqual(enemySpawnKey('dungeon',1,0,-24,'boss',3),enemySpawnKey('dungeon',3,0,-24,'boss',3));
+assert.notEqual(enemySpawnKey('open_world',1,0,-24,'normal',1),enemySpawnKey('dungeon',1,0,-24,'normal',1));
+assert.deepEqual(restoreEnemyRespawns({bad:'soon',expired:start-1,valid:start+1},start),{valid:start+1});
+assert.equal(mpDisplayName('معجون مانای لاجورد — MANA'),'معجون MP لاجورد — MP');
+const html=fs.readFileSync('unity_preview/index.html','utf8');
+assert.ok(!html.includes('manaRegen'));assert.ok(!html.includes('respawnTimer'));
+assert.ok(html.includes('enemyRespawns: state.enemyRespawns'));
+assert.ok(html.includes('Number.isFinite(m.mana) ? m.mana'));
+assert.ok(html.includes('mpRecoveryAt: Number.isFinite(m.mpRecoveryAt)'));
+console.log('PASS: one MP per 600 seconds, no full-MP banking, zero-MP save compatibility, offline recovery, 600-second respawns for all ranks and stable per-zone spawn keys.');

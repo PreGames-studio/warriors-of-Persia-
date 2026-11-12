@@ -494,9 +494,25 @@ export function createPersianVillageKit(THREE) {
     return group;
   }
 
-  function buildVillager(robeColor) {
-    const person = buildShopkeeper('villager', robeColor);
-    person.scale.setScalar(.94);
+  function buildVillager(robeColor, profile = null) {
+    const person = buildShopkeeper(profile === 'elder' ? 'apothecary' : 'villager', robeColor);
+    person.scale.setScalar(profile === 'child' ? .58 : profile === 'elder' ? .86 : .94);
+    person.userData.profile = profile || 'quest';
+    if (profile === 'woman') {
+      const fabric = new THREE.MeshStandardMaterial({color: robeColor, roughness: .94});
+      const hood = addMesh(person, new THREE.SphereGeometry(.68, 12, 10), fabric, 0, 3, -.18);
+      hood.scale.set(1, 1.2, .8);
+      addBox(person, 1.15, 1.5, .16, fabric, 0, 2, -.43);
+    }
+    if (profile === 'elder') {
+      const cane = addCylinder(person, .06, .08, 2.2, materials.wood, .9, 1.1, .4, 6);
+      cane.rotation.z = -.1;
+      person.rotation.x = .045;
+    }
+    if (profile === 'man') {
+      const beard = addMesh(person, new THREE.ConeGeometry(.25, .45, 8), materials.darkMetal, 0, 2.5, .45);
+      beard.rotation.z = Math.PI;
+    }
     // Quest NPCs are stationary, so their static parts can be merged without
     // changing their silhouette or touching the player's animated hero.
     mergeStaticGroup(person);
@@ -1091,23 +1107,26 @@ export function createPersianVillageKit(THREE) {
     animated.dust = null;
   }
 
-  function populate(group, shops) {
+  function populate(group, shops, groundHeight = () => 0) {
     const decorations = new THREE.Group();
     addSky(decorations);
 
+    const streetProps = new THREE.Group();
     const lampPositions = [[-8, -8], [8, -8], [-8, 8], [8, 8], [-22, -7], [22, -7], [-21, 21], [21, 21]];
     lampPositions.forEach(([x, z]) => {
-      addCylinder(decorations, .1, .16, 4.6, materials.darkMetal, x, 2.3, z, 9);
-      addCylinder(decorations, .28, .38, .28, materials.bronze, x, .14, z, 10);
-      const arm = addBox(decorations, 1.05, .09, .09, materials.darkMetal, x + .42, 4.5, z); arm.rotation.z = -.08;
-      makeLantern(decorations, x + .88, 4.48, z, false);
+      addCylinder(streetProps, .1, .16, 4.6, materials.darkMetal, x, 2.3, z, 9);
+      addCylinder(streetProps, .28, .38, .28, materials.bronze, x, .14, z, 10);
+      const arm = addBox(streetProps, 1.05, .09, .09, materials.darkMetal, x + .42, 4.5, z); arm.rotation.z = -.08;
+      makeLantern(streetProps, x + .88, 4.48, z, false);
     });
+    streetProps.children.forEach(prop => { prop.position.y += groundHeight(prop.position.x, prop.position.z); });
+    decorations.add(streetProps);
     addStringLights(decorations, -7, 7.2);
     addStringLights(decorations, 12, 7.5);
 
     // Small lived-in props remain close to storefronts and leave paths open.
     shops.forEach((shop, index) => {
-      const props = new THREE.Group(); props.position.set(shop.pos.x, 0, shop.pos.z); props.rotation.y = shop.rotY || 0;
+      const props = new THREE.Group(); props.position.set(shop.pos.x, groundHeight(shop.pos.x, shop.pos.z), shop.pos.z); props.rotation.y = shop.rotY || 0;
       makePot(props, index % 2 ? -5.7 : 5.7, 0, 4.6, .72, index === 2);
       decorations.add(props);
     });

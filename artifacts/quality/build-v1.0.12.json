@@ -1,0 +1,1091 @@
+{
+  "contentDigestSha256": "86145dfee57dac088298575b455f84dc83f548e3f321bde3d5771354c7f86740",
+  "signingBlockBytes": 1503,
+  "v2RemovedContentDigest": "86145dfee57dac088298575b455f84dc83f548e3f321bde3d5771354c7f86740",
+  "schemes": [
+    1,
+    2
+  ],
+  "entries": [
+    {
+      "name": "classes.dex",
+      "bytes": 1244,
+      "stored": false
+    },
+    {
+      "name": "AndroidManifest.xml",
+      "bytes": 2276,
+      "stored": true
+    },
+    {
+      "name": "res/drawable-nodpi-v4/app_icon.png",
+      "bytes": 4351192,
+      "stored": true
+    },
+    {
+      "name": "resources.arsc",
+      "bytes": 592,
+      "stored": true
+    },
+    {
+      "name": "assets/index.html",
+      "bytes": 18498714,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/apothecary/apothecary_keeper.jpg",
+      "bytes": 229523,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/apothecary/potion_guardian.jpg",
+      "bytes": 218236,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/apothecary/potion_hero.jpg",
+      "bytes": 272884,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/apothecary/potion_immortal.jpg",
+      "bytes": 244121,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/apothecary/potion_mana.jpg",
+      "bytes": 162317,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/apothecary/potion_mountain.jpg",
+      "bytes": 286091,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/apothecary/potion_restoration.jpg",
+      "bytes": 223738,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/apothecary/potion_starlight.jpg",
+      "bytes": 185686,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/apothecary/potion_vitality.jpg",
+      "bytes": 229523,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/apothecary/potion_zagros.jpg",
+      "bytes": 196254,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/armor_persian.jpg",
+      "bytes": 73402,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/armored_boots.jpg",
+      "bytes": 59935,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/armored_gauntlets.jpg",
+      "bytes": 78357,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/battle_axe_double.jpg",
+      "bytes": 70801,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/blacksmith_bg.jpg",
+      "bytes": 423509,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/blacksmith_left.jpg",
+      "bytes": 241113,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/bow_arash.jpg",
+      "bytes": 67223,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/chest_plate_royal.jpg",
+      "bytes": 68970,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/immortal_spear.jpg",
+      "bytes": 59369,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/iron_helmet.jpg",
+      "bytes": 64446,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/iron_shield.jpg",
+      "bytes": 73305,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/iron_sword.jpg",
+      "bytes": 69660,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/sword_radiant.jpg",
+      "bytes": 60342,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/war_hammer.jpg",
+      "bytes": 78491,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/hero/mia_hero.png",
+      "bytes": 2593440,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/books/book-01.png",
+      "bytes": 1282070,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/books/book-02.png",
+      "bytes": 1351898,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/books/book-03.png",
+      "bytes": 1262546,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/books/book-04.png",
+      "bytes": 1288738,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/books/book-05.png",
+      "bytes": 1424866,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/books/book-06.png",
+      "bytes": 1286838,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/books/book-07.png",
+      "bytes": 1270008,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/books/book-08.png",
+      "bytes": 1289756,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/books/book-09.png",
+      "bytes": 1278414,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/books/book-10.png",
+      "bytes": 1327916,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/books/book-11.png",
+      "bytes": 1265184,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/books/book-12.png",
+      "bytes": 1383444,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/bookshop-dana.png",
+      "bytes": 1356738,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/astrologer.png",
+      "bytes": 1371446,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/carpet_bazaar.png",
+      "bytes": 585040,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/district_shop_01.png",
+      "bytes": 1251724,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/district_shop_02.png",
+      "bytes": 472338,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/district_shop_03.png",
+      "bytes": 1245830,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/district_shop_04.png",
+      "bytes": 1299936,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/district_shop_06.png",
+      "bytes": 383690,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/district_shop_07.png",
+      "bytes": 1254826,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/district_shop_08.png",
+      "bytes": 1316566,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/district_shop_09.png",
+      "bytes": 1230394,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/district_shop_10.png",
+      "bytes": 550070,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/district_shop_11.png",
+      "bytes": 482580,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/district_shop_12.png",
+      "bytes": 375190,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/district_shop_13.png",
+      "bytes": 1248492,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/district_shop_14.png",
+      "bytes": 467610,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/jeweler.png",
+      "bytes": 1257764,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/teahouse.png",
+      "bytes": 1257464,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/merchant-hall.jpg",
+      "bytes": 235805,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/signature/astrologer.png",
+      "bytes": 1284412,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/signature/carpet_bazaar.png",
+      "bytes": 1300448,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/signature/district_shop_03.png",
+      "bytes": 1297192,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/signature/district_shop_04.png",
+      "bytes": 1289458,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/signature/district_shop_06.png",
+      "bytes": 1132728,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/signature/district_shop_07.png",
+      "bytes": 1312336,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/signature/district_shop_08.png",
+      "bytes": 1335956,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/signature/district_shop_09.png",
+      "bytes": 1226110,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/signature/district_shop_10.png",
+      "bytes": 1143082,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/signature/district_shop_11.png",
+      "bytes": 1135828,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/signature/district_shop_12.png",
+      "bytes": 1238816,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/signature/district_shop_13.png",
+      "bytes": 1178752,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/signature/district_shop_14.png",
+      "bytes": 1373062,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/signature/jeweler.png",
+      "bytes": 1193776,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/signature/teahouse.png",
+      "bytes": 1239858,
+      "stored": false
+    },
+    {
+      "name": "assets/fonts/Vazirmatn-Bold.ttf",
+      "bytes": 123036,
+      "stored": false
+    },
+    {
+      "name": "assets/fonts/Vazirmatn-Regular.ttf",
+      "bytes": 122752,
+      "stored": false
+    },
+    {
+      "name": "assets/icon.png",
+      "bytes": 4351192,
+      "stored": false
+    },
+    {
+      "name": "assets/manifest.json",
+      "bytes": 585,
+      "stored": false
+    },
+    {
+      "name": "assets/merchant-shop.css",
+      "bytes": 5731,
+      "stored": false
+    },
+    {
+      "name": "assets/potion-shop.css",
+      "bytes": 26654,
+      "stored": false
+    },
+    {
+      "name": "assets/village-theme.css",
+      "bytes": 7293,
+      "stored": false
+    }
+  ],
+  "launcherIconSha256": "63715cf9889691278fcb42f4126b673f6ce208eba2b447a3f95b12027f27cc32",
+  "version": "1.0.12",
+  "bytes": 80762260,
+  "sha256": "af571595483bcb7bb6a91cd9143ddc1abd81772addcdf5f4a3ff0d981483bc2a",
+  "sourceHashes": {
+    "unity_preview/index.html": "45db969b9c5284f871cc918b4ab302c563c0aee4d64681504ab6e3be0a6d1262",
+    "unity_preview/adventure-guild.js": "ffccfced3a73bc057a93692ce91c17f0ee60fe5f91fcf41ff2fab38122e32641",
+    "unity_preview/blacksmith-forge.js": "9787304c2b962e8a321ac5dd0f28a96734454b117ef4d14bd3a4a28f03f4be6e",
+    "unity_preview/blacksmith-textures.js": "17a4a4b97346645b42da5c59c6b17c723a180b203d6923c21c33f10f09b45072",
+    "unity_preview/camera-look.js": "6bf34f00d01f6a3f0edb2457250a34bdc220494686675e2ebc85b54d5e04d1f4",
+    "unity_preview/camera-motion.js": "9b7237a580ed935ceaa6cecb41652ea745ddf4258edd4f15200d4194e7abb0c9",
+    "unity_preview/cave-dungeon.js": "55627b52471d4e57a039e9ffe34bd50c25bb124aaf64a14e7f325f8e7c7ee7f5",
+    "unity_preview/dungeon-floors.js": "5b939c40d74c4263395ead801cba1c67dc3e9373713b6ff0db5a2f3692e4e567",
+    "unity_preview/game-timing.js": "a560a3ca7ab0f216f9078cdd0d78d651446e2db4b11d37915be5286cda1f66ac",
+    "unity_preview/guild-atmosphere.js": "7d00e1dd1f1c8237ce4cab19c7b89129a2e9a08aea670762738e0f050fcf6467",
+    "unity_preview/guild-services.js": "372cc1541380d099bc94f20b026c2b24e7b9305bfb693927e6c38f0f717b76e2",
+    "unity_preview/map-markers.js": "c101820aaa40b3b208931fdfb6fb912de4b93e9f97e8420df4988ab2ddaafcda",
+    "unity_preview/merchant-catalog.js": "00634e003a399c4fe3ee0b59b470967e74257e5fd7e7d19ca1371b36537f30ea",
+    "unity_preview/merchant-keepers.js": "bb16e5683045babdecaaa5cac63d092f5ed8a0a8de4a62b0cf0fe31b3031fdfe",
+    "unity_preview/merchant-shop.js": "27e20e78e7ee5dc6fe8c0ec4c4e6a49f3f69173b8c10356d25edd511a524361c",
+    "unity_preview/merchant-signature-items.js": "ce4fc8d48ec5caa004f771b656f02bca1a7a83906b9d4de4079c8a73253c30d4",
+    "unity_preview/open-world-first.js": "799c6d8705166b2dd3075710ec27fc1f70b55af27c2555d7e602c51620a4aa11",
+    "unity_preview/portal-arrival.js": "b33e820fab4fa1e2cd7fddf63a217feaa0ce7a7fc7de72cb465b604c0aef7f45",
+    "unity_preview/potion-shop.js": "90ae2ae80cc83b4acb437c95ae581582901fe95e96ef6737bae443574498013c",
+    "unity_preview/server.js": "f069d575e9af5f849c986bca896cf5759cd3a8c636753d246b86441593d50682",
+    "unity_preview/sw.js": "c59858c374696bbbabfbdb17c4007fe6131c82d2f986c60f82615d0a7a7b0260",
+    "unity_preview/village-population.js": "b646029f7372b5b45c8063eb12abdcdcd29d05693ebd7b54651843dbd4a8ee7a",
+    "unity_preview/village-theme.js": "a6264c978abb55e54accc045c8a30b6b3cf5295606ff2438b53cd4e5d400dede",
+    "unity_preview/world-landscape.js": "55e98240e22d92ecd00d1bd30f1d4dc4baefe78b4417899325efb68b829e2d50",
+    "unity_preview/merchant-shop.css": "c322b88abc33be16bb0210969af55c3da9b412a14db88c0b4ffb6f8f9544161e",
+    "unity_preview/potion-shop.css": "fc9a73f6a7f757211e9f16e034e7547c354c94942d7969c2005e6701c4da6476",
+    "unity_preview/village-theme.css": "6edb050e0b770fb85c9956075ed577b2e1b6e7c7830359fb09f021c1c2e80f89"
+  },
+  "merchantImageOptimization": {
+    "assets/merchants/books/book-01.png": {
+      "sourceSha256": "1b981e8838393ed448cb1083c2c26cc26290018e75abaaf59062e578f8382c6c",
+      "outputSha256": "d4d3db7e21d80f2639a8b1c5748965398045a3b83b4c8a22fb34ab7cce5c6e0e",
+      "sourceBytes": 2527592,
+      "outputBytes": 1282070,
+      "width": 1024,
+      "height": 1024,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/books/book-02.png": {
+      "sourceSha256": "60fcab854deaab0f16b1f253d44cf1ccb39e6d99569f0123da566e85721d76b2",
+      "outputSha256": "0e97e15f8de5c02a949af7ed3d3cdf83808bfa08546f1c0dc0b529e7101c9892",
+      "sourceBytes": 2548223,
+      "outputBytes": 1351898,
+      "width": 1024,
+      "height": 1024,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/books/book-03.png": {
+      "sourceSha256": "ae50a935acb99938104a5d4b05784aa1aba67b3f7c3cce9a7ad5e12cbaaf75ec",
+      "outputSha256": "9e0f2353e910a833cdcffc19cdee099da78b5fe05a5132f1c2f566735ed82055",
+      "sourceBytes": 2478076,
+      "outputBytes": 1262546,
+      "width": 1024,
+      "height": 1024,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/books/book-04.png": {
+      "sourceSha256": "d3a49570db44f8461f3b94203a523ade238539401d7f30bca02292ce6d051a90",
+      "outputSha256": "98728534d6d03b8e1f8715a9cb00baa8989149a1bbed13048c2863ac1723af60",
+      "sourceBytes": 2474089,
+      "outputBytes": 1288738,
+      "width": 1024,
+      "height": 1024,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/books/book-05.png": {
+      "sourceSha256": "15a0a342f6d95c3d362a0e1068e0b29cbecd9b267ff51d8922a46ec7ae9821ed",
+      "outputSha256": "be2456af023bc5f837b610166efc0138a5e7793287aa4424d7f59162ae5428f2",
+      "sourceBytes": 2564393,
+      "outputBytes": 1424866,
+      "width": 1024,
+      "height": 1024,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/books/book-06.png": {
+      "sourceSha256": "8505ad7206f3f2a38033a5087cf9c3574089951cb91418a406842b0c45dfa848",
+      "outputSha256": "d574d4ae1d205e748b8856bcbb0c961971977b753e4ff690755f133c24e0e337",
+      "sourceBytes": 2576995,
+      "outputBytes": 1286838,
+      "width": 1024,
+      "height": 1024,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/books/book-07.png": {
+      "sourceSha256": "a28556c600b6299c1b2b1982d0ea17814712d18ca486a1082eb03ff896819472",
+      "outputSha256": "3004f530164d564531b3e2b40fcdec0376e3294948f58367bab63fc6fc7d7ae4",
+      "sourceBytes": 2610107,
+      "outputBytes": 1270008,
+      "width": 1024,
+      "height": 1024,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/books/book-08.png": {
+      "sourceSha256": "4ca99f556711c37a6b06191c3a67201827dcb346cd3d8c3528a59c41d1e23fcc",
+      "outputSha256": "4a06a9f6fc8f1cd539c46a35beb51b75a57de372d9e7f9b256326b109315a1cf",
+      "sourceBytes": 2597557,
+      "outputBytes": 1289756,
+      "width": 1024,
+      "height": 1024,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/books/book-09.png": {
+      "sourceSha256": "40530ee36f53f7bd3808a5ed2476dd8488973f24b819a80745e3331d83d03464",
+      "outputSha256": "69c431fbde8eef0fe5362c257712bdd3f4cf0d9a8adfcb665e0e7c002d53f3a1",
+      "sourceBytes": 2466718,
+      "outputBytes": 1278414,
+      "width": 1024,
+      "height": 1024,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/books/book-10.png": {
+      "sourceSha256": "1fe63e0d177dfd15baed9566e1ee796310f80d2f57556f75d3ec91a410d2e290",
+      "outputSha256": "f60d3ed493dc0437225f5837d132fbf32bc3f8f9aedefa1b55fb62007b8a3806",
+      "sourceBytes": 2590514,
+      "outputBytes": 1327916,
+      "width": 1024,
+      "height": 1024,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/books/book-11.png": {
+      "sourceSha256": "3598ccd9a85c144a35e036389685cfc18012a9559064eb77655e7bdf9c20e2fa",
+      "outputSha256": "f35f2f5e5fc727f2c76fb9ead1ee466644827d4bf5c4d5e6c836bb317f215f65",
+      "sourceBytes": 2492221,
+      "outputBytes": 1265184,
+      "width": 1024,
+      "height": 1024,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/books/book-12.png": {
+      "sourceSha256": "4ae76d00d2862396d47b9163057ae6460ad6ba96e4309575c4e560fc9f5cafb7",
+      "outputSha256": "202ec500a20255e72d7eae8212733d3137c38152ea61378c233f9e5c2cc5793f",
+      "sourceBytes": 2678089,
+      "outputBytes": 1383444,
+      "width": 1024,
+      "height": 1024,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/bookshop-dana.png": {
+      "sourceSha256": "b7b228deba256e88c3ee74f93c977fded9375708878f78922bf94e4a3373c830",
+      "outputSha256": "2e2105b9593af83827442e1512b68ee52d8d98e10deb8f38778c747ee1aba963",
+      "sourceBytes": 2715410,
+      "outputBytes": 1356738,
+      "width": 768,
+      "height": 1376,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/keepers/astrologer.png": {
+      "sourceSha256": "2ff5516fb09b0a05fccf9f1762750be80b9dd9d55f084aaed99833875e4be569",
+      "outputSha256": "700758882eade8628bd15a57705bc7c506c28353aca2368a1da7e077a3c1b82f",
+      "sourceBytes": 2580817,
+      "outputBytes": 1371446,
+      "width": 768,
+      "height": 1376,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/keepers/carpet_bazaar.png": {
+      "sourceSha256": "11295a9adce67f82c84c56073df625d99e3d86566d42f0d55b25b0ad926a310e",
+      "outputSha256": "cb82d7e30b4cffb2084127ed11dc96cd12ee2260d580ebbc59893b9ac2a6a37a",
+      "sourceBytes": 2824886,
+      "outputBytes": 585040,
+      "width": 768,
+      "height": 1376,
+      "format": "WebP",
+      "quality": 98,
+      "PSNR": 41.8056,
+      "blockSSIM": 0.990821,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/keepers/district_shop_01.png": {
+      "sourceSha256": "0973dbdfa09c82785f60e111f9720d08a4f998247999c12d0ae8eb3540193092",
+      "outputSha256": "77ba0e78a9b06c77a6c93b2ac5ccc84f754a3ed258c3eb1a96126587d462f447",
+      "sourceBytes": 2435298,
+      "outputBytes": 1251724,
+      "width": 768,
+      "height": 1376,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/keepers/district_shop_02.png": {
+      "sourceSha256": "653356c8cae3dd7171d6840cb7a308b11ee52bec6d913e65fbe8f86d57835495",
+      "outputSha256": "473fe310a8befd32e0c84587157933a5ef7e77c606e762b6844b48fda3d6cb10",
+      "sourceBytes": 2808087,
+      "outputBytes": 472338,
+      "width": 768,
+      "height": 1376,
+      "format": "WebP",
+      "quality": 98,
+      "PSNR": 44.0988,
+      "blockSSIM": 0.99085,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/keepers/district_shop_03.png": {
+      "sourceSha256": "8cd34ef9fb7c6a7bda3505b5e81ec8e8d41b88d8305834ba65d95abc04144e64",
+      "outputSha256": "e7c7899cf77bc54cab23c9df871a40f0997599c99bb3d4d3a108ce8848cc8f68",
+      "sourceBytes": 2748690,
+      "outputBytes": 1245830,
+      "width": 768,
+      "height": 1376,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/keepers/district_shop_04.png": {
+      "sourceSha256": "ead9a8631b726ba45fd44c64a8486f80aed8b1ccb55d5f5cc29f451ddf4988e0",
+      "outputSha256": "e2a073f465bb1d2f87a4d5656064917dd16ac8d6a8afa02cc099fd9505e466ce",
+      "sourceBytes": 2762552,
+      "outputBytes": 1299936,
+      "width": 768,
+      "height": 1376,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/keepers/district_shop_06.png": {
+      "sourceSha256": "69dff6a7fd7c7f8e8482d50ca6794358e4fd8395efbc3e93df07129b1a2e35aa",
+      "outputSha256": "529b2bff8f9246cddcaa7e70418ee77a256e6059fa3be3f46b0cca2edfa4242c",
+      "sourceBytes": 2830681,
+      "outputBytes": 383690,
+      "width": 768,
+      "height": 1376,
+      "format": "WebP",
+      "quality": 95,
+      "PSNR": 41.4025,
+      "blockSSIM": 0.991336,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/keepers/district_shop_07.png": {
+      "sourceSha256": "189a8d3fc2963d8d9fa9388ca930d289ca20eab4ac35bdb1480beb11b2cb6bd3",
+      "outputSha256": "2fa7249235b406fb13e79c7a6e009e52556a860832756d50436c73a8a92520d2",
+      "sourceBytes": 2780385,
+      "outputBytes": 1254826,
+      "width": 768,
+      "height": 1376,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/keepers/district_shop_08.png": {
+      "sourceSha256": "fbc1d3c3a0e308e6d30b0693331fc56159e3ebdd0a2613cdff0e60992cc3b14b",
+      "outputSha256": "28ca426fdf487a11651735a55afe05d9ed8b86724d26477fcb1d20491c43ba7e",
+      "sourceBytes": 2831135,
+      "outputBytes": 1316566,
+      "width": 768,
+      "height": 1376,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/keepers/district_shop_09.png": {
+      "sourceSha256": "9a3f89acc607e39be2995daba3ea4887e0cc2d0aeabf70520b4698b2f346e458",
+      "outputSha256": "fb0b1eae77886e8ebe56df671a3ea4ba3d6b015517da116fcf83f6474aac9d2d",
+      "sourceBytes": 2360074,
+      "outputBytes": 1230394,
+      "width": 768,
+      "height": 1376,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/keepers/district_shop_10.png": {
+      "sourceSha256": "4b9c4b301e054fab3fb22284dafbcad0d66f23fa62f4fc7b866b4eac20d44195",
+      "outputSha256": "4244ce23757b25721b88cb7d660795dac0de8281c9865f59426843ca4b8585fa",
+      "sourceBytes": 2734887,
+      "outputBytes": 550070,
+      "width": 768,
+      "height": 1376,
+      "format": "WebP",
+      "quality": 98,
+      "PSNR": 42.91,
+      "blockSSIM": 0.991192,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/keepers/district_shop_11.png": {
+      "sourceSha256": "0fea1795748d41bdeb4ec76339c85feb995f9827fa7a67becdec8669b4567960",
+      "outputSha256": "a413d6626e29dbbdd6665d01e54188504f59eec9b446bb0ab00e665f6a21b915",
+      "sourceBytes": 2850358,
+      "outputBytes": 482580,
+      "width": 768,
+      "height": 1376,
+      "format": "WebP",
+      "quality": 98,
+      "PSNR": 44.0362,
+      "blockSSIM": 0.991308,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/keepers/district_shop_12.png": {
+      "sourceSha256": "d69715fa8e30ec07b58d0c5f91253e21e799f9d4fc2aa7e2e38d21388b30213f",
+      "outputSha256": "defe2a8aacb9b00d187bcbcd07d9ef7be3904f455206115e95102ffea6d30f80",
+      "sourceBytes": 2764912,
+      "outputBytes": 375190,
+      "width": 768,
+      "height": 1376,
+      "format": "WebP",
+      "quality": 95,
+      "PSNR": 42.5326,
+      "blockSSIM": 0.990155,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/keepers/district_shop_13.png": {
+      "sourceSha256": "806150eeac3d710a38987419c2af9296f1969c8fdde0143d010c3339189be453",
+      "outputSha256": "6dba826e4cc5f76bdd839dde0cd9e672a29e0ac6f301ff55128b2aa527f8cee4",
+      "sourceBytes": 2797582,
+      "outputBytes": 1248492,
+      "width": 768,
+      "height": 1376,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/keepers/district_shop_14.png": {
+      "sourceSha256": "3c11105ef61a8a6ce9c6081fd2e6db97f39c6d719a5da707997f206f82e512f1",
+      "outputSha256": "b283ad5bba3e2eaf09813c61ca879b53313797d424e151bfd9e1e97bf3f1577f",
+      "sourceBytes": 2794060,
+      "outputBytes": 467610,
+      "width": 768,
+      "height": 1376,
+      "format": "WebP",
+      "quality": 98,
+      "PSNR": 43.8613,
+      "blockSSIM": 0.990215,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/keepers/jeweler.png": {
+      "sourceSha256": "cac85f2936fb3d67f92ee78844bd26ea0f7dfb02627444589b810d34c06a2d84",
+      "outputSha256": "9bfbfb391d33ae7b440a2b96b7794fa6e43f5f3537afcf3d588bafd544b5abb8",
+      "sourceBytes": 2616566,
+      "outputBytes": 1257764,
+      "width": 768,
+      "height": 1376,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/keepers/teahouse.png": {
+      "sourceSha256": "d1c99f69778708bbe9e45e2d996332ac8fa9ebbd723defd4076e7edb8350bbfa",
+      "outputSha256": "bd934d09f3816ae26364248c0717be92366153fb53616cd0f48ed14feeb629be",
+      "sourceBytes": 2798190,
+      "outputBytes": 1257464,
+      "width": 768,
+      "height": 1376,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/signature/astrologer.png": {
+      "sourceSha256": "d555c606d3a5cc492ae76c7574156fa12a1c579ad021ec31d974ff6789f50f75",
+      "outputSha256": "b52d248e228244dd411b5ab8a6a68ffca148a9cc5150efdd526cf75c61ed704b",
+      "sourceBytes": 2762338,
+      "outputBytes": 1284412,
+      "width": 1024,
+      "height": 1024,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/signature/carpet_bazaar.png": {
+      "sourceSha256": "c63e3927dcf769aafcd8fefea5bd32ee9216de858785b2a6d9a44407ead0d86c",
+      "outputSha256": "77b3c21af3b37e59f90802580ce8638ac6b07d912357940aa0577cccbef0ca1e",
+      "sourceBytes": 2336907,
+      "outputBytes": 1300448,
+      "width": 1024,
+      "height": 1024,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/signature/district_shop_03.png": {
+      "sourceSha256": "f1e9db0f07d654465cbbe6ffc23e81eb62571dadde8b7152a361efb96227aa63",
+      "outputSha256": "111d856da7feb2de9237ac58c4026071f4a69f1f14213490c8e11d460fc689c5",
+      "sourceBytes": 2701624,
+      "outputBytes": 1297192,
+      "width": 1024,
+      "height": 1024,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/signature/district_shop_04.png": {
+      "sourceSha256": "449b96828b4e72ddd8a58f599de842ebdd5c69f4d2ee45b7851dd59ffa823fc4",
+      "outputSha256": "ac6391f5107c25dd5288ac3ebe2241949cc98712d99ac42900b91bcca7e00d1f",
+      "sourceBytes": 2671915,
+      "outputBytes": 1289458,
+      "width": 1024,
+      "height": 1024,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/signature/district_shop_06.png": {
+      "sourceSha256": "b4a372dc8e9d2f399fba08e06551e5623588cd7ba28b9f09ad9ecdc4e89f5404",
+      "outputSha256": "b5588ceb9de43edde6038e5f9286d087f66f7b4ee331cb1e4c07030639fa00a1",
+      "sourceBytes": 2377921,
+      "outputBytes": 1132728,
+      "width": 1024,
+      "height": 1024,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/signature/district_shop_07.png": {
+      "sourceSha256": "370186ad200f595b1e8275839e14bfd687af3b8b03e3eb03745f0c396a24cf08",
+      "outputSha256": "bbf77317e8eb0940d10fdbb24e043c393f62b88b4c8e80273b38f9770884bcb0",
+      "sourceBytes": 2525883,
+      "outputBytes": 1312336,
+      "width": 1024,
+      "height": 1024,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/signature/district_shop_08.png": {
+      "sourceSha256": "013a82335fc8e44a05900af6a7c521fce33c7503d4256e9369d14302a6af0943",
+      "outputSha256": "8f79dfd9e3744149b0d435f77e7680701401db6e31bff046b94ce5f9828166b5",
+      "sourceBytes": 2689471,
+      "outputBytes": 1335956,
+      "width": 1024,
+      "height": 1024,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/signature/district_shop_09.png": {
+      "sourceSha256": "dec048aca4fc6c838f7b8212e3ff75aada8b9ca039ee1c167a5c608797c72c25",
+      "outputSha256": "922accae5eb575ef857f1259a837770fd5b117a874c1470c6d1a3cd645a12146",
+      "sourceBytes": 2459916,
+      "outputBytes": 1226110,
+      "width": 1024,
+      "height": 1024,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/signature/district_shop_10.png": {
+      "sourceSha256": "119a522a036fac1ee8680b5390fc83b01e2958369d55691884048cad0f0b22fa",
+      "outputSha256": "b8e84e5f35918c9447b507fb836c4b8169bda87c86d1facbe366460bf0c9dd23",
+      "sourceBytes": 2381061,
+      "outputBytes": 1143082,
+      "width": 1024,
+      "height": 1024,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/signature/district_shop_11.png": {
+      "sourceSha256": "d38925a15b3a610cce2439475b574dfe01f999150ba66a3fafefc028c24694e8",
+      "outputSha256": "254f667c194353292cb82b1487662c16c68769619effeff98de7223865783907",
+      "sourceBytes": 2346561,
+      "outputBytes": 1135828,
+      "width": 1024,
+      "height": 1024,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/signature/district_shop_12.png": {
+      "sourceSha256": "3fcb8ecbb715750bce2a4d3c915240349489a50b446671d64e76e5976d1ef637",
+      "outputSha256": "442e6bedcc876ca01cf49d925f6618cc9e18fe7c47502f6eac48ade6bbb2a06c",
+      "sourceBytes": 2381423,
+      "outputBytes": 1238816,
+      "width": 1024,
+      "height": 1024,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/signature/district_shop_13.png": {
+      "sourceSha256": "7180863cb7021898de7ebd837d64cfe7aa29a997ac46101195c62a40ac89a0f2",
+      "outputSha256": "8ec20d2a3e733f22afeaef0dc54100e3ba0110ff886c8224f2875e95666c028d",
+      "sourceBytes": 2464731,
+      "outputBytes": 1178752,
+      "width": 1024,
+      "height": 1024,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/signature/district_shop_14.png": {
+      "sourceSha256": "b2414e9bf1f5178f3b6f7151473626d4922d83d07633b6059e87808ebb78f308",
+      "outputSha256": "b39744b8c8ed596f2947bdea306e37a65cd2c67110d46acf8e07c41fa17c96b5",
+      "sourceBytes": 2682092,
+      "outputBytes": 1373062,
+      "width": 1024,
+      "height": 1024,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/signature/jeweler.png": {
+      "sourceSha256": "c33276e1e47a0834a7951455e051947672d5e4b8060975095f37df95a9cbec19",
+      "outputSha256": "33c4438d3ba3a73dd02461ba9ab71dc4ee1dcd21f9b10fd7bc579fe839e72332",
+      "sourceBytes": 2549557,
+      "outputBytes": 1193776,
+      "width": 1024,
+      "height": 1024,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    },
+    "assets/merchants/signature/teahouse.png": {
+      "sourceSha256": "bcf10cd59e7852811e71fdb698e2b232a9123b3f042d24f86e35da902b7e99e5",
+      "outputSha256": "d3e1c11d9c738b84f70bd25eb4d92c62a4076dacab23bc34f80363532e611428",
+      "sourceBytes": 2665486,
+      "outputBytes": 1239858,
+      "width": 1024,
+      "height": 1024,
+      "format": "WebP",
+      "quality": "lossless",
+      "PSNR": 99.0,
+      "blockSSIM": 1.0,
+      "dimensionsUnchanged": true,
+      "alphaUnchanged": true
+    }
+  }
+}

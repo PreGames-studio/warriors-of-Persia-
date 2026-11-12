@@ -1,0 +1,62 @@
+{
+  "path": "artifacts/releases/WarriorsOfPersia_1.0.9.apk",
+  "bytes": 28931962,
+  "sha256": "2977b3acfc7f88cd84ae18cfd8d151c44d913ad3037e5beff60bcfd96ff313b0",
+  "verdict": "pass",
+  "problems": [],
+  "zipTest": "ok",
+  "entryCount": 41,
+  "storedEntryAlignmentMod4": {
+    "AndroidManifest.xml": 0,
+    "res/drawable-nodpi-v4/app_icon.png": 0,
+    "resources.arsc": 0
+  },
+  "manifest": {
+    "versionCode": 9,
+    "versionName": "1.0.9",
+    "installLocation": 0,
+    "compileSdkVersion": 28,
+    "compileSdkVersionCodename": "9",
+    "package": "com.pregames.warriorsofpersia",
+    "platformBuildVersionCode": 28,
+    "platformBuildVersionName": 9
+  },
+  "dexMagic": "dex\n035\u0000",
+  "v1": {
+    "checked": true,
+    "ok": true,
+    "problems": [],
+    "pkcs7Verified": true,
+    "entriesVerified": 38,
+    "declaredSchemes": "2"
+  },
+  "aapt2": {
+    "binary": "/home/user/warriors-of-Persia-/node_modules/aaptjs3/bin/x64/linux/aapt2",
+    "ok": true,
+    "problems": [],
+    "commands": {
+      "badging": 0,
+      "xmltree": 0,
+      "resources": 0
+    },
+    "badging": "package: name='com.pregames.warriorsofpersia' versionCode='9' versionName='1.0.9' platformBuildVersionName='9' platformBuildVersionCode='28' compileSdkVersion='28' compileSdkVersionCodename='9'",
+    "launchableActivity": "launchable-activity: name='com.pregames.warriorsofpersia.MainActivity'  label='Warriors of Persia 3D' icon=''"
+  },
+  "v2": {
+    "present": true,
+    "ok": true,
+    "problems": [],
+    "blockOffset": 28927130,
+    "pairIds": [
+      "0x7109871a"
+    ],
+    "contentDigest": "f2cad2f942c0b4d1e93539f17c7b12308f818d1da759b4231567c8bacc28a906",
+    "declaredDigest": "f2cad2f942c0b4d1e93539f17c7b12308f818d1da759b4231567c8bacc28a906",
+    "signatureVerified": true,
+    "certificateSubject": "CN=Warriors of Persia,O=PreGames Studio,C=US",
+    "certificateSha256": "d0cee9ad2772f6804970c6cdc7d46ca06f51b932ac68902dd1ae069a7ac8d1a7",
+    "certificateNotAfter": "2059-02-27T11:02:13+00:00",
+    "publicKeyMatchesCertificate": true
+  },
+  "indexHtmlBytes": 18472286
+}

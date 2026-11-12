@@ -1,0 +1,459 @@
+{
+  "contentDigestSha256": "60ed77c54bd7b65af6fff7de7cfff7bd444a4afbbf199e7112ff35fece005b6f",
+  "signingBlockBytes": 1503,
+  "v2RemovedContentDigest": "60ed77c54bd7b65af6fff7de7cfff7bd444a4afbbf199e7112ff35fece005b6f",
+  "schemes": [
+    1,
+    2
+  ],
+  "entries": [
+    {
+      "name": "classes.dex",
+      "bytes": 1244,
+      "stored": false
+    },
+    {
+      "name": "AndroidManifest.xml",
+      "bytes": 2276,
+      "stored": true
+    },
+    {
+      "name": "res/drawable-nodpi-v4/app_icon.png",
+      "bytes": 4351192,
+      "stored": true
+    },
+    {
+      "name": "resources.arsc",
+      "bytes": 592,
+      "stored": true
+    },
+    {
+      "name": "assets/index.html",
+      "bytes": 18498714,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/apothecary/apothecary_keeper.jpg",
+      "bytes": 229523,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/apothecary/potion_guardian.jpg",
+      "bytes": 218236,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/apothecary/potion_hero.jpg",
+      "bytes": 272884,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/apothecary/potion_immortal.jpg",
+      "bytes": 244121,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/apothecary/potion_mana.jpg",
+      "bytes": 162317,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/apothecary/potion_mountain.jpg",
+      "bytes": 286091,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/apothecary/potion_restoration.jpg",
+      "bytes": 223738,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/apothecary/potion_starlight.jpg",
+      "bytes": 185686,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/apothecary/potion_vitality.jpg",
+      "bytes": 229523,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/apothecary/potion_zagros.jpg",
+      "bytes": 196254,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/armor_persian.jpg",
+      "bytes": 73402,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/armored_boots.jpg",
+      "bytes": 59935,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/armored_gauntlets.jpg",
+      "bytes": 78357,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/battle_axe_double.jpg",
+      "bytes": 70801,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/blacksmith_bg.jpg",
+      "bytes": 423509,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/blacksmith_left.jpg",
+      "bytes": 241113,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/bow_arash.jpg",
+      "bytes": 67223,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/chest_plate_royal.jpg",
+      "bytes": 68970,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/immortal_spear.jpg",
+      "bytes": 59369,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/iron_helmet.jpg",
+      "bytes": 64446,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/iron_shield.jpg",
+      "bytes": 73305,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/iron_sword.jpg",
+      "bytes": 69660,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/sword_radiant.jpg",
+      "bytes": 60342,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/blacksmith/war_hammer.jpg",
+      "bytes": 78491,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/hero/mia_hero.png",
+      "bytes": 2593440,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/books/book-01.png",
+      "bytes": 2527592,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/books/book-02.png",
+      "bytes": 2548223,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/books/book-03.png",
+      "bytes": 2478076,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/books/book-04.png",
+      "bytes": 2474089,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/books/book-05.png",
+      "bytes": 2564393,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/books/book-06.png",
+      "bytes": 2576995,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/books/book-07.png",
+      "bytes": 2610107,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/books/book-08.png",
+      "bytes": 2597557,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/books/book-09.png",
+      "bytes": 2466718,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/books/book-10.png",
+      "bytes": 2590514,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/books/book-11.png",
+      "bytes": 2492221,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/books/book-12.png",
+      "bytes": 2678089,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/bookshop-dana.png",
+      "bytes": 2715410,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/astrologer.png",
+      "bytes": 2580817,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/carpet_bazaar.png",
+      "bytes": 2824886,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/district_shop_01.png",
+      "bytes": 2435298,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/district_shop_02.png",
+      "bytes": 2808087,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/district_shop_03.png",
+      "bytes": 2748690,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/district_shop_04.png",
+      "bytes": 2762552,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/district_shop_06.png",
+      "bytes": 2830681,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/district_shop_07.png",
+      "bytes": 2780385,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/district_shop_08.png",
+      "bytes": 2831135,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/district_shop_09.png",
+      "bytes": 2360074,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/district_shop_10.png",
+      "bytes": 2734887,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/district_shop_11.png",
+      "bytes": 2850358,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/district_shop_12.png",
+      "bytes": 2764912,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/district_shop_13.png",
+      "bytes": 2797582,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/district_shop_14.png",
+      "bytes": 2794060,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/jeweler.png",
+      "bytes": 2616566,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/keepers/teahouse.png",
+      "bytes": 2798190,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/merchant-hall.jpg",
+      "bytes": 235805,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/signature/astrologer.png",
+      "bytes": 2762338,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/signature/carpet_bazaar.png",
+      "bytes": 2336907,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/signature/district_shop_03.png",
+      "bytes": 2701624,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/signature/district_shop_04.png",
+      "bytes": 2671915,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/signature/district_shop_06.png",
+      "bytes": 2377921,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/signature/district_shop_07.png",
+      "bytes": 2525883,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/signature/district_shop_08.png",
+      "bytes": 2689471,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/signature/district_shop_09.png",
+      "bytes": 2459916,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/signature/district_shop_10.png",
+      "bytes": 2381061,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/signature/district_shop_11.png",
+      "bytes": 2346561,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/signature/district_shop_12.png",
+      "bytes": 2381423,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/signature/district_shop_13.png",
+      "bytes": 2464731,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/signature/district_shop_14.png",
+      "bytes": 2682092,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/signature/jeweler.png",
+      "bytes": 2549557,
+      "stored": false
+    },
+    {
+      "name": "assets/assets/merchants/signature/teahouse.png",
+      "bytes": 2665486,
+      "stored": false
+    },
+    {
+      "name": "assets/fonts/Vazirmatn-Bold.ttf",
+      "bytes": 123036,
+      "stored": false
+    },
+    {
+      "name": "assets/fonts/Vazirmatn-Regular.ttf",
+      "bytes": 122752,
+      "stored": false
+    },
+    {
+      "name": "assets/icon.png",
+      "bytes": 4351192,
+      "stored": false
+    },
+    {
+      "name": "assets/manifest.json",
+      "bytes": 585,
+      "stored": false
+    },
+    {
+      "name": "assets/merchant-shop.css",
+      "bytes": 5731,
+      "stored": false
+    },
+    {
+      "name": "assets/potion-shop.css",
+      "bytes": 26654,
+      "stored": false
+    },
+    {
+      "name": "assets/village-theme.css",
+      "bytes": 7293,
+      "stored": false
+    }
+  ],
+  "launcherIconSha256": "63715cf9889691278fcb42f4126b673f6ce208eba2b447a3f95b12027f27cc32",
+  "version": "1.0.11",
+  "bytes": 146622778,
+  "sha256": "d421a395cb9a218d4a0c9c2410a24486a9826d9ab797583a78a6d99a76dcd9ab",
+  "sourceHashes": {
+    "unity_preview/index.html": "45db969b9c5284f871cc918b4ab302c563c0aee4d64681504ab6e3be0a6d1262",
+    "unity_preview/adventure-guild.js": "ffccfced3a73bc057a93692ce91c17f0ee60fe5f91fcf41ff2fab38122e32641",
+    "unity_preview/blacksmith-forge.js": "9787304c2b962e8a321ac5dd0f28a96734454b117ef4d14bd3a4a28f03f4be6e",
+    "unity_preview/blacksmith-textures.js": "17a4a4b97346645b42da5c59c6b17c723a180b203d6923c21c33f10f09b45072",
+    "unity_preview/camera-look.js": "6bf34f00d01f6a3f0edb2457250a34bdc220494686675e2ebc85b54d5e04d1f4",
+    "unity_preview/camera-motion.js": "9b7237a580ed935ceaa6cecb41652ea745ddf4258edd4f15200d4194e7abb0c9",
+    "unity_preview/dungeon-floors.js": "5b939c40d74c4263395ead801cba1c67dc3e9373713b6ff0db5a2f3692e4e567",
+    "unity_preview/game-timing.js": "a560a3ca7ab0f216f9078cdd0d78d651446e2db4b11d37915be5286cda1f66ac",
+    "unity_preview/guild-atmosphere.js": "7d00e1dd1f1c8237ce4cab19c7b89129a2e9a08aea670762738e0f050fcf6467",
+    "unity_preview/guild-services.js": "372cc1541380d099bc94f20b026c2b24e7b9305bfb693927e6c38f0f717b76e2",
+    "unity_preview/map-markers.js": "c101820aaa40b3b208931fdfb6fb912de4b93e9f97e8420df4988ab2ddaafcda",
+    "unity_preview/merchant-catalog.js": "00634e003a399c4fe3ee0b59b470967e74257e5fd7e7d19ca1371b36537f30ea",
+    "unity_preview/merchant-shop.js": "27e20e78e7ee5dc6fe8c0ec4c4e6a49f3f69173b8c10356d25edd511a524361c",
+    "unity_preview/open-world-first.js": "799c6d8705166b2dd3075710ec27fc1f70b55af27c2555d7e602c51620a4aa11",
+    "unity_preview/portal-arrival.js": "b33e820fab4fa1e2cd7fddf63a217feaa0ce7a7fc7de72cb465b604c0aef7f45",
+    "unity_preview/potion-shop.js": "90ae2ae80cc83b4acb437c95ae581582901fe95e96ef6737bae443574498013c",
+    "unity_preview/server.js": "f069d575e9af5f849c986bca896cf5759cd3a8c636753d246b86441593d50682",
+    "unity_preview/sw.js": "c59858c374696bbbabfbdb17c4007fe6131c82d2f986c60f82615d0a7a7b0260",
+    "unity_preview/village-population.js": "b646029f7372b5b45c8063eb12abdcdcd29d05693ebd7b54651843dbd4a8ee7a",
+    "unity_preview/village-theme.js": "a6264c978abb55e54accc045c8a30b6b3cf5295606ff2438b53cd4e5d400dede",
+    "unity_preview/world-landscape.js": "55e98240e22d92ecd00d1bd30f1d4dc4baefe78b4417899325efb68b829e2d50",
+    "unity_preview/cave-dungeon.js": "55627b52471d4e57a039e9ffe34bd50c25bb124aaf64a14e7f325f8e7c7ee7f5",
+    "unity_preview/merchant-keepers.js": "bb16e5683045babdecaaa5cac63d092f5ed8a0a8de4a62b0cf0fe31b3031fdfe",
+    "unity_preview/merchant-signature-items.js": "ce4fc8d48ec5caa004f771b656f02bca1a7a83906b9d4de4079c8a73253c30d4",
+    "unity_preview/merchant-shop.css": "c322b88abc33be16bb0210969af55c3da9b412a14db88c0b4ffb6f8f9544161e",
+    "unity_preview/potion-shop.css": "fc9a73f6a7f757211e9f16e034e7547c354c94942d7969c2005e6701c4da6476",
+    "unity_preview/village-theme.css": "6edb050e0b770fb85c9956075ed577b2e1b6e7c7830359fb09f021c1c2e80f89"
+  }
+}

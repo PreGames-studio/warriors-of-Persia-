@@ -16,3 +16,24 @@ mono_crash.*.json
 Thumbs.db
 *.tmp
 *~
+
+# Native 4K/8K authoring output is large and must stay out of Git.
+artifacts/hq-pbr/
+__pycache__/
+
+# Local mirror of the tracked APK, used only by Tools/serve_apk_downloads.py
+artifacts/apk/WarriorsOfPersia_3D.apk
+
+# aapt2 oracle for Tools/verify_apk.py: npm i aaptjs3
+node_modules/
+
+# Local Python environment and downloadable release binaries
+.venv/
+artifacts/releases/
+
+# Local Android framework and tool cache
+.cache/
+
+# Generated review galleries and large signed release outputs (published as release assets).
+artifacts/previews/
+build/

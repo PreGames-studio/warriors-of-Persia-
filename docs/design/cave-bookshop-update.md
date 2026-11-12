@@ -1,0 +1,10 @@
+# Cave dungeon and bookstore update
+
+- West field now has exactly 300 deterministic scattered slimes (15 × 20 sampling cells); safe roads, 100 HP, 1 XP, one green crystal and existing 600-second respawn remain unchanged.
+- Dana's bookstore (`district_shop_05`) has 12 distinct purchasable books, preserving the existing first six inventory IDs. It uses the existing merchant inventory, gold guards, item details, filters and purchase workflow. Added a dedicated full-resolution AI-generated bookseller/shop portrait and twelve individual book covers. No existing textures were resized.
+- First dungeon floors now use deterministic seeded cave mazes: 1309 × 1760 units, matching the full open-world bounds. Each has 910 connected cells, 909 connecting passages, many dead ends, a boss at the greatest graph distance from entry, and roughly 300 corridor slimes. Individual floor art and bespoke enemies can still be refined later. The second/fire dungeon retains its original small landscape and enemy layout.
+- Cave geometry has instanced solid walls, stone floor and ceiling, stalactites, luminous mineral clusters, fog and a moving warm light. Player/enemy/companion movement is wall-checked; camera retracts at walls and stays beneath the roof. Melee, projectiles, enemy hits and item attraction do not pass through cave walls.
+- The dungeon map starts black, revealing only entered cells and passages between revealed cells. Unknown enemies/exits and their world labels remain hidden. Explored cells are stored separately per floor in the save. New dungeon geometry relocates old saved positions inside walls to the entrance. Exit portal is offset from the spawn to avoid automatic return loops.
+- Boss permissions, direct teleport to unlocked floors and the 100-floor limit remain intact.
+
+Validation: all 13 automated suites pass, including connected maze traversal, reachable farthest boss, blocked walls, dead ends, geometry, updated merchant purchases and exact 300 west spawns. Inline JavaScript syntax and diff checks pass. No browser/device playtest or APK build performed.
