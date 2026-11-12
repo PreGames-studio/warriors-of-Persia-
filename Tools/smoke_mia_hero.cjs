@@ -1,7 +1,7 @@
 // In-game smoke: loads the real village build, waits for Mia's GLB, then walks,
 // attacks and captures the result exactly as the game camera renders it.
 const { chromium: pw } = require('playwright-core');
-const chromium = require('@sparticuz/chromium').default;
+const chromium = require('@sparticuz/chromium').default || require('@sparticuz/chromium');
 
 const BASE = process.env.BASE || 'http://127.0.0.1:8801/unity_preview/index.html?debug=1';
 const OUT = process.env.OUT || '/tmp/wop-game';

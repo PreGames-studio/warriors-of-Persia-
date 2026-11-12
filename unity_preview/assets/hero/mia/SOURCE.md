@@ -36,13 +36,25 @@ SkinnedMeshes.
   authored slash poses are untouched.
 - **Hand-painted material polish** (`Tools/polish_mia_materials.py`): the Ranger
   leather albedo and the skin albedo get masked local contrast, saturation and
-  value, bounded to ±14 % per pixel; nothing is resized or re-encoded lossily
-  (lossless WebP at 512² and 2048²). Normal and ORM maps are copied
-  byte-for-byte. Recorded in `mia-polish-manifest.json`; the polished GLB
-  (SHA-256 `c02ed09d…82b8`, 3,097,996 B) is what `mia-assets.js` embeds.
+  value, bounded to ±14 % per pixel, and the charcoal sleeve atlas gets a
+  shadow-toe lift so the black leggings keep their colour at gameplay distance.
+  Nothing is resized or re-encoded lossily (lossless WebP at 512² and 2048²).
+  Normal and ORM maps are copied byte-for-byte. Recorded in
+  `mia-polish-manifest.json`; the polished GLB (SHA-256 `3f3a74c1…bde5`,
+  3,182,176 B) is what `mia-assets.js` embeds.
 - **Runtime surface detail** (`unity_preview/mia-texture-detail.js`): procedural
-  pore, weave and hair-strand relief is derived on canvas at load time and never
-  written back to the source textures, so the HQ maps stay pristine.
+  pore, weave, drape-fold and hair-strand relief is derived on canvas at load
+  time and never written back to the source textures, so the HQ maps stay
+  pristine. A normal-map cavity pass then darkens painted seams and stitches on
+  the cloth and the skin so neither surface reads as flat vinyl under a moving
+  light.
+- **Gear silhouette**: folded scarf loops (displaced torus bands), a wider
+  shamshir profile with a polished fuller channel, shorter belt tails tucked
+  under the leather skirt, and a contact shadow plus warm key light supplied by
+  `village-theme.js` so the hero is grounded in the village lighting.
+- **Review harness** (`Tools/mia-review/`): a standalone page and a Playwright
+  capture script that render the hero from seven angles (front, bust, head,
+  side, back, grip, gameplay) so each pass can be compared frame by frame.
 - **Steel re-grade** for `Female_Ranger_Acc_Pauldrons`: the atlas paints a red
   sash across that UV island; the albedo is re-rendered to a narrow gunmetal
   luminance band so the plate reads as forged steel from every angle.

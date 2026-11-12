@@ -55,7 +55,10 @@ function heightField(size, seed, kind) {
     ? [Math.max(2, Math.round(base / 24)), Math.max(2, Math.round(base / 48)), Math.max(2, Math.round(base / 96))]
     : kind === 'weave'
       ? [Math.max(2, Math.round(base / 10)), Math.max(2, Math.round(base / 20)), Math.max(2, Math.round(base / 40))]
-      : [Math.max(2, Math.round(base / 4)), Math.max(2, Math.round(base / 8)), Math.max(2, Math.round(base / 16))];
+      : kind === 'folds'
+        // Broad drape, not thread: long ridges with soft shoulders.
+        ? [Math.max(2, Math.round(base / 5)), Math.max(2, Math.round(base / 11)), Math.max(2, Math.round(base / 26))]
+        : [Math.max(2, Math.round(base / 4)), Math.max(2, Math.round(base / 8)), Math.max(2, Math.round(base / 16))];
   const layers = lattices(random, grids);
 
   const field = new Float32Array(size * size);
@@ -77,10 +80,18 @@ function heightField(size, seed, kind) {
         const pits = Math.pow(1 - value, 1.6);
         field[y * size + x] = pits;
       } else if (kind === 'weave') {
-        const threadSize = Math.max(1.6, size / 420);
+        // Thread pitch is a real woven scale, not sub-pixel: 1-2 px threads on a
+        // 512 px atlas alias into corduroy stripes under mipmapping.
+        const threadSize = Math.max(3.2, size / 150);
         const warp = Math.sin((x / threadSize) * Math.PI) * 0.5 + 0.5;
         const weft = Math.sin((y / threadSize) * Math.PI) * 0.5 + 0.5;
         field[y * size + x] = (warp * 0.5 + weft * 0.5) * 0.24 + value * 0.76;
+      } else if (kind === 'folds') {
+        // Ridges follow the noise gradient, so folds bend the way cloth drapes
+        // instead of forming a regular stripe pattern.
+        const warp = Math.sin((x / size) * 6.2 * Math.PI + value * 9.5)
+          + Math.sin((y / size) * 3.4 * Math.PI + value * 5.1) * 0.7;
+        field[y * size + x] = 0.5 + warp * 0.16 + (value - 0.5) * 0.45;
       } else {
         const groove = Math.sin((x / size) * 420 * Math.PI + value * 30) * 0.5 + 0.5;
         field[y * size + x] = groove * 0.78 + value * 0.22;
@@ -168,6 +179,98 @@ export async function addNormalDetail(THREE, texture, kind, strength, seed) {
   detailed.anisotropy = texture.anisotropy;
   detailed.needsUpdate = true;
   return detailed;
+}
+
+
+/**
+ * Cavity shading from the normal map: seams, creases and stitches are darkened
+ * while convex edges pick up a hint of wear, which is what makes painted cloth
+ * and leather stop looking like flat vinyl under a moving light. Runs at the
+ * albedo's own resolution so nothing is downscaled.
+ */
+export async function addCavityShade(THREE, albedo, normalMap, amount = 0.5, wear = 0.25) {
+  if (!albedo || !albedo.image || !normalMap || !normalMap.image) return albedo;
+  const [colorImage, normalImage] = await Promise.all([waitForImage(albedo.image), waitForImage(normalMap.image)]);
+  if (!colorImage || !normalImage) return albedo;
+  const size = Math.min(1024, colorImage.naturalWidth || colorImage.width || 512);
+  if (!size) return albedo;
+
+  const colorCanvas = context2d(size);
+  const colorCtx = colorCanvas.getContext('2d', { willReadFrequently: true });
+  colorCtx.drawImage(colorImage, 0, 0, size, size);
+  const colorPixels = colorCtx.getImageData(0, 0, size, size);
+
+  const normalCanvas = context2d(size);
+  const normalCtx = normalCanvas.getContext('2d', { willReadFrequently: true });
+  normalCtx.drawImage(normalImage, 0, 0, size, size);
+  const normalPixels = normalCtx.getImageData(0, 0, size, size).data;
+
+  // Smooth the tangent-space field first: 512² painted normals carry pixel
+  // noise that would otherwise show up as speckled dirt instead of creases.
+  const field = new Float32Array(size * size * 2);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const i = (y * size + x) * 4;
+      field[(y * size + x) * 2] = normalPixels[i] / 255 * 2 - 1;
+      field[(y * size + x) * 2 + 1] = normalPixels[i + 1] / 255 * 2 - 1;
+    }
+  }
+  const smooth = new Float32Array(field.length);
+  const radius = 2;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      let sumX = 0;
+      let sumY = 0;
+      let count = 0;
+      for (let dy = -radius; dy <= radius; dy++) {
+        const yy = y + dy;
+        if (yy < 0 || yy >= size) continue;
+        for (let dx = -radius; dx <= radius; dx++) {
+          const xx = x + dx;
+          if (xx < 0 || xx >= size) continue;
+          const k = (yy * size + xx) * 2;
+          sumX += field[k];
+          sumY += field[k + 1];
+          count += 1;
+        }
+      }
+      smooth[(y * size + x) * 2] = sumX / count;
+      smooth[(y * size + x) * 2 + 1] = sumY / count;
+    }
+  }
+  const at = (x, y, channel) => smooth[((y * size + x) * 2) + channel];
+
+  const data = colorPixels.data;
+  for (let y = 0; y < size; y++) {
+    const ym = y > 0 ? y - 1 : y;
+    const yp = y < size - 1 ? y + 1 : y;
+    for (let x = 0; x < size; x++) {
+      const xm = x > 0 ? x - 1 : x;
+      const xp = x < size - 1 ? x + 1 : x;
+      // Divergence of the tangent-space normal field: negative bends inward
+      // (a crease), positive bends outward (a ridge or a worn edge).
+      const divergence = (at(xp, y, 0) - at(xm, y, 0)) * 0.5 + (at(x, yp, 1) - at(x, ym, 1)) * 0.5;
+      // Creases (negative divergence) darken, ridges brighten a little: the
+      // asymmetry keeps contact shadow from turning into a glow.
+      const scale = 1 + Math.max(-amount, Math.min(wear, divergence * 2.4));
+      const i = (y * size + x) * 4;
+      data[i] = Math.max(0, Math.min(255, data[i] * scale));
+      data[i + 1] = Math.max(0, Math.min(255, data[i + 1] * scale));
+      data[i + 2] = Math.max(0, Math.min(255, data[i + 2] * scale));
+    }
+  }
+  colorCtx.putImageData(colorPixels, 0, 0);
+
+  const shaded = new THREE.CanvasTexture(colorCanvas);
+  shaded.wrapS = albedo.wrapS;
+  shaded.wrapT = albedo.wrapT;
+  shaded.repeat.copy(albedo.repeat);
+  shaded.offset.copy(albedo.offset);
+  shaded.flipY = albedo.flipY;
+  shaded.colorSpace = albedo.colorSpace;
+  shaded.anisotropy = albedo.anisotropy;
+  shaded.needsUpdate = true;
+  return shaded;
 }
 
 /**

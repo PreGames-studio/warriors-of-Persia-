@@ -6,7 +6,7 @@ import {
   MIA_ACTIONS_GLB_BASE64,
   MIA_COMBAT_GLB_BASE64
 } from './assets/hero/mia/mia-assets.js';
-import { addNormalDetail, addAlbedoDetail, strandRoughness, waitForImage } from './mia-texture-detail.js';
+import { addNormalDetail, addAlbedoDetail, strandRoughness, addCavityShade, waitForImage } from './mia-texture-detail.js';
 
 /**
  * Mia's articulated hero model.
@@ -165,7 +165,7 @@ async function steelAlbedo(THREE, texture) {
   const data = pixels.data;
   for (let i = 0; i < data.length; i += 4) {
     const luminance = (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114) / 255;
-    const steel = 0.42 + (luminance - 0.5) * 0.55;
+    const steel = 0.5 + (luminance - 0.5) * 0.26;
     data[i] = Math.max(0, Math.min(255, steel * 236));
     data[i + 1] = Math.max(0, Math.min(255, steel * 242));
     data[i + 2] = Math.max(0, Math.min(255, steel * 250));
@@ -187,6 +187,8 @@ function upgradeMaterials(meshes, environment) {
     if (mesh.name === 'Eyes') return 'eye';
     if (mesh.name.startsWith('Hair')) return 'hair';
     if (mesh.name === 'Superhero_Female') return 'skin';
+    // Steel has its own re-graded albedo; cloth detail passes must not touch it.
+    if (mesh.name === 'Female_Ranger_Acc_Pauldrons') return 'steel';
     return 'cloth';
   };
 
@@ -204,7 +206,11 @@ function upgradeMaterials(meshes, environment) {
         metalness: source.metalness ?? 0,
         side: surface === 'hair' ? THREE.DoubleSide : THREE.FrontSide,
         envMap: environment,
-        envMapIntensity: surface === 'eye' ? 0.9 : surface === 'skin' ? 0.32 : surface === 'hair' ? 0.42 : 0.26
+        envMapIntensity: surface === 'eye' ? 0.9
+          : surface === 'skin' ? 0.32
+            : surface === 'hair' ? 0.42
+              : surface === 'steel' ? 0.34
+                : 0.26
       });
       if (source.normalScale) material.normalScale.copy(source.normalScale);
       material.specularIntensity = 0.5;
@@ -233,6 +239,11 @@ function upgradeMaterials(meshes, environment) {
         material.clearcoatRoughness = 0.06;
         material.roughness = 0.2;
         material.specularIntensity = 0.9;
+      } else if (surface === 'steel') {
+        material.sheen = 0;
+        material.metalness = 0.55;
+        material.roughness = 0.38;
+        material.specularIntensity = 0.6;
       } else if (surface === 'brow') {
         material.color.setHex(0x4d3527);
         material.roughness = 0.94;
@@ -358,9 +369,9 @@ function buildScarf(material) {
   };
 
   const loops = [
-    { radius: 0.066, tube: 0.029, folds: 9, phase: 0.6, amplitude: 0.0028, y: 0.012, tilt: 0.05, roll: 0.18, scale: [1.2, 1, 0.92] },
-    { radius: 0.059, tube: 0.024, folds: 8, phase: 2.4, amplitude: 0.0024, y: 0.055, tilt: -0.09, roll: -0.28, scale: [1.15, 1, 0.9] },
-    { radius: 0.071, tube: 0.021, folds: 7, phase: 4.1, amplitude: 0.0022, y: -0.024, tilt: 0.12, roll: 0.42, scale: [1.24, 1, 0.88] }
+    { radius: 0.063, tube: 0.025, folds: 9, phase: 0.6, amplitude: 0.0026, y: 0.008, tilt: 0.05, roll: 0.18, scale: [1.2, 1, 0.92] },
+    { radius: 0.056, tube: 0.021, folds: 8, phase: 2.4, amplitude: 0.0022, y: 0.046, tilt: -0.09, roll: -0.28, scale: [1.15, 1, 0.9] },
+    { radius: 0.068, tube: 0.018, folds: 7, phase: 4.1, amplitude: 0.0020, y: -0.03, tilt: 0.12, roll: 0.42, scale: [1.24, 1, 0.88] }
   ];
   loops.forEach((loop) => {
     const mesh = new THREE.Mesh(folded(loop.radius, loop.tube, loop.folds, loop.phase, loop.amplitude), material);
@@ -371,20 +382,6 @@ function buildScarf(material) {
     group.add(mesh);
   });
 
-  // Loose end dropping over the collarbone, with its own soft folds.
-  const tailGeometry = new THREE.PlaneGeometry(0.105, 0.27, 5, 8);
-  const tailPosition = tailGeometry.attributes.position;
-  for (let i = 0; i < tailPosition.count; i++) {
-    const x = tailPosition.getX(i);
-    const y = tailPosition.getY(i);
-    tailPosition.setZ(i, Math.sin(y * 26 + x * 14) * 0.007 + Math.cos(x * 30) * 0.004);
-  }
-  tailGeometry.computeVertexNormals();
-  const tail = new THREE.Mesh(tailGeometry, material);
-  tail.position.set(0.058, -0.105, 0.074);
-  tail.rotation.set(-0.2, 0.32, 0.26);
-  tail.castShadow = true;
-  group.add(tail);
   return group;
 }
 
@@ -413,15 +410,24 @@ class Shamshir {
 
     // A narrow, recessed spine highlight reads as a forged fuller without a box.
     const fullerShape = new THREE.Shape();
-    fullerShape.moveTo(-0.008, 0.06);
-    fullerShape.lineTo(0.008, 0.06);
-    fullerShape.quadraticCurveTo(0.028, 0.4, 0.04, 0.7);
-    fullerShape.quadraticCurveTo(0.024, 0.42, -0.008, 0.06);
+    fullerShape.moveTo(-0.006, 0.07);
+    fullerShape.lineTo(0.006, 0.07);
+    fullerShape.quadraticCurveTo(0.022, 0.42, 0.032, 0.72);
+    fullerShape.quadraticCurveTo(0.019, 0.44, -0.006, 0.07);
+    // The rib has to clear the blade's own slabs (z ±0.015) on both faces, or
+    // the two coplanar surfaces fight and the edge turns into a sawtooth.
     const fullerGeometry = new THREE.ExtrudeGeometry(fullerShape, {
-      depth: 0.026, bevelEnabled: false, curveSegments: 18
+      depth: 0.036, bevelEnabled: true, bevelSize: 0.003, bevelThickness: 0.003,
+      bevelSegments: 1, curveSegments: 22
     });
-    fullerGeometry.translate(0, 0, -0.013);
-    const fuller = new THREE.Mesh(fullerGeometry, materials.steelDark);
+    fullerGeometry.translate(0, 0, -0.018);
+    // A polished channel, not a black bar: a slightly darker steel that still
+    // takes the same reflections as the blade faces.
+    const fullerMaterial = materials.steel.clone();
+    fullerMaterial.color = new THREE.Color(0x87929c);
+    fullerMaterial.roughness = 0.28;
+    fullerMaterial.metalness = 0.95;
+    const fuller = new THREE.Mesh(fullerGeometry, fullerMaterial);
     group.add(fuller);
 
     const guard = new THREE.Mesh(new THREE.CapsuleGeometry(0.021, 0.19, 6, 12), materials.gold);
@@ -550,7 +556,7 @@ export async function loadMiaHero(options = {}) {
         material.map = map;
         material.needsUpdate = true;
       }).catch(() => {});
-      material.color.setHex(0xb9c0c6);
+      material.color.setHex(0xaab2ba);
       material.metalness = 0.55;
       material.roughness = 0.38;
       material.sheen = 0;
@@ -573,6 +579,13 @@ export async function loadMiaHero(options = {}) {
       if (material.userData.detailApplied) return;
       material.userData.detailApplied = true;
       if (material.userData.surface === 'skin') {
+        if (material.map && material.normalMap) {
+          const albedo = material.map;
+          const normal = material.normalMap;
+          detailJobs.push(once(`skin-cavity-${material.uuid}`, () =>
+            addCavityShade(THREE, albedo, normal, 0.09, 0.03)
+          ).then((map) => { material.map = map; material.needsUpdate = true; }));
+        }
         if (material.normalMap) {
           detailJobs.push(once(`skin-normal-${material.uuid}`, () =>
             addNormalDetail(THREE, material.normalMap, 'pores', 0.3, 7001)
@@ -580,14 +593,21 @@ export async function loadMiaHero(options = {}) {
         }
       } else if (material.userData.surface === 'cloth') {
         if (material.normalMap) {
-          detailJobs.push(once(`cloth-normal-${material.uuid}`, () =>
-            addNormalDetail(THREE, material.normalMap, 'weave', 0.22, 7002)
+          detailJobs.push(once(`cloth-normal-${material.uuid}`, () => addNormalDetail(THREE, material.normalMap, 'weave', 0.22, 7002)
+            .then((woven) => addNormalDetail(THREE, woven, 'folds', 0.26, 7102))
           ).then((map) => { material.normalMap = map; material.needsUpdate = true; }));
+        }
+        if (material.map && material.normalMap) {
+          const albedo = material.map;
+          const normal = material.normalMap;
+          detailJobs.push(once(`cloth-cavity-${material.uuid}`, () =>
+            addCavityShade(THREE, albedo, normal, 0.12, 0.03)
+          ).then((map) => { material.map = map; material.needsUpdate = true; }));
         }
       } else if (material.userData.surface === 'hair') {
         if (material.normalMap) {
           detailJobs.push(once(`hair-normal-${material.uuid}`, () =>
-            addNormalDetail(THREE, material.normalMap, 'strands', 0.5, 7003)
+            addNormalDetail(THREE, material.normalMap, 'strands', 0.62, 7003)
           ).then((map) => { material.normalMap = map; material.needsUpdate = true; }));
         }
         if (material.map) {
@@ -595,7 +615,7 @@ export async function loadMiaHero(options = {}) {
             strandRoughness(THREE, material.map, 9001, 512)
           ).then((map) => { material.roughnessMap = map; material.metalnessMap = null; material.needsUpdate = true; }));
           detailJobs.push(once(`hair-albedo-${material.uuid}`, () =>
-            addAlbedoDetail(THREE, material.map, 'strands', 0.05, 7003)
+            addAlbedoDetail(THREE, material.map, 'strands', 0.09, 7003)
           ).then((map) => { material.map = map; material.needsUpdate = true; }));
         }
       } else if (material.userData.surface === 'brow') {
@@ -790,10 +810,10 @@ export async function loadMiaHero(options = {}) {
   if (waist) {
     // Two short belt tails flank the hips: they clear the legs while walking
     // and cannot cut through the torso when the spine bends in combat.
-    tailLeft.mesh.position.set(0.155, 0.015, -0.035);
-    tailLeft.mesh.rotation.set(0.08, 0.6, 0.16);
-    tailRight.mesh.position.set(-0.16, 0.015, -0.06);
-    tailRight.mesh.rotation.set(0.05, -0.55, -0.14);
+    tailLeft.mesh.position.set(0.128, 0.01, -0.045);
+    tailLeft.mesh.rotation.set(0.1, 0.62, 0.1);
+    tailRight.mesh.position.set(-0.132, 0.01, -0.07);
+    tailRight.mesh.rotation.set(0.06, -0.58, -0.09);
     waist.add(tailLeft.mesh);
     waist.add(tailRight.mesh);
   }

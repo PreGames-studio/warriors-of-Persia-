@@ -1,7 +1,7 @@
 {
-  "file": "wop-mia-polished.glb",
-  "bytes": 3097996,
-  "sha256": "c02ed09de422cf8866636f549e871dcb13beb82335de1fbe58bfde53182982b8",
+  "file": "wop-mia-polished2.glb",
+  "bytes": 3182176,
+  "sha256": "3f3a74c1660dbc0f15d2368ef5daf4a5f9632f25f9dbc9cc47e262d3ae59bde5",
   "sourceSha256": "3f8f0886d9a2a7798ad9457c769b0225e4017dbc32ad03dc01f13c11b63eaae1",
   "geometryChanged": false,
   "normalAndOrmMapsChanged": false,
@@ -28,6 +28,16 @@
       "bytesAfter": 434212,
       "sha256Before": "b82ecae9f253e49f0f00947dada99b051817ed17302e8d44369815fd44271ea9",
       "sha256After": "e9e7ed4fbde6dd862a42a255a7dda3b1fe88759de46d7738394a3c94a36a05cd"
+    },
+    {
+      "map": "T_Regular_Female_Dark_BaseColor",
+      "family": "cloth",
+      "resolution": "512x512",
+      "maskCoverage": 1.0,
+      "bytesBefore": 9694,
+      "bytesAfter": 93874,
+      "sha256Before": "f981d711ab73f26ad1b429a239b5e072b870c50e109a2b8785f78ef8172c3650",
+      "sha256After": "8c0bace6efdac840a4b9d44e739690c9ba419f92558c69234b83bf25fd459fde"
     }
   ]
 }

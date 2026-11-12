@@ -29,6 +29,9 @@ TARGETS = {
     # atlas name: (family, saturation gain, contrast gain, value gain)
     "T_Ranger_BaseColor": ("leather", 0.14, 0.16, 0.0),
     "T_Superhero_Female_Dark_BaseColor": ("skin", 0.03, 0.05, 0.005),
+    # The charcoal sleeves were recoloured from green; they crush to black at
+    # gameplay distance, so shadows get a small toe lift that keeps the colour.
+    "T_Regular_Female_Dark_BaseColor": ("cloth", 0.06, 0.02, 0.0),
 }
 
 
@@ -76,6 +79,11 @@ def leather_mask(rgb: np.ndarray) -> np.ndarray:
     return (warm & tone & (saturation > 0.18) & (saturation < 0.85)).astype(np.float32)
 
 
+def cloth_mask(rgb: np.ndarray) -> np.ndarray:
+    """Any non-skin, non-black pixel of the garment atlas."""
+    return (rgb.max(axis=-1) > 0.02).astype(np.float32)
+
+
 def skin_mask(rgb: np.ndarray) -> np.ndarray:
     red, green, blue = rgb[..., 0], rgb[..., 1], rgb[..., 2]
     return ((red > 0.32) & (red > green * 1.12) & (green > blue * 1.02)).astype(np.float32)
@@ -90,7 +98,12 @@ def soften(mask: np.ndarray) -> np.ndarray:
 
 def polish(image: Image.Image, family: str, saturation_gain: float, contrast_gain: float, value_gain: float):
     rgb = np.asarray(image.convert("RGB"), dtype=np.float32) / 255.0
-    mask = soften(leather_mask(rgb) if family == "leather" else skin_mask(rgb))
+    if family == "leather":
+        mask = soften(leather_mask(rgb))
+    elif family == "cloth":
+        mask = soften(cloth_mask(rgb))
+    else:
+        mask = soften(skin_mask(rgb))
     if mask.max() <= 0.001:
         return image, 0.0
 
@@ -102,8 +115,9 @@ def polish(image: Image.Image, family: str, saturation_gain: float, contrast_gai
     # Contrast around the mid-tone; scaled by (1 - value) so highlights do not clip.
     delta_con = (value - 0.5) * contrast_gain * (1 - np.clip(value, 0, 1) ** 4)
 
-    scale = 1.0 + (delta_sat + delta_con + value_gain) * mask
-    scale = np.clip(scale, 0.86, 1.14)
+    lift = ((1.0 - np.clip(value / 0.32, 0, 1)) ** 2) * 0.9 if family == "cloth" else 0.0
+    scale = 1.0 + (delta_sat + delta_con + value_gain) * mask + lift * mask
+    scale = np.clip(scale, 0.86, 2.1 if family == "cloth" else 1.14)
     adjusted = np.clip(rgb * scale[..., None], 0, 1)
     coverage = float(mask.mean())
     out = Image.fromarray((adjusted * 255).round().astype(np.uint8), "RGB")
