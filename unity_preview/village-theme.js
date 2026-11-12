@@ -1,4 +1,5 @@
 import { createBlacksmithForgeBuilder } from './blacksmith-forge.js';
+import { loadMiaHero } from './mia-hero.js';
 
 /**
  * Procedural Persian village art kit.
@@ -13,6 +14,8 @@ export function createPersianVillageKit(THREE) {
   };
   const geometryCache = new Map();
   const animated = { lamps: [], waters: [], orbs: [], dust: null };
+  // Kept for Mia's reflection probe; set by applyLighting on every zone load.
+  let activeRenderer = null;
 
   function canvasTexture(size, painter) {
     const canvas = document.createElement('canvas');
@@ -516,7 +519,105 @@ export function createPersianVillageKit(THREE) {
     return person;
   }
 
+
+  /**
+   * Mia's hi-quality hero. Only the local player receives this model; the rest
+   * of the party keeps the existing forged-armour hero. The heavy GLB is parsed
+   * once and swapped in when ready, so gameplay never waits on it.
+   */
+  function buildMiaHero(member) {
+    const group = new THREE.Group();
+    group.name = 'Mia — articulated shamshir swordswoman';
+    group.userData.characterId = 'mia';
+
+    const auraMaterial = new THREE.MeshStandardMaterial({
+      color: 0x7dbb91, emissive: 0x1d6c4c, emissiveIntensity: .55,
+      transparent: true, opacity: .5, side: THREE.DoubleSide
+    });
+    const aura = addMesh(group, new THREE.RingGeometry(1.18, 1.52, 32), auraMaterial, 0, .055, 0, false);
+    aura.rotation.x = -Math.PI / 2;
+    // Soft contact shadow so the character is planted on the ground instead of
+    // floating, and a short-range key + rim fill so the face and armour read in
+    // daylight. Both are hero-only and cast no extra shadow maps.
+    const shadowTexture = canvasTexture(128, (ctx, size) => {
+      const gradient = ctx.createRadialGradient(size / 2, size / 2, size * .1, size / 2, size / 2, size / 2);
+      gradient.addColorStop(0, 'rgba(12,14,18,.5)');
+      gradient.addColorStop(.55, 'rgba(12,14,18,.22)');
+      gradient.addColorStop(1, 'rgba(12,14,18,0)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, size, size);
+    });
+    const contactShadow = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.55, 1.55),
+      new THREE.MeshBasicMaterial({ map: shadowTexture, transparent: true, opacity: .85, depthWrite: false })
+    );
+    contactShadow.rotation.x = -Math.PI / 2;
+    contactShadow.position.y = .03;
+    group.add(contactShadow);
+
+    // One short-range key light: a second rim light cost ~10 s of first-frame
+    // shader work on software GL without changing the read at gameplay distance.
+    const keyFill = new THREE.PointLight(0xffd9bd, 4.2, 8, 2);
+    keyFill.position.set(1.5, 3.1, 1.9);
+    group.add(keyFill);
+
+    const shared = medievalForge.getHeroMaterials();
+    const steel = shared.steel.clone();
+    steel.color.setHex(0xb7c1cb); steel.metalness = .9; steel.roughness = .32;
+    const steelDark = shared.forged.clone();
+    steelDark.color.setHex(0x4a545d); steelDark.metalness = .82; steelDark.roughness = .48;
+    steelDark.emissive.setHex(0x0f1316); steelDark.emissiveIntensity = .1;
+    const gold = shared.gold.clone();
+    gold.color.setHex(0xc9a263); gold.metalness = .82; gold.roughness = .34;
+    gold.emissive.setHex(0x2b1a08); gold.emissiveIntensity = .12;
+    const gripLeather = surface(textures.heroLeather, { repeat: [1, 1], color: 0x6a4a34, roughness: .92, bump: .03 });
+    const cape = new THREE.MeshStandardMaterial({
+      color: 0x8c1f2a, roughness: .95, bumpMap: textures.heroCape, bumpScale: .02, side: THREE.DoubleSide
+    });
+
+    // Forward the movement signal to the model as soon as it finishes loading.
+    let hero = null;
+    let pendingSpeed = 0;
+    group.userData.updateLocomotion = (dt, speed = 0) => {
+      pendingSpeed = speed;
+      if (hero) hero.update(dt, speed);
+      // Slightly wider and fainter while moving, like a real cast shadow.
+      const spread = 1 + Math.min(.22, Math.abs(speed) * .045);
+      contactShadow.scale.set(spread, spread, 1);
+      contactShadow.material.opacity = .85 - Math.min(.3, Math.abs(speed) * .05);
+    };
+    group.userData.playAction = (name) => (hero ? hero.playOneShot(name) : null);
+    group.userData.getMia = () => hero;
+    group.userData.actualSpeed = 0;
+
+    loadMiaHero({
+      renderer: activeRenderer,
+      materials: { steel, steelDark, gold, leather: gripLeather, cape }
+    }).then((loaded) => {
+      hero = loaded;
+      group.add(loaded.root);
+      // Apply any movement that happened while the GLB was parsing.
+      hero.update(1 / 60, pendingSpeed);
+      group.userData.modelReady = true;
+    }).catch((error) => {
+      // Never leave the player invisible: fall back to the previous hero.
+      console.error('Mia hero model failed to load; using the forged hero instead.', error);
+      const fallback = buildHeroProcedural(member, { color: 0x2563eb });
+      group.add(fallback.group);
+      group.userData.updateLocomotion = fallback.group.userData.updateLocomotion;
+      group.userData.armorMesh = fallback.armorMesh;
+      group.userData.modelReady = false;
+    });
+
+    return { group, armorMesh: null };
+  }
+
   function buildHero(member, roleObj) {
+    if (member.isLocal) return buildMiaHero(member);
+    return buildHeroProcedural(member, roleObj);
+  }
+
+  function buildHeroProcedural(member, roleObj) {
     const group = new THREE.Group();
     const isMia = Boolean(member.isLocal);
     group.name = isMia ? 'Mia — articulated swordswoman from the supplied reference' : 'Persian immortal — articulated forged-armour hero';
@@ -569,6 +670,7 @@ export function createPersianVillageKit(THREE) {
     });
     const aura = addMesh(group, new THREE.RingGeometry(1.18, 1.52, 32), auraMaterial, 0, .055, 0, false);
     aura.rotation.x = -Math.PI / 2;
+
 
     // Pelvis, leather belt, metal buckle and lamellar armoured skirt.
     addCylinder(rig, .48, .56, .42, leather, 0, 1.55, 0, 14);
@@ -1043,6 +1145,7 @@ export function createPersianVillageKit(THREE) {
   }
 
   function applyLighting(zone, scene, hemi, directional, renderer) {
+    activeRenderer = renderer || activeRenderer;
     if (zone === 'village') {
       scene.background = new THREE.Color(0x91bfd6);
       scene.fog = new THREE.FogExp2(0xc4dbe5, .0022);

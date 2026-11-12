@@ -1,0 +1,101 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Mia review</title>
+<style>html,body{margin:0;height:100%;background:#1b1e26;overflow:hidden}canvas{display:block}</style>
+</head><body>
+<script type="importmap">{"imports":{"three":"/unity_preview/lib/three.module.js"}}</script>
+<script type="module">
+import * as THREE from '/unity_preview/lib/three.module.js';
+import { loadMiaHero } from '/unity_preview/mia-hero.js';
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(900, 900);
+renderer.setPixelRatio(1);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1b2230);
+const camera = new THREE.PerspectiveCamera(34, 1, 0.05, 200);
+
+const key = new THREE.DirectionalLight(0xfff1dd, 2.6);
+key.position.set(3.6, 6.2, 5.2);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.camera.near = 0.5; key.shadow.camera.far = 24;
+key.shadow.camera.left = -5; key.shadow.camera.right = 5; key.shadow.camera.top = 6; key.shadow.camera.bottom = -2;
+key.shadow.bias = -0.0006;
+scene.add(key);
+const fill = new THREE.DirectionalLight(0x9db4d6, 0.55);
+fill.position.set(-4.5, 2.4, 3.2);
+scene.add(fill);
+const rim = new THREE.DirectionalLight(0xffd6b0, 0.85);
+rim.position.set(-2.2, 3.4, -5.2);
+scene.add(rim);
+scene.add(new THREE.HemisphereLight(0xbcd4ff, 0x2a2320, 0.55));
+
+const env = new THREE.PMREMGenerator(renderer);
+const envScene = new THREE.Scene();
+const gradient = new THREE.Mesh(new THREE.SphereGeometry(12, 32, 16),
+  new THREE.MeshBasicMaterial({ side: THREE.BackSide, color: 0x2b3546 }));
+envScene.add(gradient);
+const envLight = new THREE.Mesh(new THREE.SphereGeometry(3.2, 16, 8),
+  new THREE.MeshBasicMaterial({ color: 0xfff4e2 }));
+envLight.position.set(5, 7, 4);
+envScene.add(envLight);
+const environment = env.fromScene(envScene, 0.04).texture;
+
+const ground = new THREE.Mesh(new THREE.CircleGeometry(14, 48),
+  new THREE.MeshStandardMaterial({ color: 0x4b525e, roughness: 0.95 }));
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+const materials = {
+  steel: new THREE.MeshStandardMaterial({ color: 0x8d99a4, metalness: 0.9, roughness: 0.34 }),
+  steelDark: new THREE.MeshStandardMaterial({ color: 0x3c454d, metalness: 0.85, roughness: 0.5 }),
+  gold: new THREE.MeshStandardMaterial({ color: 0xb9924e, metalness: 0.86, roughness: 0.34 }),
+  leather: new THREE.MeshStandardMaterial({ color: 0x3a2418, roughness: 0.82 }),
+  cape: new THREE.MeshStandardMaterial({ color: 0x7c1d27, roughness: 0.94, side: THREE.DoubleSide })
+};
+
+const views = {
+  front: { pos: [0, 1.95, 8.4], target: [0, 1.7, 0], fov: 34 },
+  close: { pos: [0.35, 3.05, 2.1], target: [0, 2.85, 0], fov: 34 },
+  side: { pos: [8.2, 1.95, 0.8], target: [0, 1.7, 0], fov: 34 },
+  back: { pos: [0.5, 2.0, -8.2], target: [0, 1.7, 0], fov: 34 },
+  hand: { pos: [-2.0, 2.2, 2.2], target: [-1.05, 1.55, 0.35], fov: 30 },
+  portrait: { pos: [0.28, 3.02, 1.15], target: [0, 2.95, 0], fov: 30 },
+  bust: { pos: [0.45, 2.6, 2.0], target: [0, 2.35, 0], fov: 32 },
+  play: { pos: [0, 6.4, 7.6], target: [0, 1.5, 0], fov: 42 }
+};
+
+let hero = null, speed = 0;
+window.__hero = null;
+window.__setView = (name) => { const v = views[name] || views.front; camera.fov = v.fov; camera.updateProjectionMatrix(); camera.position.set(...v.pos); camera.lookAt(new THREE.Vector3(...v.target)); };
+window.__setSpeed = (v) => { speed = v; };
+window.__step = (dt) => { if (hero) hero.update(dt, speed); };
+window.__play = (n) => hero && hero.playOneShot(n);
+window.__info = () => hero ? ({
+  clips: hero.clips.length,
+  triangles: hero.meshes.reduce((s, m) => s + (m.geometry.index ? m.geometry.index.count / 3 : 0), 0),
+  meshes: hero.meshes.length,
+  height: new THREE.Box3().setFromObject(hero.root).getSize(new THREE.Vector3()).toArray(),
+  names: hero.meshes.map(m => m.name)
+}) : null;
+window.__only = (name) => { if (!hero) return; hero.meshes.forEach(m => { m.visible = name === 'all' || m.name === name; }); };
+
+const clock = new THREE.Clock();
+function frame() { const dt = Math.min(clock.getDelta(), .05); window.__step(dt); renderer.render(scene, camera); requestAnimationFrame(frame); }
+const t0 = performance.now();
+loadMiaHero({ renderer, materials, environment: environment }).then((loaded) => {
+  hero = loaded; window.__hero = loaded; window.__THREE = THREE;
+  scene.add(hero.root);
+  window.__timing = { loadMs: Math.round(performance.now() - t0) };
+  window.__setView('front'); frame(); window.__ready = true;
+}).catch((e) => { window.__error = String(e && e.stack || e); console.error(e); });
+</script>
+</body></html>

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'warriors-of-persia-3d-v28-no-character-labels';
+const CACHE_NAME = 'warriors-of-persia-3d-v29-mia-hero-glow';
 const ASSETS = [
   './merchant-signature-items.js',
   ...['jeweler','astrologer','carpet_bazaar','teahouse','district_shop_03','district_shop_04','district_shop_06','district_shop_07','district_shop_08','district_shop_09','district_shop_10','district_shop_11','district_shop_12','district_shop_13','district_shop_14'].map(id=>`./assets/merchants/signature/${id}.png`),

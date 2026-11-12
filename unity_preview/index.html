@@ -2274,7 +2274,8 @@
       const roleObj = ROLES[member.roleIndex] || ROLES[0];
       const built = villageKit.buildHero(member, roleObj);
       const g = built.group;
-      g.userData.armorMesh = built.armorMesh;
+      // The GLB hero (Mia) has no procedural armour shell, so the hook is optional.
+      g.userData.armorMesh = built.armorMesh || null;
       const lbl = addCharacterLabel(
         `${member.name} (${member.isLocal ? 'شمشیرزن' : roleObj.title})`,
         new THREE.Vector3(0, 5.4, 0),
@@ -4757,6 +4758,19 @@
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') saveGameProgress();
     });
+
+    // Test bridge (visual smoke only): exposed when the page is opened with
+    // ?debug=1 so the shipped game keeps its normal surface.
+    if (new URLSearchParams(window.location.search).has('debug')) {
+      window.__wopDebug = {
+        ready: true,
+        three: () => THREE,
+        state: () => state,
+        leader: () => (state.party[0] ? state.party[0].mesh : null),
+        attack: () => performBasicAttack(),
+        skill: (index) => useHeroSkill(index)
+      };
+    }
 
     animate();
   </script>
