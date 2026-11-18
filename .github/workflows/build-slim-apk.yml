@@ -24,6 +24,7 @@ on:
       - "android/launcher/**"
       - "unity_preview/**"
       - "Tools/bundle_mia_hero_apk.py"
+      - "Tools/emulator_smoke.sh"
       - "Tools/build_pack_apk.py"
       - "Tools/build_graphics_pack.py"
       - "Tools/build_android_launcher.py"
