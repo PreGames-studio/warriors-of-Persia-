@@ -3484,14 +3484,36 @@
       open: () => {
         refreshInventoryModal();
         const modal = document.getElementById('modal-inventory');
-        if (modal) modal.classList.add('open');
-        return !!modal;
+        if (!modal) return false;
+        modal.classList.add('open');
+        // Inline, so no cascade of modal rules can keep the panel at zero size.
+        modal.style.display = 'flex';
+        modal.style.zIndex = '400';
+        const screen = modal.querySelector('.iv-screen');
+        if (screen) {
+          screen.style.position = 'absolute';
+          screen.style.top = '0';
+          screen.style.right = '0';
+          screen.style.bottom = '0';
+          screen.style.left = '0';
+        }
+        return true;
       },
       close: () => {
         const modal = document.getElementById('modal-inventory');
-        if (modal) modal.classList.remove('open');
+        if (!modal) return;
+        modal.classList.remove('open');
+        modal.style.display = '';
+      },
+      visible: () => {
+        const modal = document.getElementById('modal-inventory');
+        if (!modal) return false;
+        const r = modal.getBoundingClientRect();
+        return r.width > 100 && r.height > 100 &&
+          getComputedStyle(modal).display !== 'none';
       },
       rects: () => {
+        const modalNow = document.getElementById('modal-inventory');
         const measure = (selector) => {
           const el = document.querySelector(selector);
           if (!el) return null;
@@ -3500,6 +3522,12 @@
         };
         return {
           view: { w: window.innerWidth, h: window.innerHeight },
+          modalClass: modalNow ? modalNow.className : null,
+          modalDisplay: modalNow ? getComputedStyle(modalNow).display : null,
+          modalRect: modalNow ? (() => {
+            const r = modalNow.getBoundingClientRect();
+            return { w: Math.round(r.width), h: Math.round(r.height) };
+          })() : null,
           panel: measure('.iv-screen'),
           bag: measure('#inv-slots-grid'),
           hero: measure('#inv-hero-panel'),
@@ -3509,6 +3537,7 @@
       selftest: () => {
         const leader = state.party[0];
         const modal = document.getElementById('modal-inventory');
+        const modalWasOpen = !!(modal && modal.classList.contains('open'));
         const savedEquipment = normalizeEquipment(state.equipment);
         const savedBag = state.inventory.slice();
         const before = { bag: savedBag.length, atk: leader.atk, hpMax: leader.hpMax };
@@ -3535,7 +3564,7 @@
           leader.atk = before.atk;
           leader.hpMax = before.hpMax;
           leader.hp = Math.min(leader.hp, leader.hpMax);
-          if (modal) modal.classList.remove('open');
+          if (modal && !modalWasOpen) modal.classList.remove('open');
           updateHeroStatsHUD();
           refreshInventoryModal();
         }
