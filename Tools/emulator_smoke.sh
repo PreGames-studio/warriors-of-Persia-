@@ -39,12 +39,19 @@ adb shell dumpsys package "$PACKAGE" | grep -E "versionCode|versionName" | head 
 adb logcat -c
 log "launching the game"
 adb shell am start -n "$PACKAGE/.MainActivity" >/dev/null || fail LAUNCH-FAILED 4
-sleep 60
+# Software-GL emulators sometimes need well over a minute to build the village,
+# and the WebView probe only answers once the main thread is free.
+booted=""
+for attempt in $(seq 1 10); do
+  sleep 12
+  adb logcat -d -s WoP:V >"$OUT/boot.txt" 2>&1 || true
+  normalize "$OUT/boot.txt"
+  if grep -q '"ui":true' "$OUT/boot.txt.norm"; then booted=1; break; fi
+  log "waiting for the game to boot ($attempt/10)"
+done
 
-adb logcat -d -s WoP:V >"$OUT/boot.txt" 2>&1 || true
-normalize "$OUT/boot.txt"
 log "---- boot log ----"
-cat "$OUT/boot.txt.norm"
+tail -40 "$OUT/boot.txt.norm"
 
 adb shell run-as "$PACKAGE" ls -la files >"$OUT/files.txt" 2>&1 || true
 cat "$OUT/files.txt"
