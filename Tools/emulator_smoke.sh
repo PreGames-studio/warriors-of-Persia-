@@ -10,6 +10,14 @@
 set -uo pipefail
 
 APK="${1:?usage: emulator_smoke.sh <apk>}"
+# Accept a directory too: the CI artifact download layout has moved before and
+# an empty APK path used to fail with a bare "usage" line instead of a reason.
+if [ -d "$APK" ]; then
+  APK="$(find "$APK" -name 'WarriorsOfPersia_*.apk' -print -quit)"
+  [ -n "$APK" ] || { echo "APK-MISSING: no APK under $1"; exit 2; }
+fi
+[ -f "$APK" ] || { echo "APK-MISSING: $APK is not a file"; exit 2; }
+echo "[smoke] using $APK"
 PACKAGE="com.pregames.warriorsofpersia"
 OUT="${RUNNER_TEMP:-/tmp}"
 mkdir -p "$OUT"
