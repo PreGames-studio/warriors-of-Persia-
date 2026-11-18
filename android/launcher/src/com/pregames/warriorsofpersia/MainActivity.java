@@ -161,14 +161,23 @@ public class MainActivity extends Activity {
                             public void onReceiveValue(String value) {
                                 Log.i(TAG, "bag-open " + tries[0] + " -> " + value);
                                 if (value != null && value.contains("true")) {
-                                    webView.evaluateJavascript(
-                                            "JSON.stringify(window.__wopBag.rects())",
-                                            new ValueCallback<String>() {
-                                                @Override
-                                                public void onReceiveValue(String rects) {
-                                                    Log.i(TAG, "bag-rects " + rects);
-                                                }
-                                            });
+                                    // Measure after the next frame: a panel that was
+                                    // just switched from display:none can still report
+                                    // 0x0 on the same tick.
+                                    new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            if (webView == null) return;
+                                            webView.evaluateJavascript(
+                                                    "JSON.stringify(window.__wopBag.rects())",
+                                                    new ValueCallback<String>() {
+                                                        @Override
+                                                        public void onReceiveValue(String rects) {
+                                                            Log.i(TAG, "bag-rects " + rects);
+                                                        }
+                                                    });
+                                        }
+                                    }, 1500);
                                 }
                                 if (value != null && value.contains("true")) {
                                     Log.i(TAG, "bag-opened true");

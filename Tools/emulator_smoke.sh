@@ -155,9 +155,18 @@ for attempt in $(seq 1 12); do
 done
 tail -12 "$OUT/bag.txt.norm" 2>/dev/null || true
 [ -n "$opened" ] || fail BAG-NOT-OPEN 26
+# Give the delayed measurement time to land in the log before judging the size.
+visible=""
+for attempt in $(seq 1 5); do
+  sleep 3
+  adb logcat -d -s WoP:V >"$OUT/bag.txt" 2>&1 || true
+  normalize "$OUT/bag.txt"
+  if grep -Eq '"panel":\{[^}]*"w":[1-9][0-9][0-9]' "$OUT/bag.txt.norm"; then visible=1; break; fi
+  log "waiting for the panel measurement ($attempt/5)"
+done
 grep -o 'bag-rects[^\n]*' "$OUT/bag.txt.norm" | tail -1 || true
 # The panel must actually occupy the screen, not collapse to 0x0.
-grep -Eq '"panel":\{[^}]*"w":[1-9][0-9][0-9]' "$OUT/bag.txt.norm" || fail BAG-NOT-VISIBLE 27
+[ -n "$visible" ] || fail BAG-NOT-VISIBLE 27
 sleep 3
 adb shell screencap -p /sdcard/inventory.png && adb pull /sdcard/inventory.png "$OUT/inventory.png" >/dev/null 2>&1 || fail SCREENSHOT-FAILED 24
 [ -s "$OUT/inventory.png" ] || fail SCREENSHOT-EMPTY 25
