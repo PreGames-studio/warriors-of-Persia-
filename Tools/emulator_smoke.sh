@@ -129,10 +129,16 @@ adb shell am force-stop "$PACKAGE"
 sleep 3
 adb logcat -c
 adb shell am start -n "$PACKAGE/.MainActivity" --es wop_open_bag keep >/dev/null || fail LAUNCH-FAILED 23
-sleep 45
-adb logcat -d -s WoP:V >"$OUT/bag.txt" 2>&1 || true
-normalize "$OUT/bag.txt"
-grep -q 'bag-opened[^ ]* *true' "$OUT/bag.txt.norm" || log "warning: bag open not confirmed"
+opened=""
+for attempt in $(seq 1 12); do
+  sleep 8
+  adb logcat -d -s WoP:V >"$OUT/bag.txt" 2>&1 || true
+  normalize "$OUT/bag.txt"
+  if grep -q 'bag-opened[^,]*true' "$OUT/bag.txt.norm"; then opened=1; break; fi
+  log "waiting for the bag screen ($attempt/12)"
+done
+tail -12 "$OUT/bag.txt.norm" 2>/dev/null || true
+[ -n "$opened" ] || fail BAG-NOT-OPEN 26
 adb shell screencap -p /sdcard/inventory.png && adb pull /sdcard/inventory.png "$OUT/inventory.png" >/dev/null 2>&1 || fail SCREENSHOT-FAILED 24
 [ -s "$OUT/inventory.png" ] || fail SCREENSHOT-EMPTY 25
 

@@ -111,6 +111,38 @@ public class MainActivity extends Activity {
         maybeAutostartPack(getIntent());
     }
 
+    /**
+     * Optional CI hook: `adb shell am start … --es wop_open_bag keep` opens the
+     * equipment/bag screen so the emulator job can screenshot it. The page needs
+     * a while to build the hero and the HUD, so retry until the hook exists.
+     */
+    private void maybeOpenBag(Intent intent) {
+        if (intent == null || !intent.hasExtra("wop_open_bag")) return;
+        final int[] tries = {0};
+        final Runnable[] attempt = new Runnable[1];
+        attempt[0] = new Runnable() {
+            @Override
+            public void run() {
+                if (webView == null) return;
+                tries[0]++;
+                webView.evaluateJavascript(
+                        "window.__wopBag && window.__wopBag.open ? (window.__wopBag.open() ? 'true' : 'false') : 'wait'",
+                        new ValueCallback<String>() {
+                            @Override
+                            public void onReceiveValue(String value) {
+                                Log.i(TAG, "bag-open " + tries[0] + " -> " + value);
+                                if (value != null && value.contains("true")) {
+                                    Log.i(TAG, "bag-opened true");
+                                } else if (tries[0] < 25) {
+                                    new Handler(Looper.getMainLooper()).postDelayed(attempt[0], 3000);
+                                }
+                            }
+                        });
+            }
+        };
+        new Handler(Looper.getMainLooper()).postDelayed(attempt[0], 6000);
+    }
+
     private void hideSystemBars() {
         if (Build.VERSION.SDK_INT >= 19) {
             getWindow().getDecorView().setSystemUiVisibility(
@@ -148,23 +180,7 @@ public class MainActivity extends Activity {
             probe(8000);
             probe(15000);
             probe(25000);
-            // Optional: open the equipment/bag screen so CI can screenshot it.
-            if (getIntent() != null && getIntent().hasExtra("wop_open_bag")) {
-                new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (webView == null) return;
-                        webView.evaluateJavascript(
-                                "window.__wopBag && window.__wopBag.open && window.__wopBag.open();",
-                                new ValueCallback<String>() {
-                                    @Override
-                                    public void onReceiveValue(String value) {
-                                        Log.i(TAG, "bag-opened " + value);
-                                    }
-                                });
-                    }
-                }, 26000);
-            }
+            maybeOpenBag(getIntent());
         }
     }
 
