@@ -1253,6 +1253,16 @@
      Sword and shield (and the other worn gear) live in their own slots
      beside Mia, so they never eat the 16 bag cells.
      ================================================================== */
+  body.wop-bag-open #wop-pack,
+  body.wop-bag-open .app-topbar,
+  body.wop-bag-open .hero-hud-card,
+  body.wop-bag-open .skill-btn,
+  body.wop-bag-open .btn-basic-attack,
+  body.wop-bag-open .joystick-zone,
+  body.wop-bag-open .minimap-card,
+  body.wop-bag-open #labels-layer,
+  body.wop-bag-open #toast-banner,
+  body.wop-bag-open #context-action-btn { display: none !important; }
   #modal-inventory {
     padding: 0;
     align-items: stretch;
@@ -3512,29 +3522,11 @@
         shield: state.equipment.shield ? state.equipment.shield.id : null,
       }),
       open: () => {
-        refreshInventoryModal();
-        const modal = document.getElementById('modal-inventory');
-        if (!modal) return false;
-        modal.classList.add('open');
-        // Inline, so no cascade of modal rules can keep the panel at zero size.
-        modal.style.display = 'flex';
-        modal.style.zIndex = '400';
-        const screen = modal.querySelector('.iv-screen');
-        if (screen) {
-          screen.style.position = 'absolute';
-          screen.style.top = '0';
-          screen.style.right = '0';
-          screen.style.bottom = '0';
-          screen.style.left = '0';
-        }
+        if (!document.getElementById('modal-inventory')) return false;
+        openBagScreen();
         return true;
       },
-      close: () => {
-        const modal = document.getElementById('modal-inventory');
-        if (!modal) return;
-        modal.classList.remove('open');
-        modal.style.display = '';
-      },
+      close: () => setBagScreenOpen(false),
       visible: () => {
         const modal = document.getElementById('modal-inventory');
         if (!modal) return false;
@@ -3820,6 +3812,28 @@
       openShopModal();
     });
 
+    /** The bag is a full-screen panel: the HUD and the graphics chip step aside. */
+    function setBagScreenOpen(open) {
+      document.body.classList.toggle('wop-bag-open', !!open);
+      const modal = document.getElementById('modal-inventory');
+      if (!modal) return;
+      modal.classList.toggle('open', !!open);
+      modal.style.display = open ? 'flex' : 'none';
+      modal.style.zIndex = '400';
+      const screen = modal.querySelector('.iv-screen');
+      if (screen) {
+        screen.style.position = 'absolute';
+        screen.style.top = '0';
+        screen.style.right = '0';
+        screen.style.bottom = '0';
+        screen.style.left = '0';
+      }
+    }
+    function openBagScreen() {
+      refreshInventoryModal();
+      setBagScreenOpen(true);
+    }
+
     function inventoryToast(message) {
       const box = document.getElementById('inv-toast');
       const line = document.getElementById('inv-last-action');
@@ -3888,7 +3902,7 @@
       }
       const name = document.createElement('span');
       name.className = 'iv-slot-name';
-      name.textContent = item.title;
+      name.textContent = String(item.title || '').replace(/^[^\p{L}\p{N}]+/u, '').trim() || item.title;
       cell.appendChild(name);
       if (onClick) cell.addEventListener('click', onClick);
       return cell;
@@ -4795,10 +4809,7 @@
     document.getElementById('bs-scroll-down').addEventListener('click', () => {
       bsGridScrollEl.scrollBy({ top: 220, behavior: 'smooth' });
     });
-    document.getElementById('btn-open-inventory').addEventListener('click', () => {
-      refreshInventoryModal();
-      document.getElementById('modal-inventory').classList.add('open');
-    });
+    document.getElementById('btn-open-inventory').addEventListener('click', openBagScreen);
     document.getElementById('btn-open-party')?.addEventListener('click', () => {
       renderPartyHUD();
       document.getElementById('modal-party').classList.add('open');
@@ -4808,7 +4819,9 @@
     });
     document.querySelectorAll('[data-close]').forEach(btn => {
       btn.addEventListener('click', () => {
-        document.getElementById(btn.dataset.close).classList.remove('open');
+        const target = btn.dataset.close;
+        if (target === 'modal-inventory') { setBagScreenOpen(false); return; }
+        document.getElementById(target).classList.remove('open');
       });
     });
 
