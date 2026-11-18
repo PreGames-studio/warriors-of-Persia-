@@ -102,13 +102,25 @@ log "---- relaunching with the pack installed ----"
 adb shell am force-stop "$PACKAGE"
 adb logcat -c
 adb shell am start -n "$PACKAGE/.MainActivity" >/dev/null || fail LAUNCH-FAILED 11
-sleep 60
-adb logcat -d -s WoP:V >"$OUT/installed.txt" 2>&1 || true
-normalize "$OUT/installed.txt"
+# The first cold start on a busy emulator can be slow and the log buffer is
+# small, so keep looking for the probe instead of trusting a single sample.
+active=""
+for attempt in $(seq 1 6); do
+  sleep 20
+  adb logcat -d -s WoP:V >"$OUT/installed.txt" 2>&1 || true
+  normalize "$OUT/installed.txt"
+  if grep -q 'installed[^,]*true' "$OUT/installed.txt.norm"; then active=1; break; fi
+  log "waiting for the pack probe ($attempt/6)"
+done
 tail -20 "$OUT/installed.txt.norm"
 # The status JSON is nested inside the probe string, so quotes arrive escaped at
 # more than one level: match the key/value pair without insisting on quoting.
-grep -q 'installed[^,]*true' "$OUT/installed.txt.norm" || fail PACK-NOT-ACTIVE 12
+if [ -z "$active" ]; then
+  log "---- renderer diagnostics ----"
+  adb logcat -d 2>/dev/null | grep -iE "chromium|renderer|died|lowmemory|FATAL" | tail -25 || true
+  adb shell dumpsys meminfo "$PACKAGE" 2>/dev/null | head -12 || true
+  fail PACK-NOT-ACTIVE 12
+fi
 grep -q 'tier[^,]*hd' "$OUT/installed.txt.norm" || log "warning: tier not reported as hd"
 adb shell screencap -p /sdcard/pack.png && adb pull /sdcard/pack.png "$OUT/pack.png" >/dev/null 2>&1 || true
 

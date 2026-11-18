@@ -145,6 +145,7 @@ public class MainActivity extends Activity {
         public void onPageFinished(WebView view, String url) {
             Log.i(TAG, "page finished " + url);
             probe(1500);
+            probe(8000);
             probe(15000);
             probe(25000);
             // Optional: open the equipment/bag screen so CI can screenshot it.
