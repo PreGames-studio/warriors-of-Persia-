@@ -139,7 +139,13 @@ for attempt in $(seq 1 12); do
 done
 tail -12 "$OUT/bag.txt.norm" 2>/dev/null || true
 [ -n "$opened" ] || fail BAG-NOT-OPEN 26
+sleep 3
 adb shell screencap -p /sdcard/inventory.png && adb pull /sdcard/inventory.png "$OUT/inventory.png" >/dev/null 2>&1 || fail SCREENSHOT-FAILED 24
 [ -s "$OUT/inventory.png" ] || fail SCREENSHOT-EMPTY 25
+# A second frame a few seconds later, plus the raw probe log, so a stale or
+# re-rendered screen can be told apart from a real one.
+sleep 4
+adb shell screencap -p /sdcard/inventory2.png && adb pull /sdcard/inventory2.png "$OUT/inventory2.png" >/dev/null 2>&1 || true
+cp "$OUT/bag.txt.norm" "$OUT/bag-probe.txt" 2>/dev/null || true
 
 echo "SMOKE OK"

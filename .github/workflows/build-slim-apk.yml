@@ -324,7 +324,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p docs/releases/verification
-          for name in inventory spells; do
+          for name in inventory inventory2 spells; do
             if [ -f "${{ runner.temp }}/$name.png" ]; then
               cp "${{ runner.temp }}/$name.png" "docs/releases/verification/$name.png"
             fi
@@ -346,6 +346,7 @@ jobs:
           name: wop-emulator-shots
           path: |
             ${{ runner.temp }}/inventory.png
+            ${{ runner.temp }}/inventory2.png
             ${{ runner.temp }}/spells.png
             ${{ runner.temp }}/pack.png
           if-no-files-found: warn
