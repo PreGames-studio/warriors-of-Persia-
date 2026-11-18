@@ -18,6 +18,7 @@ on:
   push:
     branches:
       - arena/c0915d8c-warriors-of-persia
+      - arena/c0915d8c-warriors-of-Persia
     paths:
       - ".github/workflows/build-slim-apk.yml"
       - "android/launcher/**"
@@ -289,6 +290,18 @@ jobs:
           sudo udevadm trigger --name-match=kvm
           ls -l /dev/kvm
 
+      - name: Locate the downloaded APK
+        run: |
+          set -euo pipefail
+          apk="$(find apk -name 'WarriorsOfPersia_*.apk' -print -quit)"
+          if [ -z "$apk" ]; then
+            ls -laR apk || true
+            echo "::error title=apk-missing::the wop-slim-apk artifact did not contain an APK"
+            exit 1
+          fi
+          echo "testing $apk"
+          echo "APK_PATH=$apk" >> "$GITHUB_ENV"
+
       - name: Boot the game on an emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -298,10 +311,9 @@ jobs:
           ram-size: 4096M
           heap-size: 1024M
           disable-animations: true
-          script: |
-            apk="$(find apk -name 'WarriorsOfPersia_*.apk' | head -1)"
-            echo "testing $apk"
-            bash -o pipefail -c 'bash Tools/emulator_smoke.sh "'"$apk"'" 2>&1 | tee "$RUNNER_TEMP/smoke.log"'
+          # The emulator action runs this with `sh`, so keep it to one line that
+          # only expands $APK_PATH (exported above) inside bash.
+          script: bash -o pipefail -c 'bash Tools/emulator_smoke.sh "$APK_PATH" 2>&1 | tee "$RUNNER_TEMP/smoke.log"'
 
       - name: Surface the failure
         if: failure()
