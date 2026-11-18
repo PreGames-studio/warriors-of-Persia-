@@ -7,13 +7,10 @@ name: Emulator smoke test of the published APK
 # and commits those screenshots under docs/releases/verification/.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - arena/c0915d8c-warriors-of-persia
-      - arena/c0915d8c-warriors-of-Persia
-    paths:
-      - ".github/workflows/smoke-slim-apk.yml"
-      - "Tools/emulator_smoke.sh"
+
+# The build workflow runs the same emulator checks right after it publishes, so
+# this copy is only for re-checking an already published APK by hand. Running
+# both at once made two software-GL emulators starve each other.
 
 permissions:
   contents: write

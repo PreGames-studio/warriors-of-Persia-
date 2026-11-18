@@ -329,6 +329,9 @@ jobs:
               cp "${{ runner.temp }}/$name.png" "docs/releases/verification/$name.png"
             fi
           done
+          if [ -f "${{ runner.temp }}/bag-probe.txt" ]; then
+            cp "${{ runner.temp }}/bag-probe.txt" docs/releases/verification/inventory-probe.txt
+          fi
           if [ -z "$(git status --porcelain docs/releases/verification)" ]; then
             echo "no new screenshots"
             exit 0
@@ -347,6 +350,7 @@ jobs:
           path: |
             ${{ runner.temp }}/inventory.png
             ${{ runner.temp }}/inventory2.png
+            ${{ runner.temp }}/bag-probe.txt
             ${{ runner.temp }}/spells.png
             ${{ runner.temp }}/pack.png
           if-no-files-found: warn
