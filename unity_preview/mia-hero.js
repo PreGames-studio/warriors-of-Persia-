@@ -499,15 +499,24 @@ class WarHammer {
       wrap.position.y = -0.05 + i * 0.09;
       group.add(wrap);
     }
-    const head = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.17, 0.16), materials.steelDark);
-    head.position.y = 0.83;
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.20, 0.15), materials.steelDark);
+    head.position.y = 0.84;
     head.castShadow = true;
     group.add(head);
-    const face = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.05, 0.17), materials.steel);
-    face.position.y = 0.915;
-    group.add(face);
-    const band = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.03, 0.18), materials.gold);
-    band.position.y = 0.755;
+    // Two polished striking faces: the brightest part of the prop, so the hammer
+    // still reads as a hammer in a 640px-wide screenshot.
+    [-1, 1].forEach((side) => {
+      const face = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.22, 0.17), materials.steel);
+      face.position.set(side * 0.165, 0.84, 0);
+      group.add(face);
+    });
+    [-1, 1].forEach((side) => {
+      const cheek = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.20, 0.16), materials.gold);
+      cheek.position.set(side * 0.125, 0.84, 0);
+      group.add(cheek);
+    });
+    const band = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.035, 0.165), materials.gold);
+    band.position.y = 0.725;
     group.add(band);
     const spike = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.12, 10), materials.steel);
     spike.position.y = 0.975;
@@ -619,25 +628,37 @@ class KiteShield {
     face.quadraticCurveTo(-0.30, -0.10, -0.26, 0.26);
     face.closePath();
     const geometry = new THREE.ExtrudeGeometry(face, {
-      depth: 0.045, bevelEnabled: true, bevelSize: 0.012, bevelThickness: 0.012, bevelSegments: 2, curveSegments: 24
+      depth: 0.038, bevelEnabled: true, bevelSize: 0.008, bevelThickness: 0.008, bevelSegments: 2, curveSegments: 24
     });
-    geometry.translate(0, 0, -0.022);
+    geometry.translate(0, 0, -0.019);
+    // Gold rim: the same silhouette, slightly enlarged and pushed back, so only
+    // a border shows around the steel face instead of covering it.
+    const rimGeometry = geometry.clone();
+    const rim = new THREE.Mesh(rimGeometry, materials.gold);
+    rim.scale.set(1.07, 1.07, 0.55);
+    rim.position.z = -0.010;
+    rim.castShadow = true;
+    group.add(rim);
+
     const shell = new THREE.Mesh(geometry, materials.steelDark);
     shell.castShadow = true;
     group.add(shell);
 
-    const rim = new THREE.Mesh(geometry.clone(), materials.gold);
-    rim.scale.set(1.045, 1.045, 0.55);
-    rim.position.z = -0.012;
-    group.add(rim);
+    // Painted chevron: two slim steel bands, clearly readable at gameplay range.
+    [-1, 1].forEach((side) => {
+      const band = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.30, 0.012), materials.steel);
+      band.position.set(side * 0.075, 0.02, 0.024);
+      band.rotation.z = side * 0.34;
+      group.add(band);
+    });
 
-    const boss = new THREE.Mesh(new THREE.SphereGeometry(0.075, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2), materials.gold);
-    boss.rotation.x = -Math.PI / 2;
-    boss.position.z = 0.026;
+    const boss = new THREE.Mesh(new THREE.SphereGeometry(0.085, 16, 12), materials.gold);
+    boss.scale.z = 0.55;
+    boss.position.z = 0.030;
     group.add(boss);
 
-    const crest = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.14, 0.012), materials.steel);
-    crest.position.set(0, -0.16, 0.026);
+    const crest = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.16, 0.014), materials.gold);
+    crest.position.set(0, -0.18, 0.026);
     group.add(crest);
     this.group = group;
   }
@@ -1005,8 +1026,8 @@ export async function loadMiaHero(options = {}) {
   const weaponLoadout = {
     sword: { group: sword.group, side: 'r', scale: 0.86, gripOffset: new THREE.Vector3(0, -0.093, 0) },
     radiant: { group: radiant.group, side: 'r', scale: 0.86, gripOffset: new THREE.Vector3(0, -0.093, 0) },
-    hammer: { group: hammer.group, side: 'r', scale: 0.92 },
-    axe: { group: axe.group, side: 'r', scale: 0.9 },
+    hammer: { group: hammer.group, side: 'r', scale: 1.0 },
+    axe: { group: axe.group, side: 'r', scale: 0.95 },
     spear: { group: spear.group, side: 'r', scale: 0.8 },
     bow: { group: bow.group, side: 'l', scale: 0.9 }
   };
@@ -1020,7 +1041,7 @@ export async function loadMiaHero(options = {}) {
     // bar runs across the palm, so the forearm takes the weight in every clip.
     const basis = new THREE.Matrix4().makeBasis(leftFist.gripAxis, leftFist.sideAxis, leftFist.palmNormal);
     shield.group.quaternion.setFromRotationMatrix(basis);
-    shield.group.scale.setScalar(0.86);
+    shield.group.scale.setScalar(0.95);
     shield.group.position.copy(leftFist.palmCenter);
     leftFist.hand.add(shield.group);
     shield.group.visible = false;

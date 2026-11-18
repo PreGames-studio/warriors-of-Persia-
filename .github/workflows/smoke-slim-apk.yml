@@ -20,8 +20,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  VERSION_NAME: "1.0.23"
-  TAG: v1.0.23
+  VERSION_NAME: "1.0.24"
+  TAG: v1.0.24
   PACKAGE: com.pregames.warriorsofpersia
 
 jobs:
