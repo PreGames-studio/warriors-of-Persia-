@@ -10,11 +10,11 @@ on:
       version_code:
         description: Android versionCode
         required: false
-        default: "20"
+        default: "21"
       version_name:
         description: Android versionName
         required: false
-        default: "1.0.20"
+        default: "1.0.21"
   push:
     branches:
       - arena/c0915d8c-warriors-of-persia
@@ -37,9 +37,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  VERSION_CODE: ${{ github.event.inputs.version_code || '20' }}
-  VERSION_NAME: ${{ github.event.inputs.version_name || '1.0.20' }}
-  TAG: v1.0.20
+  VERSION_CODE: ${{ github.event.inputs.version_code || '21' }}
+  VERSION_NAME: ${{ github.event.inputs.version_name || '1.0.21' }}
+  TAG: v1.0.21
 
 jobs:
   build:
@@ -178,7 +178,7 @@ jobs:
           python - <<'PY'
           import json, re, zipfile
           from pathlib import Path
-          apk = Path('artifacts/releases/WarriorsOfPersia_1.0.20.apk')
+          apk = Path('artifacts/releases/WarriorsOfPersia_1.0.21.apk')
           z = zipfile.ZipFile(apk)
           names = z.namelist()
           assert not any(n.startswith('assets/pbr_hq/') for n in names), 'HQ maps leaked into the APK'
@@ -244,8 +244,8 @@ jobs:
         with:
           name: wop-slim-apk
           path: |
-            artifacts/releases/WarriorsOfPersia_1.0.20.apk
-            artifacts/quality/build-1.0.20*.json
+            artifacts/releases/WarriorsOfPersia_1.0.21.apk
+            artifacts/quality/build-1.0.21*.json
           retention-days: 7
 
       - name: Publish the release

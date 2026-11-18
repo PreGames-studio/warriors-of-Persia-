@@ -2541,6 +2541,9 @@
       lookAhead: 3.2,
       closeHeight: 5.4
     });
+    // Same framing by default; the CI gear showcase pulls the boom in so the
+    // worn weapon and shield are readable in a single screenshot.
+    const villageCameraTuning = { distance: VILLAGE_CAMERA.distance, height: VILLAGE_CAMERA.height };
     let villageCameraYaw = Math.PI;
     let manualCameraLook = false;
     let cameraLookTilt = 0;
@@ -3596,12 +3599,26 @@
       // emulator job can screenshot the gear without playing the game.
       showcase: (kind = 'hammer') => {
         setBagScreenOpen(false);
+        // Close-up from the front: the emulator screenshot has to show the gear.
+        villageCameraTuning.distance = 4.4;
+        villageCameraTuning.height = 2.3;
         state.equipment.weapon = {
           id: kind === 'bow' ? 'bow_arash' : kind === 'spear' ? 'immortal_spear' : kind === 'axe' ? 'battle_axe_double' : 'war_hammer',
           category: 'weapon', type: 'atk', power: 0, title: `showcase-${kind}`,
         };
         state.equipment.shield = { id: 'iron_shield', category: 'shield', type: 'max_hp', power: 0, hpBonus: 0, title: 'showcase-shield' };
+        const leader = state.party[0];
+        if (leader && leader.mesh) {
+          leader.mesh.rotation.y = Math.PI;             // turn her towards the camera
+          if (state.cameraMode === 0) updateVillageThirdPersonCamera(1, true);
+        }
         return syncHeroGear(true);
+      },
+      restoreCamera: () => {
+        villageCameraTuning.distance = VILLAGE_CAMERA.distance;
+        villageCameraTuning.height = VILLAGE_CAMERA.height;
+        if (state.cameraMode === 0) updateVillageThirdPersonCamera(1, true);
+        return true;
       },
       weaponFamilies: () => {
         const mesh = state.party[0] && state.party[0].mesh;
@@ -5187,9 +5204,9 @@
 
     function testVillageCameraBoom(heroPos, yaw) {
       villageCameraBoom.set(Math.sin(yaw), 0, Math.cos(yaw));
-      const distance = state.currentZone === 'village' ? VILLAGE_CAMERA.distance : 20;
+      const distance = state.currentZone === 'village' ? villageCameraTuning.distance : 20;
       villageCameraCandidate.copy(heroPos).addScaledVector(villageCameraBoom, -distance);
-      villageCameraCandidate.y = heroPos.y + (state.currentZone === 'village' ? VILLAGE_CAMERA.height : 13) + cameraLookTilt * distance;
+      villageCameraCandidate.y = heroPos.y + (state.currentZone === 'village' ? villageCameraTuning.height : 13) + cameraLookTilt * distance;
       villageCameraCandidate.y = Math.max(villageCameraCandidate.y, worldHeight(villageCameraCandidate.x, villageCameraCandidate.z) + 1.3);
       return testVillageCameraPath(villageCameraCandidate);
     }
