@@ -180,7 +180,7 @@ log "---- screenshotting the worn gear on the model ----"
 adb shell am force-stop "$PACKAGE"
 sleep 3
 adb logcat -c
-adb shell am start -n "$PACKAGE/.MainActivity" --es wop_gear hammer >/dev/null || fail LAUNCH-FAILED 35
+adb shell am start -n "$PACKAGE/.MainActivity" --es wop_gear radiant >/dev/null || fail LAUNCH-FAILED 35
 gear=""
 for attempt in $(seq 1 12); do
   sleep 8

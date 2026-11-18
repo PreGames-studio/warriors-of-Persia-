@@ -924,11 +924,16 @@ export async function loadMiaHero(options = {}) {
    * Put a prop in a fist. Every model keeps its grip at the local origin, so the
    * same palm/quaternion maths works for the sword, the hammer and the shield.
    */
-  function placeInFist(group, { side = 'r', scale = 0.86, gripOffset = null } = {}) {
+  function placeInFist(group, { side = 'r', scale = 0.86, gripOffset = null, tilt = 0 } = {}) {
     const target = side === 'l' ? leftFist : fist;
     if (!target) return false;
     group.scale.setScalar(scale);
     group.quaternion.copy(gripOrientation(target));
+    if (tilt) {
+      // Swing the prop in the palm before it is placed: the resting wrist makes
+      // a blade hang down, which would bury a hammer or a spear in the floor.
+      group.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), tilt));
+    }
     const offset = (gripOffset || new THREE.Vector3(0, 0, 0))
       .clone()
       .multiplyScalar(scale)
@@ -1026,9 +1031,9 @@ export async function loadMiaHero(options = {}) {
   const weaponLoadout = {
     sword: { group: sword.group, side: 'r', scale: 0.86, gripOffset: new THREE.Vector3(0, -0.093, 0) },
     radiant: { group: radiant.group, side: 'r', scale: 0.86, gripOffset: new THREE.Vector3(0, -0.093, 0) },
-    hammer: { group: hammer.group, side: 'r', scale: 1.0 },
-    axe: { group: axe.group, side: 'r', scale: 0.95 },
-    spear: { group: spear.group, side: 'r', scale: 0.8 },
+    hammer: { group: hammer.group, side: 'r', scale: 1.0, tilt: -1.75 },
+    axe: { group: axe.group, side: 'r', scale: 0.95, tilt: -1.75 },
+    spear: { group: spear.group, side: 'r', scale: 0.8, tilt: -1.55 },
     bow: { group: bow.group, side: 'l', scale: 0.9 }
   };
   Object.entries(weaponLoadout).forEach(([kind, entry]) => {

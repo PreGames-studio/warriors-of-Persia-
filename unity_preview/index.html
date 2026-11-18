@@ -3599,15 +3599,19 @@
       heroGear: () => heroGearState(),
       // CI showcase: put a weapon family (and the shield) on the model so the
       // emulator job can screenshot the gear without playing the game.
-      showcase: (kind = 'hammer') => {
+      showcase: (kind = 'radiant') => {
         setBagScreenOpen(false);
         // Close-up from the front: the emulator screenshot has to show the gear.
         villageCameraTuning.distance = 4.4;
         villageCameraTuning.height = 2.3;
         villageCameraOverride.active = true;
+        const weaponIds = {
+          sword: 'iron_sword', radiant: 'sword_radiant', hammer: 'war_hammer',
+          axe: 'battle_axe_double', spear: 'immortal_spear', bow: 'bow_arash',
+        };
         state.equipment.weapon = {
-          id: kind === 'bow' ? 'bow_arash' : kind === 'spear' ? 'immortal_spear' : kind === 'axe' ? 'battle_axe_double' : 'war_hammer',
-          category: 'weapon', type: 'atk', power: 0, title: `showcase-${kind}`,
+          id: weaponIds[kind] || 'sword_radiant', category: 'weapon', type: 'atk', power: 0,
+          title: `showcase-${kind}`,
         };
         state.equipment.shield = { id: 'iron_shield', category: 'shield', type: 'max_hp', power: 0, hpBonus: 0, title: 'showcase-shield' };
         const leader = state.party[0];
