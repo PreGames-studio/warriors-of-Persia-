@@ -190,11 +190,11 @@ jobs:
           assert b'"hq2k"' in html and b'"pack"' in html, 'texture roots missing'
           assert 'assets/hq2k/stone_albedo.webp' in names
           assert b'WoPPack' in html
-          spells = [n for n in names if n.startswith('assets/spells/') and n.endswith('.png')]
-          assert len(spells) == 4, spells
+          # Shell assets are stored under assets/assets/... and served at /assets/...
           for slug in ('strike', 'orb', 'wave', 'storm'):
-              assert 'assets/spells/%s.png' % slug in names, slug
+              assert 'assets/assets/spells/%s.png' % slug in names, slug
               assert ('assets/spells/%s.png' % slug).encode() in html, slug
+              assert z.read('assets/assets/spells/%s.png' % slug)[:8] == b'\x89PNG\r\n\x1a\n', slug
           for pack in config['packs']:
               assert pack['url'].startswith('https://'), pack
           print(json.dumps({'apkBytes': apk.stat().st_size, 'entries': len(names),
