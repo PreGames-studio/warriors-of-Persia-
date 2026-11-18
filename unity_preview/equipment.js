@@ -41,6 +41,23 @@ export const BAG_ICONS = {
   full_restore: '✨',
 };
 
+/**
+ * Which weapon model Mia holds for a given blacksmith weapon id. Everything not
+ * listed falls back to the shamshir she carries in the base model.
+ */
+export const WEAPON_KINDS = {
+  iron_sword: 'sword',
+  sword_radiant: 'radiant',
+  war_hammer: 'hammer',
+  battle_axe_double: 'axe',
+  immortal_spear: 'spear',
+  bow_arash: 'bow',
+};
+
+export function weaponKindFor(weaponId) {
+  return WEAPON_KINDS[weaponId] || 'sword';
+}
+
 export const emptyEquipment = () => ({
   weapon: null,
   shield: null,

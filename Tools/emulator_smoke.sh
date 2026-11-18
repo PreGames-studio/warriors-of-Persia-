@@ -81,6 +81,15 @@ grep -q 'wornCells[^,}]*6' "$OUT/boot.txt.norm" || fail BAG-WORN-CELLS 21
 grep -q 'bagCells[^,}]*16' "$OUT/boot.txt.norm" || fail BAG-CELL-COUNT 22
 grep -o 'bagTest[^]]*' "$OUT/boot.txt.norm" | tail -1 || true
 
+# The gear on Mia's model must follow the equipment cells.
+grep -q 'heroGear[^}]*weapon' "$OUT/boot.txt.norm" || fail GEAR-MODEL-MISSING 28
+grep -q 'hammer[^,}]*true' "$OUT/boot.txt.norm" || fail GEAR-NO-HAMMER 29
+grep -q 'shieldOn[^,}]*true' "$OUT/boot.txt.norm" || fail GEAR-NO-SHIELD 30
+grep -q 'shieldBare[^,}]*true' "$OUT/boot.txt.norm" || fail GEAR-SHIELD-STUCK 31
+grep -q 'bowHidesShield[^,}]*true' "$OUT/boot.txt.norm" || fail GEAR-BOW-SHIELD 32
+grep -q 'kinds[^,}]*6' "$OUT/boot.txt.norm" || fail GEAR-FAMILIES 33
+grep -q 'weaponFamilies[^]]*spear' "$OUT/boot.txt.norm" || fail GEAR-SPEAR 34
+
 log "---- downloading the HD pack through the shell ----"
 # The autostart extra is read in onCreate, so the running activity must be
 # stopped first: am start on a live task delivers onNewIntent instead.
@@ -157,5 +166,24 @@ adb shell screencap -p /sdcard/inventory.png && adb pull /sdcard/inventory.png "
 sleep 4
 adb shell screencap -p /sdcard/inventory2.png && adb pull /sdcard/inventory2.png "$OUT/inventory2.png" >/dev/null 2>&1 || true
 cp "$OUT/bag.txt.norm" "$OUT/bag-probe.txt" 2>/dev/null || true
+
+log "---- screenshotting the worn gear on the model ----"
+adb shell am force-stop "$PACKAGE"
+sleep 3
+adb logcat -c
+adb shell am start -n "$PACKAGE/.MainActivity" --es wop_gear hammer >/dev/null || fail LAUNCH-FAILED 35
+gear=""
+for attempt in $(seq 1 12); do
+  sleep 8
+  adb logcat -d -s WoP:V >"$OUT/gear.txt" 2>&1 || true
+  normalize "$OUT/gear.txt"
+  if grep -q 'gear-shown[^,]*true' "$OUT/gear.txt.norm"; then gear=1; break; fi
+  log "waiting for the gear showcase ($attempt/12)"
+done
+tail -8 "$OUT/gear.txt.norm" 2>/dev/null || true
+[ -n "$gear" ] || fail GEAR-NOT-SHOWN 36
+sleep 4
+adb shell screencap -p /sdcard/gear.png && adb pull /sdcard/gear.png "$OUT/gear.png" >/dev/null 2>&1 || fail SCREENSHOT-FAILED 37
+[ -s "$OUT/gear.png" ] || fail SCREENSHOT-EMPTY 38
 
 echo "SMOKE OK"

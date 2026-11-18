@@ -8,7 +8,7 @@
  * can be verified before shipping an APK.
  */
 import {
-  BAG_CAPACITY, EQUIP_KEYS, slotForItem,
+  BAG_CAPACITY, EQUIP_KEYS, slotForItem, weaponKindFor,
   emptyEquipment, normalizeEquipment, equipmentPower, createEquipment,
 } from '../../unity_preview/equipment.js';
 
@@ -151,6 +151,16 @@ check(slotForItem({ type: 'hp' }) === null, 'potions stay in the bag');
   check(EQUIP_KEYS.length === 6, 'six equipment cells exist');
   check(BAG_CAPACITY === 16, 'the bag still has 16 cells');
 }
+
+// --- weapon visuals -------------------------------------------------------
+check(weaponKindFor('iron_sword') === 'sword', 'iron sword uses the shamshir model');
+check(weaponKindFor('sword_radiant') === 'radiant', 'radiant sword has its own model');
+check(weaponKindFor('war_hammer') === 'hammer', 'war hammer has its own model');
+check(weaponKindFor('battle_axe_double') === 'axe', 'double axe has its own model');
+check(weaponKindFor('immortal_spear') === 'spear', 'immortal spear has its own model');
+check(weaponKindFor('bow_arash') === 'bow', 'Arash bow has its own model');
+check(weaponKindFor(undefined) === 'sword' && weaponKindFor('unknown') === 'sword',
+  'unknown weapons fall back to the shamshir');
 
 console.log(failures ? `\n${failures} FAILURES` : '\nALL PASS');
 process.exit(failures ? 1 : 0);

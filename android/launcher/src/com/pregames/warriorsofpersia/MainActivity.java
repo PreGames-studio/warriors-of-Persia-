@@ -116,6 +116,35 @@ public class MainActivity extends Activity {
      * equipment/bag screen so the emulator job can screenshot it. The page needs
      * a while to build the hero and the HUD, so retry until the hook exists.
      */
+    /** Optional CI hook: `--es wop_gear hammer` puts a weapon + shield on Mia. */
+    private void maybeShowGear(Intent intent) {
+        if (intent == null || !intent.hasExtra("wop_gear")) return;
+        final String kind = intent.getStringExtra("wop_gear");
+        final int[] tries = {0};
+        final Runnable[] attempt = new Runnable[1];
+        attempt[0] = new Runnable() {
+            @Override
+            public void run() {
+                if (webView == null) return;
+                tries[0]++;
+                webView.evaluateJavascript(
+                        "(window.__wopBag && window.__wopBag.showcase) ? JSON.stringify(window.__wopBag.showcase('" + kind + "')) : 'wait'",
+                        new ValueCallback<String>() {
+                            @Override
+                            public void onReceiveValue(String value) {
+                                Log.i(TAG, "gear-show " + tries[0] + " -> " + value);
+                                if (value != null && value.contains("weapon")) {
+                                    Log.i(TAG, "gear-shown true");
+                                } else if (tries[0] < 25) {
+                                    new Handler(Looper.getMainLooper()).postDelayed(attempt[0], 3000);
+                                }
+                            }
+                        });
+            }
+        };
+        new Handler(Looper.getMainLooper()).postDelayed(attempt[0], 6000);
+    }
+
     private void maybeOpenBag(Intent intent) {
         if (intent == null || !intent.hasExtra("wop_open_bag")) return;
         final int[] tries = {0};
@@ -191,6 +220,7 @@ public class MainActivity extends Activity {
             probe(15000);
             probe(25000);
             maybeOpenBag(getIntent());
+            maybeShowGear(getIntent());
         }
     }
 
@@ -208,6 +238,9 @@ public class MainActivity extends Activity {
                         + "spellMotion:window.__wopSpells?window.__wopSpells.selftest():null,"
                         + "bag:!!window.__wopBag,"
                         + "bagTest:window.__wopBag?window.__wopBag.selftest():null,"
+                        + "heroGear:window.__wopBag?window.__wopBag.heroGear():null,"
+                        + "gearTest:window.__wopBag?window.__wopBag.gearSelftest():null,"
+                        + "weaponFamilies:window.__wopBag?window.__wopBag.weaponFamilies():null,"
                         + "status:window.WoPPack?window.WoPPack.status():null,origin:location.origin};"
                         + "return JSON.stringify(r);}catch(e){return 'probe-error:'+e.message;}})()",
                         new ValueCallback<String>() {

@@ -587,6 +587,9 @@ export function createPersianVillageKit(THREE) {
       contactShadow.material.opacity = .85 - Math.min(.3, Math.abs(speed) * .05);
     };
     group.userData.playAction = (name) => (hero ? hero.playOneShot(name) : null);
+    // Gear the player is wearing: the weapon family and the off-hand shield.
+    group.userData.setGear = (gear) => (hero && hero.setGear ? hero.setGear(gear) : null);
+    group.userData.gearState = () => (hero && hero.gear ? hero.gear() : null);
     group.userData.getMia = () => hero;
     group.userData.actualSpeed = 0;
     // Dedicated node for spell-cast body motion (lunge, spin, leap). Movement

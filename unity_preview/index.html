@@ -3527,6 +3527,26 @@
       },
     };
 
+    // The hero model only swaps when something is actually worn; the signature
+    // keeps it to a few string comparisons per frame.
+    let gearSignature = '';
+    function heroGearState() {
+      const mesh = state.party[0] && state.party[0].mesh;
+      return mesh && mesh.userData && typeof mesh.userData.gearState === 'function'
+        ? mesh.userData.gearState()
+        : null;
+    }
+    function syncHeroGear(force = false) {
+      const gear = state.equipment || {};
+      const signature = EQUIP_KEYS.map((key) => (gear[key] && gear[key].id) || '-').join('|');
+      if (!force && signature === gearSignature) return heroGearState();
+      const mesh = state.party[0] && state.party[0].mesh;
+      const apply = mesh && mesh.userData && mesh.userData.setGear;
+      if (typeof apply !== 'function') return null;
+      gearSignature = signature;
+      return apply(gear) || heroGearState();
+    }
+
     // Test/inspection hook: proves the equipment cells really exist and that
     // wearing a sword/shield costs zero bag cells.
     window.__wopBag = {
@@ -3570,6 +3590,59 @@
           hero: measure('#inv-hero-panel'),
           weapon: measure('#inv-gear-secondary'),
         };
+      },
+      heroGear: () => heroGearState(),
+      // CI showcase: put a weapon family (and the shield) on the model so the
+      // emulator job can screenshot the gear without playing the game.
+      showcase: (kind = 'hammer') => {
+        setBagScreenOpen(false);
+        state.equipment.weapon = {
+          id: kind === 'bow' ? 'bow_arash' : kind === 'spear' ? 'immortal_spear' : kind === 'axe' ? 'battle_axe_double' : 'war_hammer',
+          category: 'weapon', type: 'atk', power: 0, title: `showcase-${kind}`,
+        };
+        state.equipment.shield = { id: 'iron_shield', category: 'shield', type: 'max_hp', power: 0, hpBonus: 0, title: 'showcase-shield' };
+        return syncHeroGear(true);
+      },
+      weaponFamilies: () => {
+        const mesh = state.party[0] && state.party[0].mesh;
+        const mia = mesh && mesh.userData && mesh.userData.getMia ? mesh.userData.getMia() : null;
+        return mia && Array.isArray(mia.weaponKinds) ? mia.weaponKinds : null;
+      },
+      gearSelftest: () => {
+        const saved = normalizeEquipment(state.equipment);
+        const savedAtk = state.party[0].atk;
+        const savedHp = state.party[0].hpMax;
+        const result = { ready: false };
+        try {
+          if (!heroGearState()) return { ready: false, reason: 'model-not-ready' };
+          state.equipment = emptyEquipment();
+          state.equipment.weapon = { id: 'war_hammer', category: 'weapon', type: 'atk', power: 0, title: 'hammer' };
+          state.equipment.shield = { id: 'iron_shield', category: 'shield', type: 'max_hp', power: 0, hpBonus: 0, title: 'shield' };
+          const withGear = syncHeroGear(true) || {};
+          state.equipment = emptyEquipment();
+          const bare = syncHeroGear(true) || {};
+          state.equipment.weapon = { id: 'bow_arash', category: 'weapon', type: 'atk', power: 0, title: 'bow' };
+          state.equipment.shield = { id: 'iron_shield', category: 'shield', type: 'max_hp', power: 0, hpBonus: 0, title: 'shield' };
+          const withBow = syncHeroGear(true) || {};
+          Object.assign(result, {
+            ready: true,
+            hammer: withGear.weapon === 'hammer',
+            shieldOn: withGear.shield === true,
+            shieldBare: bare.shield === false,
+            bow: withBow.weapon === 'bow',
+            bowHidesShield: withBow.shield === false,
+            kinds: (() => {
+              const mia = state.party[0].mesh.userData.getMia ? state.party[0].mesh.userData.getMia() : null;
+              return mia && Array.isArray(mia.weaponKinds) ? mia.weaponKinds.length : 0;
+            })(),
+          });
+        } finally {
+          state.equipment = saved;
+          state.party[0].atk = savedAtk;
+          state.party[0].hpMax = savedHp;
+          syncHeroGear(true);
+        }
+        return result;
       },
       selftest: () => {
         const leader = state.party[0];
@@ -5186,6 +5259,7 @@
       requestAnimationFrame(animate);
       const dt = Math.min(clock.getDelta(), 0.1);
       heroSpells.update(dt);
+      syncHeroGear();
       const elapsed = clock.getElapsedTime();
       shadowRefreshTimer -= dt;
       if (shadowRefreshTimer <= 0) {
