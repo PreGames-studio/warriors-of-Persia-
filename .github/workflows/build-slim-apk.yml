@@ -319,6 +319,26 @@ jobs:
           # only expands $APK_PATH (exported above) inside bash.
           script: bash -o pipefail -c 'bash Tools/emulator_smoke.sh "$APK_PATH" 2>&1 | tee "$RUNNER_TEMP/smoke.log"'
 
+      - name: Publish the screenshots to the branch
+        if: success()
+        run: |
+          set -euo pipefail
+          mkdir -p docs/releases/verification
+          for name in inventory spells; do
+            if [ -f "${{ runner.temp }}/$name.png" ]; then
+              cp "${{ runner.temp }}/$name.png" "docs/releases/verification/$name.png"
+            fi
+          done
+          if [ -z "$(git status --porcelain docs/releases/verification)" ]; then
+            echo "no new screenshots"
+            exit 0
+          fi
+          git config user.name "wop-ci"
+          git config user.email "ci@users.noreply.github.com"
+          git add docs/releases/verification
+          git commit -m "docs: emulator screenshots from run $GITHUB_RUN_ID"
+          git push
+
       - name: Keep the screenshots
         if: always()
         uses: actions/upload-artifact@v4

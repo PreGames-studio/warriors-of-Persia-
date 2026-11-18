@@ -3,7 +3,8 @@ name: Emulator smoke test of the published APK
 # Re-runnable check (no rebuild): installs the APK that is already published, boots it on an emulator, checks that
 # the WebView shell really runs the game, then downloads the HD graphics pack
 # through the game itself and confirms the textures switch over after a relaunch.
-# Also screenshots the new equipment/bag screen (artifact wop-emulator-shots).
+# Also screenshots the new equipment/bag screen (artifact wop-emulator-shots)
+# and commits those screenshots under docs/releases/verification/.
 on:
   workflow_dispatch:
   push:
@@ -61,6 +62,26 @@ jobs:
           disable-animations: true
           script: |
             bash -o pipefail -c 'bash Tools/emulator_smoke.sh "apk/WarriorsOfPersia_${VERSION_NAME}.apk" 2>&1 | tee "$RUNNER_TEMP/smoke.log"'
+
+      - name: Publish the screenshots to the branch
+        if: success()
+        run: |
+          set -euo pipefail
+          mkdir -p docs/releases/verification
+          for name in inventory spells; do
+            if [ -f "${{ runner.temp }}/$name.png" ]; then
+              cp "${{ runner.temp }}/$name.png" "docs/releases/verification/$name.png"
+            fi
+          done
+          if [ -z "$(git status --porcelain docs/releases/verification)" ]; then
+            echo "no new screenshots"
+            exit 0
+          fi
+          git config user.name "wop-ci"
+          git config user.email "ci@users.noreply.github.com"
+          git add docs/releases/verification
+          git commit -m "docs: emulator screenshots from run $GITHUB_RUN_ID"
+          git push
 
       - name: Keep the screenshots
         if: always()
