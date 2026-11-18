@@ -8,6 +8,7 @@ on:
   push:
     branches:
       - arena/c0915d8c-warriors-of-persia
+      - arena/c0915d8c-warriors-of-Persia
     paths:
       - ".github/workflows/smoke-slim-apk.yml"
       - "Tools/emulator_smoke.sh"
@@ -20,8 +21,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  VERSION_NAME: "1.0.16"
-  TAG: v1.0.16
+  VERSION_NAME: "1.0.17"
+  TAG: v1.0.17
   PACKAGE: com.pregames.warriorsofpersia
 
 jobs:
@@ -59,6 +60,18 @@ jobs:
           disable-animations: true
           script: |
             bash -o pipefail -c 'bash Tools/emulator_smoke.sh "apk/WarriorsOfPersia_${VERSION_NAME}.apk" 2>&1 | tee "$RUNNER_TEMP/smoke.log"'
+
+      - name: Keep the screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wop-emulator-shots
+          path: |
+            ${{ runner.temp }}/inventory.png
+            ${{ runner.temp }}/spells.png
+            ${{ runner.temp }}/pack.png
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Surface the failure
         if: failure()

@@ -10,6 +10,14 @@
 set -uo pipefail
 
 APK="${1:?usage: emulator_smoke.sh <apk>}"
+# Accept a directory too: the CI artifact download layout has moved before and
+# an empty APK path used to fail with a bare "usage" line instead of a reason.
+if [ -d "$APK" ]; then
+  APK="$(find "$APK" -name 'WarriorsOfPersia_*.apk' -print -quit)"
+  [ -n "$APK" ] || { echo "APK-MISSING: no APK under $1"; exit 2; }
+fi
+[ -f "$APK" ] || { echo "APK-MISSING: $APK is not a file"; exit 2; }
+echo "[smoke] using $APK"
 PACKAGE="com.pregames.warriorsofpersia"
 OUT="${RUNNER_TEMP:-/tmp}"
 mkdir -p "$OUT"
@@ -57,6 +65,15 @@ grep -q 'moved[^,}]*true' "$OUT/boot.txt.norm" || fail SPELL-NO-MOTION 15
 grep -q 'settled[^,}]*true' "$OUT/boot.txt.norm" || fail SPELL-POSE-STUCK 16
 adb shell screencap -p /sdcard/spells.png && adb pull /sdcard/spells.png "$OUT/spells.png" >/dev/null 2>&1 || true
 
+# Inventory: sword/shield/armour cells must exist and cost zero bag cells.
+grep -q 'bag[^,]*true' "$OUT/boot.txt.norm" || fail BAG-MISSING 17
+grep -q 'bagUnchanged[^,}]*true' "$OUT/boot.txt.norm" || fail BAG-CELL-CONSUMED 18
+grep -q 'weaponSet[^,}]*true' "$OUT/boot.txt.norm" || fail BAG-NO-WEAPON-SLOT 19
+grep -q 'shieldSet[^,}]*true' "$OUT/boot.txt.norm" || fail BAG-NO-SHIELD-SLOT 20
+grep -q 'wornCells[^,}]*6' "$OUT/boot.txt.norm" || fail BAG-WORN-CELLS 21
+grep -q 'bagCells[^,}]*16' "$OUT/boot.txt.norm" || fail BAG-CELL-COUNT 22
+grep -o 'bagTest[^]]*' "$OUT/boot.txt.norm" | tail -1 || true
+
 log "---- downloading the HD pack through the shell ----"
 # The autostart extra is read in onCreate, so the running activity must be
 # stopped first: am start on a live task delivers onNewIntent instead.
@@ -94,5 +111,17 @@ tail -20 "$OUT/installed.txt.norm"
 grep -q 'installed[^,]*true' "$OUT/installed.txt.norm" || fail PACK-NOT-ACTIVE 12
 grep -q 'tier[^,]*hd' "$OUT/installed.txt.norm" || log "warning: tier not reported as hd"
 adb shell screencap -p /sdcard/pack.png && adb pull /sdcard/pack.png "$OUT/pack.png" >/dev/null 2>&1 || true
+
+log "---- screenshotting the equipment / bag screen ----"
+adb shell am force-stop "$PACKAGE"
+sleep 3
+adb logcat -c
+adb shell am start -n "$PACKAGE/.MainActivity" --es wop_open_bag keep >/dev/null || fail LAUNCH-FAILED 23
+sleep 45
+adb logcat -d -s WoP:V >"$OUT/bag.txt" 2>&1 || true
+normalize "$OUT/bag.txt"
+grep -q 'bag-opened[^ ]* *true' "$OUT/bag.txt.norm" || log "warning: bag open not confirmed"
+adb shell screencap -p /sdcard/inventory.png && adb pull /sdcard/inventory.png "$OUT/inventory.png" >/dev/null 2>&1 || fail SCREENSHOT-FAILED 24
+[ -s "$OUT/inventory.png" ] || fail SCREENSHOT-EMPTY 25
 
 echo "SMOKE OK"

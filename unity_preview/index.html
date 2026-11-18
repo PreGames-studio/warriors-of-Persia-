@@ -1216,13 +1216,349 @@
 .minimap-card.expanded { position:fixed!important; inset:4vh auto auto 50%!important; transform:translateX(-50%); width:min(90vw,78vh)!important; max-height:92vh; z-index:150; background:#151c17; box-shadow:0 0 0 100vmax #000a; }
 .minimap-card.expanded #minimap-canvas { width:100%; height:auto; aspect-ratio:1; }
 #minimap-canvas { cursor:zoom-in; } .expanded #minimap-canvas { cursor:zoom-out; }
+</style>
+<style>
+  /* ==================================================================
+     INVENTORY / PAPER-DOLL EQUIPMENT SCREEN
+     Sword and shield (and the other worn gear) live in their own slots
+     beside Mia, so they never eat the 16 bag cells.
+     ================================================================== */
+  #modal-inventory {
+    padding: 0;
+    align-items: stretch;
+    justify-content: stretch;
+    background: rgba(6, 5, 4, .82);
+    backdrop-filter: blur(6px);
+    direction: rtl;
+  }
+  .iv-screen {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    color: #e8ddc9;
+    font-family: 'Vazirmatn', 'Lalezar', Tahoma, sans-serif;
+    background:
+      radial-gradient(120% 90% at 50% -10%, rgba(94, 66, 32, .55) 0%, rgba(26, 21, 16, .92) 48%, rgba(9, 8, 7, .98) 100%),
+      linear-gradient(180deg, #14110e, #0a0908);
+    overflow: hidden;
+  }
+  .iv-top {
+    display: flex;
+    align-items: center;
+    gap: clamp(5px, .8vw, 12px);
+    padding: clamp(4px, .7vh, 9px) clamp(8px, 1.4vw, 20px);
+    border-bottom: 1px solid rgba(214, 158, 74, .34);
+    background: linear-gradient(180deg, #241d15 0%, #15110d 100%);
+    flex-wrap: wrap;
+  }
+  .iv-title {
+    font-size: clamp(11px, 1.25vw, 16px);
+    font-weight: 800;
+    color: #f2d9a6;
+    letter-spacing: .3px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .iv-title svg { width: 1.1em; height: 1.1em; fill: #e0ad57; }
+  .iv-title small {
+    font-size: .78em;
+    font-weight: 600;
+    color: #b8a07a;
+  }
+  .iv-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px clamp(5px, .6vw, 9px);
+    border: 1px solid rgba(214, 158, 74, .35);
+    border-radius: 4px;
+    background: rgba(214, 158, 74, .09);
+    color: #ecd3a2;
+    font-size: clamp(9px, .95vw, 12px);
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .iv-chip.gold { color: #ffd77a; border-color: rgba(255, 199, 92, .5); }
+  .iv-close {
+    margin-inline-start: auto;
+    padding: 3px clamp(8px, 1vw, 14px) !important;
+    font-size: clamp(9px, 1vw, 12px) !important;
+  }
+  .iv-body {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1.18fr) minmax(0, .84fr) minmax(0, .82fr);
+    gap: clamp(6px, 1vw, 16px);
+    padding: clamp(6px, 1vh, 14px) clamp(8px, 1.4vw, 20px);
+    overflow: hidden;
+  }
+  .iv-col {
+    min-height: 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(5px, .7vh, 9px);
+    overflow-y: auto;
+    padding-inline-end: 2px;
+  }
+  .iv-sec {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 6px;
+    padding-bottom: 3px;
+    border-bottom: 1px solid rgba(214, 158, 74, .2);
+    font-size: clamp(9px, 1vw, 12.5px);
+    font-weight: 800;
+    color: #d8bd8c;
+    letter-spacing: .4px;
+  }
+  .iv-sec span { font-weight: 600; color: #9c8a6c; }
+  .iv-sec .iv-count {
+    font-size: .86em;
+    font-weight: 700;
+    color: #9c8a6c;
+    letter-spacing: 0;
+  }
+  .iv-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(5px, .7vw, 10px);
+  }
+  .iv-slot {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    border-radius: 5px;
+    border: 1px solid rgba(214, 158, 74, .32);
+    background:
+      linear-gradient(180deg, rgba(52, 42, 30, .85) 0%, rgba(20, 16, 12, .94) 100%);
+    box-shadow: inset 0 0 18px rgba(0, 0, 0, .55);
+    overflow: hidden;
+    cursor: pointer;
+    padding: 0;
+    color: #e8ddc9;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 120ms ease, transform 90ms ease;
+  }
+  .iv-slot:active { transform: scale(.97); }
+  .iv-slot:hover { border-color: rgba(232, 176, 88, .75); }
+  .iv-slot.filled {
+    border-color: rgba(232, 176, 88, .8);
+    box-shadow: inset 0 0 16px rgba(0, 0, 0, .5), 0 0 10px rgba(214, 158, 74, .22);
+  }
+  .iv-slot img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+  }
+  .iv-slot .iv-emoji {
+    font-size: clamp(16px, 2vw, 26px);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, .8));
+  }
+  .iv-slot .iv-slot-name {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    padding: 1px 3px 2px;
+    background: linear-gradient(180deg, rgba(8, 7, 6, 0) 0%, rgba(8, 7, 6, .92) 55%);
+    font-size: clamp(7.5px, .82vw, 10px);
+    font-weight: 700;
+    line-height: 1.25;
+    text-align: center;
+    color: #f3e6cd;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, .95);
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .iv-slot .iv-slot-tag {
+    position: absolute;
+    top: 2px;
+    inset-inline-start: 2px;
+    padding: 0 3px;
+    border-radius: 3px;
+    background: rgba(8, 7, 6, .82);
+    border: 1px solid rgba(214, 158, 74, .45);
+    font-size: clamp(7px, .75vw, 9.5px);
+    font-weight: 800;
+    color: #ffd77a;
+    direction: ltr;
+  }
+  .iv-slot .iv-slot-tag.def { color: #9fd0ff; border-color: rgba(120, 180, 255, .45); }
+  .iv-slot .iv-slot-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    font-size: clamp(7.5px, .8vw, 9.5px);
+    color: #8d7c62;
+    font-weight: 700;
+    text-align: center;
+    padding: 2px;
+  }
+  .iv-slot .iv-slot-empty b {
+    font-size: clamp(11px, 1.4vw, 18px);
+    color: rgba(214, 158, 74, .5);
+    font-weight: 400;
+    line-height: 1;
+  }
+  .iv-bag {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: clamp(4px, .6vw, 8px);
+  }
+  .iv-bag .iv-slot { aspect-ratio: 1 / 1; }
+  .iv-bag .iv-slot.empty {
+    cursor: default;
+    border-style: dashed;
+    border-color: rgba(160, 140, 110, .22);
+    background: rgba(14, 12, 10, .55);
+    box-shadow: inset 0 0 12px rgba(0, 0, 0, .5);
+  }
+  .iv-bag .iv-slot.used {
+    border-color: rgba(120, 200, 160, .5);
+  }
+  .iv-hero {
+    position: relative;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    overflow: hidden;
+    background: radial-gradient(62% 55% at 50% 44%, rgba(150, 108, 52, .32) 0%, rgba(10, 9, 8, 0) 72%);
+    border: 1px solid rgba(214, 158, 74, .16);
+  }
+  .iv-hero::after {
+    content: '';
+    position: absolute;
+    inset-inline: 8%;
+    bottom: 2px;
+    height: 26%;
+    background: radial-gradient(50% 100% at 50% 100%, rgba(0, 0, 0, .72) 0%, rgba(0, 0, 0, 0) 72%);
+    pointer-events: none;
+  }
+  .iv-hero img {
+    max-width: 100%;
+    max-height: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 10px 22px rgba(0, 0, 0, .75)) saturate(1.04) contrast(1.03);
+    -webkit-mask-image: radial-gradient(72% 76% at 50% 48%, #000 60%, rgba(0, 0, 0, .35) 84%, transparent 100%);
+    mask-image: radial-gradient(72% 76% at 50% 48%, #000 60%, rgba(0, 0, 0, .35) 84%, transparent 100%);
+  }
+  .iv-hero-info {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    padding: 6px 8px 7px;
+    text-align: center;
+    background: linear-gradient(180deg, rgba(8, 7, 6, 0) 0%, rgba(8, 7, 6, .9) 70%);
+    z-index: 2;
+  }
+  .iv-hero-name {
+    font-size: clamp(10px, 1.2vw, 15px);
+    font-weight: 800;
+    color: #f4e2bf;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, .9);
+  }
+  .iv-hero-sub {
+    display: flex;
+    justify-content: center;
+    gap: clamp(4px, .7vw, 10px);
+    font-size: clamp(8.5px, .9vw, 11.5px);
+    color: #c8b391;
+    margin-top: 2px;
+    flex-wrap: wrap;
+  }
+  .iv-hero-sub b { color: #ffd77a; }
+  .iv-hero-sub .hp { color: #ff9c9c; }
+  .iv-hero-sub .mp { color: #9fc8ff; }
+  .iv-gear {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(5px, .7vw, 10px);
+  }
+  .iv-total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 8px;
+    border-radius: 5px;
+    border: 1px solid rgba(214, 158, 74, .28);
+    background: rgba(214, 158, 74, .07);
+    font-size: clamp(8.5px, .9vw, 11.5px);
+    color: #cbb28a;
+  }
+  .iv-total b {
+    font-size: clamp(13px, 1.7vw, 22px);
+    font-weight: 800;
+    color: #ffd77a;
+  }
+  .iv-hint {
+    display: flex;
+    align-items: center;
+    gap: clamp(6px, 1vw, 16px);
+    padding: clamp(4px, .6vh, 8px) clamp(8px, 1.4vw, 20px);
+    border-top: 1px solid rgba(214, 158, 74, .22);
+    background: rgba(10, 9, 8, .7);
+    font-size: clamp(8px, .85vw, 10.5px);
+    color: #97866a;
+    flex-wrap: wrap;
+  }
+  .iv-hint kbd {
+    padding: 0 4px;
+    border: 1px solid rgba(214, 158, 74, .35);
+    border-radius: 3px;
+    background: rgba(214, 158, 74, .1);
+    color: #e3c795;
+    font-family: inherit;
+    font-size: .95em;
+  }
+  .iv-toast {
+    position: absolute;
+    inset-inline: 0;
+    top: 52px;
+    margin: auto;
+    width: max-content;
+    max-width: 80%;
+    padding: 5px 12px;
+    border-radius: 5px;
+    background: rgba(12, 10, 8, .94);
+    border: 1px solid rgba(214, 158, 74, .5);
+    color: #ffe4b0;
+    font-size: clamp(9px, 1vw, 12px);
+    font-weight: 700;
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity 160ms ease, transform 160ms ease;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .iv-toast.show { opacity: 1; transform: translateY(0); }
+  @media (max-height: 430px) {
+    .iv-hero-info { padding: 3px 6px 4px; }
+    .iv-hero-sub { font-size: 8px; }
+    .iv-slot .iv-slot-name { font-size: 7px; }
+    .iv-hint { display: none; }
+  }
 </style></head>
 <body>
 
   <!-- TOP BAR: only the two persistent player actions remain visible. -->
   <div class="app-topbar">
     <div class="nav-group topbar-actions">
-      <button class="top-btn emerald" id="btn-open-inventory">🎒 کیف (<span id="badge-inv-count">1</span>)</button>
+      <button class="top-btn emerald" id="btn-open-inventory" title="کیف و تجهیزات میا"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:12px;height:12px;fill:currentColor;vertical-align:-1px;margin-inline-end:4px"><path d="M9 3h6l1 3h3a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h3l1-3zm-1 6H6v10h12V9h-2v3a1 1 0 0 1-2 0V9h-4v3a1 1 0 0 1-2 0V9z"/></svg>کیف (<span id="badge-inv-count">1</span>)</button>
       <button class="top-btn emerald" id="btn-manual-save" title="ذخیره فوری لول، سکه و تجهیزات">💾 ذخیره</button>
     </div>
   </div>
@@ -1436,19 +1772,66 @@
     </div>
   </div>
 
-  <!-- ================= MODAL 2: INVENTORY (کیف ۱۶ خانه‌ای) ================= -->
+  <!-- ============ MODAL 2: EQUIPMENT + BAG (paper-doll, 16 bag cells) ============ -->
   <div class="modal-backdrop" id="modal-inventory">
-    <div class="modal-window">
-      <div class="modal-win-header">
-        <span>🎒 کیف آیتم‌ها و کریستال‌های همراه (۱۶ خانه)</span>
-        <button class="top-btn" data-close="modal-inventory">✖ بستن</button>
-      </div>
-      <div class="modal-win-body">
-        <div class="shop-banner">
-          <span id="inv-crystals-summary">کریستال‌های همراه تیم: ۲ عدد</span>
+    <div class="iv-screen" role="dialog" aria-modal="true" aria-label="تجهیزات و کیف میا">
+      <div class="iv-top">
+        <div class="iv-title">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 3h3a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h3l1-3zm-1 6H6v10h12V9h-2v3a1 1 0 0 1-2 0V9h-4v3a1 1 0 0 1-2 0V9z"/></svg>
+          تجهیزات و کیف میا
+          <small>سلاح و سپر جای خودشان</small>
         </div>
-        <div class="inv-grid" id="inv-slots-grid"></div>
+        <span class="iv-chip gold">🪙 <span id="inv-gold-value">0</span></span>
+        <span class="iv-chip">🎒 کیف <span id="inv-bag-count">0</span>/۱۶</span>
+        <span class="iv-chip" id="inv-crystals-summary">💎 ۰ کریستال</span>
+        <button class="top-btn iv-close" data-close="modal-inventory">✖ بستن</button>
       </div>
+
+      <div class="iv-body">
+        <!-- LEFT: equipped weapon pair + the 16 bag cells -->
+        <section class="iv-col">
+          <div class="iv-sec">سلاح و سپر <span class="iv-count" id="inv-weapon-count">۰/۲</span></div>
+          <div class="iv-pair" id="inv-gear-secondary"></div>
+
+          <div class="iv-sec">کیف (لوازم مصرفی) <span class="iv-count" id="inv-bag-title">۰/۱۶</span></div>
+          <div class="iv-bag" id="inv-slots-grid"></div>
+        </section>
+
+        <!-- CENTER: Mia -->
+        <section class="iv-hero" id="inv-hero-panel">
+          <img id="inv-hero-art" src="./assets/hero/mia_hero.png" alt="میا" draggable="false" />
+          <div class="iv-hero-info">
+            <div class="iv-hero-name" id="inv-hero-name">میا شمشیرزن</div>
+            <div class="iv-hero-sub">
+              <span>سطح <b id="inv-hero-level">۱</b></span>
+              <span class="hp">❤️ <b id="inv-hero-hp">۰</b></span>
+              <span class="mp">💧 <b id="inv-hero-mp">۰</b></span>
+              <span>⚔️ <b id="inv-hero-atk">۰</b></span>
+            </div>
+          </div>
+        </section>
+
+        <!-- RIGHT: worn gear slots -->
+        <section class="iv-col">
+          <div class="iv-sec">تجهیزات پوشیده <span class="iv-count" id="inv-gear-count">۰/۴</span></div>
+          <div class="iv-gear" id="inv-gear-primary"></div>
+          <div class="iv-total">
+            <span>قدرت تجهیزات</span>
+            <b id="inv-gear-power">۰</b>
+          </div>
+          <div class="iv-sec">راهنما</div>
+          <div class="iv-hint" style="border:0; padding:0; background:none;">
+            لمس هر خانهٔ تجهیزات = درآوردن و برگشت به کیف · لمس آیتم کیف = مصرف یا پوشیدن
+          </div>
+        </section>
+      </div>
+
+      <div class="iv-hint">
+        <span><kbd>لمس</kbd> پوشیدن / درآوردن</span>
+        <span><kbd>+</kbd> خرید از آهنگری مستقیم به خانهٔ خودش می‌رود</span>
+        <span id="inv-last-action">خانه‌های تجهیزات از ۱۶ خانهٔ کیف جدا هستند</span>
+      </div>
+      <div class="iv-toast" id="inv-toast"></div>
     </div>
   </div>
 
@@ -1534,6 +1917,10 @@
     import { createPersianVillageKit } from './village-theme.js';
     import { mountGraphicsPack } from './graphics-pack.js';
     import { createHeroSpells, HERO_SPELLS } from './hero-spells.js';
+    import {
+      BAG_CAPACITY, EQUIP_SLOTS, EQUIP_KEYS, CATEGORY_TO_SLOT, BAG_ICONS,
+      emptyEquipment, slotForItem, itemBonuses, equipmentPower, normalizeEquipment, createEquipment
+    } from './equipment.js';
 
     // The Android shell exposes window.WoPPack; in a browser this is a no-op.
     mountGraphicsPack();
@@ -1796,6 +2183,9 @@
         { type: 'medium', title: 'کریستال تابناک (Lv.2)', level: 2, coinValue: 250 }
       ],
       inventory: [ { ...SHOP_CATALOG[0] } ],
+      // Worn gear lives here, never in the bag: the sword and shield get their
+      // own cells so the 16 backpack cells stay free for consumables.
+      equipment: { weapon: null, shield: null, helmet: null, chest: null, gauntlets: null, boots: null },
       skillCooldowns: [0, 0, 0, 0],
       basicAttackCd: 0,
       cameraMode: 0, // 0 = Third-person follow, 1 = Top-down, 2 = Free orbit
@@ -1818,6 +2208,19 @@
         }
       ]
     };
+
+    // =====================================================================
+    // EQUIPMENT (paper-doll) — rules live in equipment.js so they can be tested
+    // =====================================================================
+    const equipmentApi = createEquipment({
+      state,
+      onChange: () => updateHeroStatsHUD(),
+      onToast: (message, color) => showToast(message, color),
+    });
+    const equipItem = equipmentApi.equipItem;
+    const unequipSlot = equipmentApi.unequipSlot;
+    const equipFromBag = equipmentApi.equipFromBag;
+    const applyItemBonuses = equipmentApi.applyItemBonuses;
 
     const guildServices = createGuildServices({state, onSave: saveGameProgress, onChange: updateHeroStatsHUD, onToast: showToast});
     const merchantShop = createMerchantShop({
@@ -1873,6 +2276,7 @@
         enemyRespawns: state.enemyRespawns,
         crystals: Array.isArray(state.crystals) ? state.crystals : [],
         inventory: Array.isArray(state.inventory) ? state.inventory : [],
+        equipment: normalizeEquipment(state.equipment),
         cameraMode: Number(state.cameraMode) || 0,
         heroPos,
         party: state.party.map(m => ({
@@ -1937,6 +2341,14 @@
       state.enemyRespawns = restoreEnemyRespawns(data.enemyRespawns);
       state.crystals = Array.isArray(data.crystals) ? data.crystals : [];
       state.inventory = Array.isArray(data.inventory) ? data.inventory.map(item=>({...item,title:mpDisplayName(item.title),desc:mpDisplayName(item.desc)})) : [];
+      const hadEquipment = !!data.equipment && typeof data.equipment === 'object';
+      state.equipment = normalizeEquipment(data.equipment);
+      if (hadEquipment) {
+        EQUIP_KEYS.forEach(key => {
+          const item = state.equipment[key];
+          if (item) state.equipment[key] = { ...item, title: mpDisplayName(item.title), desc: mpDisplayName(item.desc) };
+        });
+      }
       state.cameraMode = Number(data.cameraMode) || 0;
       state.savedHeroPos = data.heroPos || null;
 
@@ -1959,6 +2371,9 @@
       }));
 
       state.party.forEach(member=>recoverMP(member));
+      // Old saves kept bought gear in the bag (stats already applied). Move it
+      // into the worn cells now that the hero exists, without paying twice.
+      if (!hadEquipment) equipmentApi.migrateFromBag();
       if (rebuild3D) {
         loadZone3D(state.currentZone, state.dungeonTier, state.savedHeroPos);
       }
@@ -3033,6 +3448,62 @@
       },
     };
 
+    // Test/inspection hook: proves the equipment cells really exist and that
+    // wearing a sword/shield costs zero bag cells.
+    window.__wopBag = {
+      summary: () => ({
+        bag: state.inventory.length,
+        worn: EQUIP_KEYS.filter(key => state.equipment[key]).length,
+        weapon: state.equipment.weapon ? state.equipment.weapon.id : null,
+        shield: state.equipment.shield ? state.equipment.shield.id : null,
+      }),
+      open: () => {
+        refreshInventoryModal();
+        const modal = document.getElementById('modal-inventory');
+        if (modal) modal.classList.add('open');
+        return !!modal;
+      },
+      close: () => {
+        const modal = document.getElementById('modal-inventory');
+        if (modal) modal.classList.remove('open');
+      },
+      selftest: () => {
+        const leader = state.party[0];
+        const modal = document.getElementById('modal-inventory');
+        const savedEquipment = normalizeEquipment(state.equipment);
+        const savedBag = state.inventory.slice();
+        const before = { bag: savedBag.length, atk: leader.atk, hpMax: leader.hpMax };
+        let result = { ready: false };
+        try {
+          state.equipment = emptyEquipment();
+          equipItem({ id: 'iron_sword', category: 'weapon', type: 'atk', power: 18, hpBonus: 0, title: 'test-sword' }, { quiet: true });
+          equipItem({ id: 'iron_shield', category: 'shield', type: 'max_hp', power: 45, hpBonus: 45, title: 'test-shield' }, { quiet: true });
+          if (modal) modal.classList.add('open');
+          refreshInventoryModal();
+          result = {
+            ready: true,
+            bagUnchanged: state.inventory.length === before.bag,
+            weaponSet: !!state.equipment.weapon && state.equipment.weapon.id === 'iron_sword',
+            shieldSet: !!state.equipment.shield && state.equipment.shield.id === 'iron_shield',
+            atkGain: leader.atk - before.atk,
+            hpGain: leader.hpMax - before.hpMax,
+            wornCells: document.querySelectorAll('#inv-gear-secondary .iv-slot, #inv-gear-primary .iv-slot').length,
+            bagCells: document.querySelectorAll('#inv-slots-grid .iv-slot').length,
+          };
+        } finally {
+          state.equipment = savedEquipment;
+          state.inventory = savedBag;
+          leader.atk = before.atk;
+          leader.hpMax = before.hpMax;
+          leader.hp = Math.min(leader.hp, leader.hpMax);
+          if (modal) modal.classList.remove('open');
+          updateHeroStatsHUD();
+          refreshInventoryModal();
+        }
+        return result;
+      },
+    };
+
     // Real artwork when it is present, the emoji stand-in otherwise.
     document.querySelectorAll('.skill-btn').forEach((btn, index) => {
       const spell = HERO_SPELLS[index];
@@ -3251,42 +3722,184 @@
       openShopModal();
     });
 
-    function refreshInventoryModal() {
-      const totalVal = state.crystals.reduce((s, c) => s + c.coinValue, 0);
-      document.getElementById('inv-crystals-summary').textContent =
-        `کریستال‌های همراه تیم: ${state.crystals.length} عدد (ارزش فروش در جواهرفروشی روستا: ${totalVal} سکه)`;
+    function inventoryToast(message) {
+      const box = document.getElementById('inv-toast');
+      const line = document.getElementById('inv-last-action');
+      if (line) line.textContent = message;
+      if (!box) return;
+      box.textContent = message;
+      box.classList.add('show');
+      clearTimeout(inventoryToast.timer);
+      inventoryToast.timer = setTimeout(() => box.classList.remove('show'), 1800);
+    }
+    function itemArtwork(item) {
+      try { return HIGH_RES_ITEM_IMAGES[item && item.id] || null; } catch (err) { return null; }
+    }
+    function bonusTag(item) {
+      const bonus = itemBonuses(item);
+      if (bonus.atk) return { text: `+${bonus.atk}`, cls: '' };
+      if (bonus.hpMax) return { text: `+${bonus.hpMax}`, cls: 'def' };
+      return null;
+    }
+    /** One square card: worn gear art, a bag consumable, or an empty cell. */
+    function buildInventorySlot({ item, label, icon, emptyLabel, onClick }) {
+      const cell = document.createElement('button');
+      cell.type = 'button';
+      cell.className = 'iv-slot' + (item ? ' filled' : ' empty');
+      cell.dataset.slotLabel = label || '';
+      if (item) cell.title = item.title;
+      if (!item) {
+        cell.disabled = !onClick;
+        const empty = document.createElement('div');
+        empty.className = 'iv-slot-empty';
+        const plus = document.createElement('b');
+        plus.textContent = onClick ? '+' : '·';
+        const text = document.createElement('span');
+        text.textContent = emptyLabel || label || '';
+        empty.append(plus, text);
+        cell.appendChild(empty);
+        if (onClick) cell.addEventListener('click', onClick);
+        return cell;
+      }
+      const art = itemArtwork(item);
+      if (art) {
+        const img = document.createElement('img');
+        img.src = art;
+        img.alt = '';
+        img.draggable = false;
+        img.loading = 'lazy';
+        img.addEventListener('error', () => {
+          img.remove();
+          const fallback = document.createElement('span');
+          fallback.className = 'iv-emoji';
+          fallback.textContent = icon || BAG_ICONS[item.type] || '📦';
+          cell.prepend(fallback);
+        });
+        cell.appendChild(img);
+      } else {
+        const fallback = document.createElement('span');
+        fallback.className = 'iv-emoji';
+        fallback.textContent = icon || BAG_ICONS[item.type] || '📦';
+        cell.appendChild(fallback);
+      }
+      const tag = bonusTag(item);
+      if (tag) {
+        const badge = document.createElement('span');
+        badge.className = 'iv-slot-tag' + (tag.cls ? ' ' + tag.cls : '');
+        badge.textContent = tag.text;
+        cell.appendChild(badge);
+      }
+      const name = document.createElement('span');
+      name.className = 'iv-slot-name';
+      name.textContent = item.title;
+      cell.appendChild(name);
+      if (onClick) cell.addEventListener('click', onClick);
+      return cell;
+    }
 
-      const grid = document.getElementById('inv-slots-grid');
-      grid.innerHTML = '';
-      for (let i = 0; i < 16; i++) {
-        const slot = document.createElement('button');
-        const item = state.inventory[i];
-        if (item) {
-          slot.className = 'inv-slot filled';
-          slot.innerHTML = `<span>${item.title}</span><span style="font-size:9.5px; color:#7dd3fc;">(لمس برای مصرف)</span>`;
-          slot.addEventListener('click', () => {
-            const leader = state.party[0];
-            if (item.type === 'hp') leader.hp = Math.min(leader.hpMax, leader.hp + item.power);
-            if (item.type === 'mana') leader.mana = Math.min(leader.manaMax, leader.mana + item.power);
-            if (item.type === 'atk') leader.atk += item.power;
-            if (item.type === 'max_hp') { leader.hpMax += item.power; leader.hp += item.power; }
-            if (item.type === 'max_mana') { leader.manaMax += item.power; leader.mana += item.power; }
-            if (item.type === 'full_restore') { leader.hp = leader.hpMax; leader.mana = leader.manaMax; }
-            state.inventory.splice(i, 1);
-            playTone(640, 0.14, 'sine');
-            showToast(`استفاده شد: ${item.title}`, '#4ade80');
-            updateHeroStatsHUD();
+    function consumeBagItem(index) {
+      const item = state.inventory[index];
+      if (!item) return false;
+      const leader = state.party[0];
+      if (item.type === 'hp') leader.hp = Math.min(leader.hpMax, leader.hp + item.power);
+      if (item.type === 'mana') leader.mana = Math.min(leader.manaMax, leader.mana + item.power);
+      if (item.type === 'atk') leader.atk += item.power;
+      if (item.type === 'max_hp') { leader.hpMax += item.power; leader.hp += item.power; }
+      if (item.type === 'max_mana') { leader.manaMax += item.power; leader.mana += item.power; }
+      if (item.type === 'full_restore') { leader.hp = leader.hpMax; leader.mana = leader.manaMax; }
+      state.inventory.splice(index, 1);
+      playTone(640, 0.14, 'sine');
+      showToast(`استفاده شد: ${item.title}`, '#4ade80');
+      updateHeroStatsHUD();
+      saveGameProgress();
+      return true;
+    }
+
+    function refreshInventoryModal() {
+      const leader = state.party[0];
+      const setText = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value;
+      };
+
+      const crystalsValue = state.crystals.reduce((sum, c) => sum + (Number(c.coinValue) || 0), 0);
+      setText('inv-gold-value', formatCommaGold(state.coins));
+      setText('inv-bag-count', state.inventory.length);
+      setText('inv-bag-title', `${state.inventory.length}/۱۶`);
+      setText('inv-crystals-summary', `💎 ${state.crystals.length} کریستال (${formatCommaGold(crystalsValue)} سکه)`);
+      setText('inv-weapon-count', `${EQUIP_KEYS.filter(key => (key === 'weapon' || key === 'shield') && state.equipment[key]).length}/۲`);
+      setText('inv-gear-count', `${EQUIP_KEYS.filter(key => !['weapon', 'shield'].includes(key) && state.equipment[key]).length}/۴`);
+      setText('inv-gear-power', String(equipmentPower(state.equipment)));
+      setText('inv-hero-name', leader.name || 'میا');
+      setText('inv-hero-level', String(leader.level));
+      setText('inv-hero-hp', `${Math.round(leader.hp)}/${Math.round(leader.hpMax)}`);
+      setText('inv-hero-mp', `${Math.round(leader.mana)}/${Math.round(leader.manaMax)}`);
+      setText('inv-hero-atk', String(Math.round(leader.atk)));
+      const badge = document.getElementById('badge-inv-count');
+      if (badge) badge.textContent = state.inventory.length;
+
+      const equipSlotCard = (definition) => {
+        const item = state.equipment[definition.key];
+        return buildInventorySlot({
+          item,
+          label: definition.label,
+          icon: definition.icon,
+          emptyLabel: definition.label,
+          onClick: item ? () => {
+            const result = unequipSlot(definition.key);
+            if (!result.ok) {
+              if (result.reason === 'bag-full') {
+                inventoryToast('کیف پر است؛ برای درآوردن این قطعه یک خانه خالی کن.');
+                playTone(200, 0.16, 'sawtooth');
+              }
+              return;
+            }
+            playTone(420, 0.12, 'triangle');
             saveGameProgress();
             refreshInventoryModal();
-          });
-        } else {
-          slot.className = 'inv-slot';
-          slot.textContent = `خانه خالی ${i + 1}`;
-          slot.disabled = true;
-        }
-        grid.appendChild(slot);
+          } : null,
+        });
+      };
+
+      const weaponColumn = document.getElementById('inv-gear-secondary');
+      if (weaponColumn) {
+        weaponColumn.replaceChildren(
+          ...EQUIP_SLOTS.filter(slot => slot.column === 'weapon').map(equipSlotCard)
+        );
+      }
+      const gearColumn = document.getElementById('inv-gear-primary');
+      if (gearColumn) {
+        gearColumn.replaceChildren(
+          ...EQUIP_SLOTS.filter(slot => slot.column === 'gear').map(equipSlotCard)
+        );
+      }
+
+      const grid = document.getElementById('inv-slots-grid');
+      if (!grid) return;
+      grid.replaceChildren();
+      for (let index = 0; index < BAG_CAPACITY; index += 1) {
+        const item = state.inventory[index];
+        const cell = buildInventorySlot({
+          item,
+          emptyLabel: `خانه ${index + 1}`,
+          onClick: item ? () => {
+            // Gear that was taken off goes back on; everything else is consumed.
+            if (slotForItem(item)) {
+              const result = equipFromBag(index);
+              if (!result.ok) return;
+              playTone(520, 0.14, 'triangle');
+              inventoryToast(`پوشیده شد: ${item.title}`);
+            } else if (!consumeBagItem(index)) {
+              return;
+            }
+            saveGameProgress();
+            refreshInventoryModal();
+          } : null,
+        });
+        grid.appendChild(cell);
       }
     }
+
 
     document.getElementById('btn-manual-save').addEventListener('click', () => {
       saveGameProgress();
@@ -3964,10 +4577,18 @@
         return;
       }
 
-      if (state.inventory.length >= 16) {
+      // Worn gear never needs a bag cell — only the piece it replaces might.
+      const equipSlot = slotForItem(bsSelectedItem);
+      if (!equipSlot && state.inventory.length >= BAG_CAPACITY) {
         playTone(220, 0.16, 'sawtooth');
         setBlacksmithDialogue('کیف ۱۶ خانه‌ای شما پر است! ابتدا یک خانه را خالی کنید.');
         showToast('کیف آیتم‌ها پر است!', '#f43f5e');
+        return;
+      }
+      if (equipSlot && state.equipment[equipSlot] && state.inventory.length >= BAG_CAPACITY) {
+        playTone(220, 0.16, 'sawtooth');
+        setBlacksmithDialogue('کیف پر است؛ قطعهٔ فعلی این خانه باید جایی برگردد. یک خانه خالی کنید.');
+        showToast('کیف پر است؛ برای تعویض تجهیزات یک خانه خالی کنید.', '#f43f5e');
         return;
       }
 
@@ -3986,21 +4607,26 @@
       if (bsSelectedItem.unique) {
         state.ownedBlacksmithIds.add(bsSelectedItem.id);
       }
-      state.inventory.push({
+      const purchased = {
         id: bsSelectedItem.id,
         title: bsSelectedItem.title,
+        category: bsSelectedItem.category,
         desc: bsSelectedItem.desc,
         price: bsSelectedItem.price,
         power: bsSelectedItem.power,
-        type: bsSelectedItem.type
-      });
-
-      const leader = state.party[0];
-      if (bsSelectedItem.type === 'atk') leader.atk += bsSelectedItem.power;
-      if (bsSelectedItem.hpBonus > 0) {
-        leader.hpMax += bsSelectedItem.hpBonus;
-        leader.hp += bsSelectedItem.hpBonus;
+        type: bsSelectedItem.type,
+        hpBonus: bsSelectedItem.hpBonus,
+        statsText: bsSelectedItem.statsText
+      };
+      if (equipSlot) {
+        // Straight onto the hero: sword left hand, shield right hand, etc.
+        equipItem(purchased, { quiet: true });
+        showToast(`پوشیده شد: ${bsSelectedItem.title} — خانهٔ تجهیزات`, '#fde047');
+      } else {
+        state.inventory.push(purchased);
+        applyItemBonuses(purchased, 1);
       }
+      updateHeroStatsHUD();
 
       bsReactionTimer = 0.65;
       playTone(860, 0.22, 'triangle');

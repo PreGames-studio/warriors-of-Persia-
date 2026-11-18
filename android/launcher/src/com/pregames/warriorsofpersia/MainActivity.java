@@ -147,6 +147,23 @@ public class MainActivity extends Activity {
             probe(1500);
             probe(15000);
             probe(25000);
+            // Optional: open the equipment/bag screen so CI can screenshot it.
+            if (getIntent() != null && getIntent().hasExtra("wop_open_bag")) {
+                new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (webView == null) return;
+                        webView.evaluateJavascript(
+                                "window.__wopBag && window.__wopBag.open && window.__wopBag.open();",
+                                new ValueCallback<String>() {
+                                    @Override
+                                    public void onReceiveValue(String value) {
+                                        Log.i(TAG, "bag-opened " + value);
+                                    }
+                                });
+                    }
+                }, 26000);
+            }
         }
     }
 
@@ -162,6 +179,8 @@ public class MainActivity extends Activity {
                         + "spells:!!window.__wopSpells,"
                         + "spellIcons:window.__wopSpells?window.__wopSpells.icons():-1,"
                         + "spellMotion:window.__wopSpells?window.__wopSpells.selftest():null,"
+                        + "bag:!!window.__wopBag,"
+                        + "bagTest:window.__wopBag?window.__wopBag.selftest():null,"
                         + "status:window.WoPPack?window.WoPPack.status():null,origin:location.origin};"
                         + "return JSON.stringify(r);}catch(e){return 'probe-error:'+e.message;}})()",
                         new ValueCallback<String>() {
