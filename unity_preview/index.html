@@ -2544,6 +2544,8 @@
     // Same framing by default; the CI gear showcase pulls the boom in so the
     // worn weapon and shield are readable in a single screenshot.
     const villageCameraTuning = { distance: VILLAGE_CAMERA.distance, height: VILLAGE_CAMERA.height };
+    // When set, the follow camera is bypassed entirely (CI gear close-up).
+    const villageCameraOverride = { active: false, distance: 4.4, height: 2.1, pitch: 0 };
     let villageCameraYaw = Math.PI;
     let manualCameraLook = false;
     let cameraLookTilt = 0;
@@ -3602,6 +3604,7 @@
         // Close-up from the front: the emulator screenshot has to show the gear.
         villageCameraTuning.distance = 4.4;
         villageCameraTuning.height = 2.3;
+        villageCameraOverride.active = true;
         state.equipment.weapon = {
           id: kind === 'bow' ? 'bow_arash' : kind === 'spear' ? 'immortal_spear' : kind === 'axe' ? 'battle_axe_double' : 'war_hammer',
           category: 'weapon', type: 'atk', power: 0, title: `showcase-${kind}`,
@@ -3612,9 +3615,14 @@
           leader.mesh.rotation.y = Math.PI;             // turn her towards the camera
           if (state.cameraMode === 0) updateVillageThirdPersonCamera(1, true);
         }
-        return syncHeroGear(true);
+        const gear = syncHeroGear(true) || {};
+        const cameraDistance = leader && leader.mesh
+          ? Number(camera.position.distanceTo(leader.mesh.position).toFixed(2))
+          : null;
+        return { ...gear, closeup: villageCameraOverride.active, cameraDistance };
       },
       restoreCamera: () => {
+        villageCameraOverride.active = false;
         villageCameraTuning.distance = VILLAGE_CAMERA.distance;
         villageCameraTuning.height = VILLAGE_CAMERA.height;
         if (state.cameraMode === 0) updateVillageThirdPersonCamera(1, true);
@@ -5215,6 +5223,18 @@
       const leader = state.party[0];
       if (!leader || !leader.mesh) return;
       const heroPos = leader.mesh.position;
+      if (villageCameraOverride.active) {
+        const { distance, height, pitch } = villageCameraOverride;
+        const yaw = leader.mesh.rotation.y;
+        camera.position.set(
+          heroPos.x + Math.sin(yaw) * distance,
+          heroPos.y + height,
+          heroPos.z + Math.cos(yaw) * distance
+        );
+        camera.lookAt(heroPos.x, heroPos.y + 1.5 + pitch, heroPos.z);
+        villageCameraLookTargetReady = false;
+        return;
+      }
       const targetYaw = leader.mesh.rotation.y;
       if (snap) {
         villageCameraYaw = targetYaw;

@@ -191,6 +191,10 @@ for attempt in $(seq 1 12); do
 done
 tail -8 "$OUT/gear.txt.norm" 2>/dev/null || true
 [ -n "$gear" ] || fail GEAR-NOT-SHOWN 36
+grep -o 'gear-show[^\n]*' "$OUT/gear.txt.norm" | tail -1 || true
+grep -q 'closeup[^,}]*true' "$OUT/gear.txt.norm" || fail GEAR-NO-CLOSEUP 39
+grep -q 'cameraDistance[^,}]*[0-5]\.[0-9]' "$OUT/gear.txt.norm" || fail GEAR-CAMERA-FAR 40
+cp "$OUT/gear.txt.norm" "$OUT/gear-probe.txt" 2>/dev/null || true
 sleep 8
 adb shell screencap -p /sdcard/gear.png && adb pull /sdcard/gear.png "$OUT/gear.png" >/dev/null 2>&1 || fail SCREENSHOT-FAILED 37
 [ -s "$OUT/gear.png" ] || fail SCREENSHOT-EMPTY 38

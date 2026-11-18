@@ -10,11 +10,11 @@ on:
       version_code:
         description: Android versionCode
         required: false
-        default: "22"
+        default: "23"
       version_name:
         description: Android versionName
         required: false
-        default: "1.0.22"
+        default: "1.0.23"
   push:
     branches:
       - arena/c0915d8c-warriors-of-persia
@@ -37,9 +37,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  VERSION_CODE: ${{ github.event.inputs.version_code || '22' }}
-  VERSION_NAME: ${{ github.event.inputs.version_name || '1.0.22' }}
-  TAG: v1.0.22
+  VERSION_CODE: ${{ github.event.inputs.version_code || '23' }}
+  VERSION_NAME: ${{ github.event.inputs.version_name || '1.0.23' }}
+  TAG: v1.0.23
 
 jobs:
   build:
@@ -178,7 +178,7 @@ jobs:
           python - <<'PY'
           import json, re, zipfile
           from pathlib import Path
-          apk = Path('artifacts/releases/WarriorsOfPersia_1.0.22.apk')
+          apk = Path('artifacts/releases/WarriorsOfPersia_1.0.23.apk')
           z = zipfile.ZipFile(apk)
           names = z.namelist()
           assert not any(n.startswith('assets/pbr_hq/') for n in names), 'HQ maps leaked into the APK'
@@ -244,8 +244,8 @@ jobs:
         with:
           name: wop-slim-apk
           path: |
-            artifacts/releases/WarriorsOfPersia_1.0.22.apk
-            artifacts/quality/build-1.0.22*.json
+            artifacts/releases/WarriorsOfPersia_1.0.23.apk
+            artifacts/quality/build-1.0.23*.json
           retention-days: 7
 
       - name: Publish the release
@@ -333,6 +333,9 @@ jobs:
           if [ -f "${{ runner.temp }}/bag-probe.txt" ]; then
             cp "${{ runner.temp }}/bag-probe.txt" docs/releases/verification/inventory-probe.txt
           fi
+          if [ -f "${{ runner.temp }}/gear-probe.txt" ]; then
+            cp "${{ runner.temp }}/gear-probe.txt" docs/releases/verification/gear-probe.txt
+          fi
           if [ -z "$(git status --porcelain docs/releases/verification)" ]; then
             echo "no new screenshots"
             exit 0
@@ -353,6 +356,7 @@ jobs:
             ${{ runner.temp }}/inventory2.png
             ${{ runner.temp }}/bag-probe.txt
             ${{ runner.temp }}/gear.png
+            ${{ runner.temp }}/gear-probe.txt
             ${{ runner.temp }}/spells.png
             ${{ runner.temp }}/pack.png
           if-no-files-found: warn
