@@ -132,6 +132,16 @@ public class MainActivity extends Activity {
                             public void onReceiveValue(String value) {
                                 Log.i(TAG, "bag-open " + tries[0] + " -> " + value);
                                 if (value != null && value.contains("true")) {
+                                    webView.evaluateJavascript(
+                                            "JSON.stringify(window.__wopBag.rects())",
+                                            new ValueCallback<String>() {
+                                                @Override
+                                                public void onReceiveValue(String rects) {
+                                                    Log.i(TAG, "bag-rects " + rects);
+                                                }
+                                            });
+                                }
+                                if (value != null && value.contains("true")) {
                                     Log.i(TAG, "bag-opened true");
                                 } else if (tries[0] < 25) {
                                     new Handler(Looper.getMainLooper()).postDelayed(attempt[0], 3000);
