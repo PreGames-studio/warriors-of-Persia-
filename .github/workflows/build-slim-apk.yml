@@ -337,7 +337,7 @@ jobs:
           git config user.email "ci@users.noreply.github.com"
           git add docs/releases/verification
           git commit -m "docs: emulator screenshots from run $GITHUB_RUN_ID"
-          git push
+          git push origin "HEAD:refs/heads/${GITHUB_REF_NAME}"
 
       - name: Keep the screenshots
         if: always()
