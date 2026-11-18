@@ -1,3 +1,4 @@
+import { clearNode, setChildren } from './dom-compat.js';
 import {SIGNATURE_ITEM_ART} from './merchant-signature-items.js';
 import {MERCHANT_KEEPERS,merchantKeeper} from './merchant-keepers.js';
 import {MERCHANT_CATALOG,purchaseMerchantItem} from './merchant-catalog.js';
@@ -49,10 +50,10 @@ export function createMerchantShop({state,onSave,onChange,onToast,onSound,onSell
     q('.merchant-gold').textContent=`◈ ${state.coins.toLocaleString('fa-IR')} سکه`;
     q('.merchant-capacity').textContent=`کیف: ${state.inventory.length} / ۱۶ — استفاده از کالا در کیف`;
     const filters=['همه',...new Set(definition.items.map(i=>i.category)),'ممتاز'];
-    q('.merchant-filters').replaceChildren(...filters.map(name=>{const b=document.createElement('button');b.textContent=name;b.classList.toggle('active',filter===name);b.setAttribute('aria-pressed',String(filter===name));b.onclick=()=>{filter=name;render();};return b;}));
+    setChildren(q('.merchant-filters'), filters.map(name=>{const b=document.createElement('button');b.textContent=name;b.classList.toggle('active',filter===name);b.setAttribute('aria-pressed',String(filter===name));b.onclick=()=>{filter=name;render();};return b;}));
     const items=definition.items.filter(i=>filter==='همه'||i.category===filter||i.rarity===filter);
     if(!items.some(i=>i.id===selected?.id))selected=items[0];
-    q('.merchant-grid').replaceChildren(...items.map(item=>{
+    setChildren(q('.merchant-grid'), items.map(item=>{
       const card=document.createElement('button');card.className='merchant-card';card.classList.toggle('selected',item.id===selected.id);card.setAttribute('aria-pressed',String(item.id===selected.id));
       const img=document.createElement('img');img.src=merchantItemArt(item,definition.color);img.alt=item.title;
       const title=document.createElement('strong');title.textContent=item.title;
@@ -63,7 +64,7 @@ export function createMerchantShop({state,onSave,onChange,onToast,onSound,onSell
     q('.merchant-item-name').textContent=selected.title;q('.merchant-item-desc').textContent=selected.desc;q('.merchant-item-lore').textContent=selected.lore;
     const buy=q('.merchant-buy');buy.disabled=state.currentZone!=='village'||state.inventory.length>=16||state.coins<selected.price;
     buy.textContent=state.currentZone!=='village'?'فقط در روستا':state.inventory.length>=16?'کیف پر است':state.coins<selected.price?'سکه کافی نیست':`خرید · ${selected.price.toLocaleString('fa-IR')} سکه`;
-    const services=q('.merchant-services');services.replaceChildren();
+    const services=q('.merchant-services');clearNode(services);
     if(shop.id==='jeweler'||shop.id==='astrologer') {
       const b=document.createElement('button');
       if(shop.id==='jeweler'){const total=state.crystals.reduce((s,c)=>s+c.coinValue,0);b.textContent=`فروش ${state.crystals.length} کریستال · دریافت ${total.toLocaleString('fa-IR')} سکه`;b.disabled=state.currentZone!=='village'||!state.crystals.length;b.onclick=()=>{onSellCrystals();render();};}
