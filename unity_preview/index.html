@@ -143,7 +143,10 @@
 
     #labels-layer, #popups-layer {
       position: absolute;
-      inset: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
       pointer-events: none;
       overflow: hidden;
     }
@@ -263,7 +266,10 @@
 
     .stat-bar-text {
       position: absolute;
-      inset: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -416,7 +422,10 @@
     }
     .skill-btn .skill-icon {
       position: absolute;
-      inset: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
@@ -432,6 +441,8 @@
     .skill-btn .skill-name {
       position: absolute;
       inset-inline: 0;
+      left: 0;
+      right: 0;
       bottom: 3px;
       font-size: 8px;
       line-height: 1;
@@ -442,6 +453,7 @@
     .skill-btn .mana-tag {
       position: absolute;
       inset-inline-end: 3px;
+      left: 3px;
       top: 2px;
       padding: 0 3px;
       border-radius: 6px;
@@ -456,7 +468,10 @@
     .skill-btn.on-cd .skill-name, .skill-btn.on-cd .mana-tag { display: none; }
     #spell-flash {
       position: fixed;
-      inset: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
       pointer-events: none;
       opacity: 0;
       z-index: 60;
@@ -464,7 +479,10 @@
     }
     .skill-cd-overlay {
       position: absolute;
-      inset: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
       background: rgba(9, 13, 22, 0.84);
       display: none;
       align-items: center;
@@ -504,7 +522,10 @@
     /* ================= MODALS ================= */
     .modal-backdrop {
       position: fixed;
-      inset: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
       background: rgba(9, 13, 22, 0.8);
       backdrop-filter: blur(4px);
       z-index: 100;
@@ -626,7 +647,10 @@
        ===================================================================== */
     #modal-blacksmith {
       position: fixed;
-      inset: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
       z-index: 250;
       background: #090706 url('./assets/blacksmith/blacksmith_bg.jpg') center center / cover no-repeat;
       display: none;
@@ -638,7 +662,10 @@
     #modal-blacksmith::before {
       content: '';
       position: absolute;
-      inset: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
       background: linear-gradient(90deg, rgba(8, 6, 5, 0.08) 0%, rgba(10, 9, 8, 0.55) 35%, rgba(8, 9, 11, 0.88) 100%);
       pointer-events: none;
     }
@@ -680,7 +707,10 @@
     }
     #blacksmith-3d-canvas {
       position: absolute;
-      inset: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
       width: 100%;
       height: 100%;
       display: block;
@@ -1213,7 +1243,7 @@
   </style>
   <link rel="stylesheet" href="./village-theme.css" />
 <style>
-.minimap-card.expanded { position:fixed!important; inset:4vh auto auto 50%!important; transform:translateX(-50%); width:min(90vw,78vh)!important; max-height:92vh; z-index:150; background:#151c17; box-shadow:0 0 0 100vmax #000a; }
+.minimap-card.expanded { position:fixed!important; top:4vh!important; right:auto!important; bottom:auto!important; left:50%!important; transform:translateX(-50%); width:min(90vw,78vh)!important; max-height:92vh; z-index:150; background:#151c17; box-shadow:0 0 0 100vmax #000a; }
 .minimap-card.expanded #minimap-canvas { width:100%; height:auto; aspect-ratio:1; }
 #minimap-canvas { cursor:zoom-in; } .expanded #minimap-canvas { cursor:zoom-out; }
 </style>
