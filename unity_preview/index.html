@@ -408,9 +408,59 @@
       overflow: hidden;
     }
     .skill-btn:active { transform: scale(0.92); }
-    .skill-btn .mana-tag {
+    .skill-btn {
+      padding: 0;
+      background: radial-gradient(circle at 38% 30%, rgba(56, 189, 248, .35), rgba(8, 12, 22, .92));
+      border-width: 2px;
+      box-shadow: 0 0 12px rgba(56, 189, 248, .35), 0 3px 10px rgba(0, 0, 0, .6);
+    }
+    .skill-btn .skill-icon {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .skill-btn .skill-emoji {
+      font-size: 17px;
+      line-height: 1;
+      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .8));
+    }
+    .skill-btn.has-icon .skill-emoji { display: none; }
+    .skill-btn .skill-name {
+      position: absolute;
+      inset-inline: 0;
+      bottom: 3px;
       font-size: 8px;
-      color: #e0f2fe;
+      line-height: 1;
+      color: #f8fafc;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, .95);
+      pointer-events: none;
+    }
+    .skill-btn .mana-tag {
+      position: absolute;
+      inset-inline-end: 3px;
+      top: 2px;
+      padding: 0 3px;
+      border-radius: 6px;
+      background: rgba(2, 6, 23, .72);
+      font-size: 8px;
+      line-height: 1.35;
+      color: #bae6fd;
+      pointer-events: none;
+    }
+    .skill-btn .mana-tag::after { content: ' MP'; font-size: 6.5px; opacity: .8; }
+    .skill-btn.on-cd .skill-icon { filter: grayscale(.8) brightness(.55); }
+    .skill-btn.on-cd .skill-name, .skill-btn.on-cd .mana-tag { display: none; }
+    #spell-flash {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      z-index: 60;
+      transition: opacity 140ms ease-out;
     }
     .skill-cd-overlay {
       position: absolute;
@@ -1239,24 +1289,32 @@
 
     <!-- COMBAT & 4 SKILLS CLUSTER (BOTTOM-RIGHT) -->
     <div class="combat-cluster">
-      <button class="skill-btn sk-pos-1" data-skill="0">
-        <span>ضربه۱</span>
-        <span class="mana-tag">15 MP</span>
+      <button class="skill-btn sk-pos-1" data-skill="0" aria-label="ضربهٔ درخشان">
+        <img class="skill-icon" src="./assets/spells/strike.png" alt="" draggable="false" />
+        <span class="skill-emoji">⚔️</span>
+        <span class="skill-name">ضربه</span>
+        <span class="mana-tag">15</span>
         <div class="skill-cd-overlay" id="cd-0"></div>
       </button>
-      <button class="skill-btn sk-pos-2" data-skill="1">
-        <span>گوی۲</span>
-        <span class="mana-tag">25 MP</span>
+      <button class="skill-btn sk-pos-2" data-skill="1" aria-label="گوی انرژی">
+        <img class="skill-icon" src="./assets/spells/orb.png" alt="" draggable="false" />
+        <span class="skill-emoji">🔮</span>
+        <span class="skill-name">گوی</span>
+        <span class="mana-tag">25</span>
         <div class="skill-cd-overlay" id="cd-1"></div>
       </button>
-      <button class="skill-btn sk-pos-3" data-skill="2">
-        <span>موج۳</span>
-        <span class="mana-tag">40 MP</span>
+      <button class="skill-btn sk-pos-3" data-skill="2" aria-label="موج ستاره‌ای">
+        <img class="skill-icon" src="./assets/spells/wave.png" alt="" draggable="false" />
+        <span class="skill-emoji">🌊</span>
+        <span class="skill-name">موج</span>
+        <span class="mana-tag">40</span>
         <div class="skill-cd-overlay" id="cd-2"></div>
       </button>
-      <button class="skill-btn sk-pos-4" data-skill="3">
-        <span>طوفان۴</span>
-        <span class="mana-tag">60 MP</span>
+      <button class="skill-btn sk-pos-4" data-skill="3" aria-label="طوفان افسانه">
+        <img class="skill-icon" src="./assets/spells/storm.png" alt="" draggable="false" />
+        <span class="skill-emoji">🌀</span>
+        <span class="skill-name">طوفان</span>
+        <span class="mana-tag">60</span>
         <div class="skill-cd-overlay" id="cd-3"></div>
       </button>
 
@@ -1475,6 +1533,7 @@
     import { createPotionShop } from './potion-shop.js';
     import { createPersianVillageKit } from './village-theme.js';
     import { mountGraphicsPack } from './graphics-pack.js';
+    import { createHeroSpells, HERO_SPELLS } from './hero-spells.js';
 
     // The Android shell exposes window.WoPPack; in a browser this is a no-op.
     mountGraphicsPack();
@@ -2926,6 +2985,70 @@
       saveGameProgress();
     }
 
+    // ---------------------------------------------------------------------
+    // SPELL CASTING — body motion + effects for the four HUD skills
+    // ---------------------------------------------------------------------
+    const spellFlash = document.createElement('div');
+    spellFlash.id = 'spell-flash';
+    document.body.appendChild(spellFlash);
+    let spellFlashTimer = 0;
+
+    const heroSpells = createHeroSpells({
+      THREE,
+      getRoot: () => mapRoot,
+      getLeader: () => state.party[0],
+      playTone: (freq, dur, type) => playTone(freq, dur, type),
+      flash: (color, ms) => {
+        spellFlash.style.background = `radial-gradient(circle at 50% 62%, ${color}, transparent 70%)`;
+        spellFlash.style.opacity = '1';
+        clearTimeout(spellFlashTimer);
+        spellFlashTimer = setTimeout(() => { spellFlash.style.opacity = '0'; }, ms || 260);
+      }
+    });
+
+    // Test/inspection hook: the APK's load probe uses it to prove that the HUD
+    // icons loaded and that casting really moves the hero (not just the VFX).
+    window.__wopSpells = {
+      icons: () => document.querySelectorAll('.skill-btn.has-icon').length,
+      pose: () => {
+        const mesh = state.party[0] && state.party[0].mesh;
+        const pivot = mesh && mesh.userData ? mesh.userData.castPivot : null;
+        if (!pivot) return null;
+        return {
+          x: +pivot.position.x.toFixed(3), y: +pivot.position.y.toFixed(3), z: +pivot.position.z.toFixed(3),
+          rx: +pivot.rotation.x.toFixed(3), ry: +pivot.rotation.y.toFixed(3),
+        };
+      },
+      selftest: () => {
+        const before = window.__wopSpells.pose();
+        if (!before) return { ready: false };
+        const cast = heroSpells.cast(0);
+        heroSpells.update(0.05);
+        const during = window.__wopSpells.pose();
+        heroSpells.update(3);
+        const after = window.__wopSpells.pose();
+        const moved = Math.abs(during.z - before.z) + Math.abs(during.rx - before.rx) > 0.02;
+        const settled = Math.abs(after.z) + Math.abs(after.rx) + Math.abs(after.ry) < 0.001;
+        return { ready: true, cast, before, during, after, moved, settled };
+      },
+    };
+
+    // Real artwork when it is present, the emoji stand-in otherwise.
+    document.querySelectorAll('.skill-btn').forEach((btn, index) => {
+      const spell = HERO_SPELLS[index];
+      const img = btn.querySelector('.skill-icon');
+      if (!spell) return;
+      btn.title = `${spell.name} — ${spell.subtitle}`;
+      if (!img) return;
+      if (spell.icon && img.getAttribute('src') !== spell.icon) img.setAttribute('src', spell.icon);
+      img.addEventListener('load', () => btn.classList.add('has-icon'));
+      img.addEventListener('error', () => {
+        btn.classList.remove('has-icon');
+        img.style.display = 'none';
+      });
+      if (img.complete && img.naturalWidth > 0) btn.classList.add('has-icon');
+    });
+
     function performBasicAttack() {
       const leader = state.party[0];
       if (!leader.mesh || state.basicAttackCd > 0) return;
@@ -2961,6 +3084,8 @@
 
       const totalDmg = leader.atk * sk.mult;
       playTone(440 + skillIdx * 110, 0.2, 'triangle');
+      // The hero lunges/spins through the cast and the effect fires from the hand.
+      heroSpells.cast(skillIdx);
 
       if (sk.mode === 'projectile') {
         const orb = new THREE.Mesh(
@@ -4310,6 +4435,7 @@
     function animate() {
       requestAnimationFrame(animate);
       const dt = Math.min(clock.getDelta(), 0.1);
+      heroSpells.update(dt);
       const elapsed = clock.getElapsedTime();
       shadowRefreshTimer -= dt;
       if (shadowRefreshTimer <= 0) {

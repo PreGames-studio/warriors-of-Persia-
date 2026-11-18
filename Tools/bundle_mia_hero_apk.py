@@ -64,8 +64,10 @@ def shell_files() -> list[Path]:
     """Runtime files the bundled HTML still loads from disk (CSS, fonts, photos)."""
     files = [PREVIEW / "potion-shop.css", PREVIEW / "village-theme.css"]
     files += sorted((PREVIEW / "fonts").glob("*"))
-    for folder in ("blacksmith", "apothecary"):
-        files += sorted((PREVIEW / "assets" / folder).glob("*"))
+    for folder in ("blacksmith", "apothecary", "spells"):
+        folder_path = PREVIEW / "assets" / folder
+        if folder_path.is_dir():
+            files += sorted(folder_path.glob("*"))
     files.append(PREVIEW / "assets" / "hero" / "mia_hero.png")
     return [path for path in files if path.is_file()]
 

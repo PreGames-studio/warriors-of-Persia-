@@ -47,6 +47,16 @@ grep -q '"gl":true' "$OUT/boot.txt.norm" || fail NO-WEBGL 6
 grep -q 'Uncaught' "$OUT/boot.txt.norm" && fail JS-ERROR 7
 grep -q 'installed[^,]*false' "$OUT/boot.txt.norm" || log "warning: pack already reported installed"
 
+# The four skill buttons and the cast self-test: the probe reports how many
+# icons actually decoded and whether casting moved the hero's cast pivot.
+grep -q 'spells[^,]*true' "$OUT/boot.txt.norm" || fail SPELLS-MISSING 13
+icons="$(grep -o 'spellIcons[^,]*' "$OUT/boot.txt.norm" | tail -1)"
+log "spell icons: $icons"
+grep -q 'spellIcons[^,]*4' "$OUT/boot.txt.norm" || fail SPELL-ICONS 14
+grep -q 'moved[^,}]*true' "$OUT/boot.txt.norm" || fail SPELL-NO-MOTION 15
+grep -q 'settled[^,}]*true' "$OUT/boot.txt.norm" || fail SPELL-POSE-STUCK 16
+adb shell screencap -p /sdcard/spells.png && adb pull /sdcard/spells.png "$OUT/spells.png" >/dev/null 2>&1 || true
+
 log "---- downloading the HD pack through the shell ----"
 # The autostart extra is read in onCreate, so the running activity must be
 # stopped first: am start on a live task delivers onNewIntent instead.

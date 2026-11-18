@@ -146,6 +146,7 @@ public class MainActivity extends Activity {
             Log.i(TAG, "page finished " + url);
             probe(1500);
             probe(15000);
+            probe(25000);
         }
     }
 
@@ -158,6 +159,9 @@ public class MainActivity extends Activity {
                         "(function(){try{var c=document.querySelector('canvas');var r={canvas:c?[c.width,c.height]:null,"
                         + "gl:!!(c&&(c.getContext('webgl2')||c.getContext('webgl'))),"
                         + "pack:!!(window.WoPPack&&window.WoPPack.status),ui:!!window.__wopPack,"
+                        + "spells:!!window.__wopSpells,"
+                        + "spellIcons:window.__wopSpells?window.__wopSpells.icons():-1,"
+                        + "spellMotion:window.__wopSpells?window.__wopSpells.selftest():null,"
                         + "status:window.WoPPack?window.WoPPack.status():null,origin:location.origin};"
                         + "return JSON.stringify(r);}catch(e){return 'probe-error:'+e.message;}})()",
                         new ValueCallback<String>() {
