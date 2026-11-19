@@ -145,6 +145,109 @@ public class MainActivity extends Activity {
         new Handler(Looper.getMainLooper()).postDelayed(attempt[0], 6000);
     }
 
+    /**
+     * Optional CI hook: `--es wop_walk 6` holds the stick forward for a few
+     * seconds and logs how the hand and the worn sword move, so the emulator
+     * job can prove the walk cycle advances and the sword stays in the fist.
+     */
+    private void maybeWalkTest(Intent intent) {
+        if (intent == null || !intent.hasExtra("wop_walk")) return;
+        final String seconds = intent.getStringExtra("wop_walk");
+        final int[] tries = {0};
+        final Runnable[] attempt = new Runnable[1];
+        attempt[0] = new Runnable() {
+            @Override
+            public void run() {
+                if (webView == null) return;
+                tries[0]++;
+                webView.evaluateJavascript(
+                        "window.__wopBag && window.__wopBag.walkStart ? (window.__wopBag.walkStart(" + (seconds == null ? 6 : seconds) + ") ? 'true' : 'false') : 'wait'",
+                        new ValueCallback<String>() {
+                            @Override
+                            public void onReceiveValue(String value) {
+                                Log.i(TAG, "walk-start " + tries[0] + " -> " + value);
+                                if (value != null && value.contains("true")) {
+                                    pollWalkResult(0);
+                                } else if (tries[0] < 25) {
+                                    new Handler(Looper.getMainLooper()).postDelayed(attempt[0], 3000);
+                                }
+                            }
+                        });
+            }
+        };
+        new Handler(Looper.getMainLooper()).postDelayed(attempt[0], 7000);
+    }
+
+    private void pollWalkResult(final int round) {
+        if (webView == null) return;
+        webView.evaluateJavascript(
+                "window.__wopBag && window.__wopBag.walkResult ? (window.__wopBag.walkResult() || '') : ''",
+                new ValueCallback<String>() {
+                    @Override
+                    public void onReceiveValue(String value) {
+                        if (value != null && value.contains("relSpread")) {
+                            Log.i(TAG, "walk-probe " + value);
+                        } else if (round < 20) {
+                            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                                @Override
+                                public void run() { pollWalkResult(round + 1); }
+                            }, 1000);
+                        } else {
+                            Log.i(TAG, "walk-probe missing");
+                        }
+                    }
+                });
+    }
+
+    /** Optional CI hook: `--es wop_shopart 1` loads every shop image in the APK. */
+    private void maybeShopArtTest(Intent intent) {
+        if (intent == null || !intent.hasExtra("wop_shopart")) return;
+        final int[] tries = {0};
+        final Runnable[] attempt = new Runnable[1];
+        attempt[0] = new Runnable() {
+            @Override
+            public void run() {
+                if (webView == null) return;
+                tries[0]++;
+                webView.evaluateJavascript(
+                        "window.__wopBag && window.__wopBag.shopArtStart ? String(window.__wopBag.shopArtStart()) : 'wait'",
+                        new ValueCallback<String>() {
+                            @Override
+                            public void onReceiveValue(String value) {
+                                Log.i(TAG, "shop-art-start " + tries[0] + " -> " + value);
+                                if (value != null && !value.contains("wait")) {
+                                    pollShopArt(0);
+                                } else if (tries[0] < 25) {
+                                    new Handler(Looper.getMainLooper()).postDelayed(attempt[0], 3000);
+                                }
+                            }
+                        });
+            }
+        };
+        new Handler(Looper.getMainLooper()).postDelayed(attempt[0], 6000);
+    }
+
+    private void pollShopArt(final int round) {
+        if (webView == null) return;
+        webView.evaluateJavascript(
+                "window.__wopBag && window.__wopBag.shopArtResult ? (window.__wopBag.shopArtResult() || '') : ''",
+                new ValueCallback<String>() {
+                    @Override
+                    public void onReceiveValue(String value) {
+                        if (value != null && value.contains("failed")) {
+                            Log.i(TAG, "shop-art " + value);
+                        } else if (round < 20) {
+                            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                                @Override
+                                public void run() { pollShopArt(round + 1); }
+                            }, 1000);
+                        } else {
+                            Log.i(TAG, "shop-art missing");
+                        }
+                    }
+                });
+    }
+
     private void maybeOpenBag(Intent intent) {
         if (intent == null || !intent.hasExtra("wop_open_bag")) return;
         final int[] tries = {0};
@@ -230,6 +333,8 @@ public class MainActivity extends Activity {
             probe(25000);
             maybeOpenBag(getIntent());
             maybeShowGear(getIntent());
+            maybeWalkTest(getIntent());
+            maybeShopArtTest(getIntent());
         }
     }
 

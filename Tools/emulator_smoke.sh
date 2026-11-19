@@ -191,6 +191,14 @@ for attempt in $(seq 1 12); do
 done
 tail -8 "$OUT/gear.txt.norm" 2>/dev/null || true
 [ -n "$gear" ] || fail GEAR-NOT-SHOWN 36
+# The shop pictures are files beside the bundle, so check the APK really carries
+# them before blaming the renderer.
+for entry in assets/assets/merchants/keepers/jeweler.png \
+             assets/assets/merchants/signature/jeweler.png \
+             assets/assets/merchants/books/book-01.png \
+             assets/assets/merchants/merchant-hall.jpg; do
+  unzip -l "$APK" | grep -q " $entry$" || fail SHOP-ART-NOT-PACKAGED 41
+done
 grep -o 'gear-show[^\n]*' "$OUT/gear.txt.norm" | tail -1 || true
 grep -q 'closeup[^,}]*true' "$OUT/gear.txt.norm" || fail GEAR-NO-CLOSEUP 39
 grep -q 'cameraDistance[^,}]*[0-5]\.[0-9]' "$OUT/gear.txt.norm" || fail GEAR-CAMERA-FAR 40
@@ -198,5 +206,51 @@ cp "$OUT/gear.txt.norm" "$OUT/gear-probe.txt" 2>/dev/null || true
 sleep 8
 adb shell screencap -p /sdcard/gear.png && adb pull /sdcard/gear.png "$OUT/gear.png" >/dev/null 2>&1 || fail SCREENSHOT-FAILED 37
 [ -s "$OUT/gear.png" ] || fail SCREENSHOT-EMPTY 38
+
+log "---- walking, the sword in the fist and the shop pictures ----"
+adb shell am force-stop "$PACKAGE"
+sleep 3
+adb logcat -c
+adb shell am start -n "$PACKAGE/.MainActivity" --es wop_walk 12 --es wop_shopart 1 >/dev/null || fail LAUNCH-FAILED 42
+walk=""
+for attempt in $(seq 1 12); do
+  sleep 7
+  adb logcat -d -s WoP:V >"$OUT/walk.txt" 2>&1 || true
+  normalize "$OUT/walk.txt"
+  if grep -q 'walk-probe' "$OUT/walk.txt.norm"; then walk=1; break; fi
+  log "waiting for the walk probe ($attempt/12)"
+done
+# A frame taken while the synthetic walk is still running: the pose on screen is
+# the one the player sees while walking.
+adb shell screencap -p /sdcard/walk.png && adb pull /sdcard/walk.png "$OUT/walk.png" >/dev/null 2>&1 || fail SCREENSHOT-FAILED 43
+[ -s "$OUT/walk.png" ] || fail SCREENSHOT-EMPTY 44
+cp "$OUT/walk.txt.norm" "$OUT/walk-probe.txt" 2>/dev/null || true
+tail -10 "$OUT/walk.txt.norm" 2>/dev/null || true
+[ -n "$walk" ] || fail WALK-NOT-SHOWN 45
+grep -o 'walk-probe[^\n]*' "$OUT/walk.txt.norm" | tail -1 || true
+grep -q 'clips":\[[^]]*\(Walk_Loop\|Jog_Fwd_Loop\)' "$OUT/walk.txt.norm" || fail WALK-NO-CYCLE 46
+spread="$(grep -o 'relSpread":[0-9.]*' "$OUT/walk.txt.norm" | tail -1 | cut -d: -f2)"
+peak="$(grep -o 'handPeak":[0-9.]*' "$OUT/walk.txt.norm" | tail -1 | cut -d: -f2)"
+walkSpeed="$(grep -o 'speed":[0-9.]*' "$OUT/walk.txt.norm" | tail -1 | cut -d: -f2)"
+log "walk: spread=$spread peak=$peak speed=$walkSpeed"
+[ -n "$spread" ] || fail WALK-NO-PROBE 45
+# The sword must stay put in the fist and the hand must not roll over freely.
+awk -v v="$spread" 'BEGIN { exit !(v + 0 < 6) }' || fail WALK-SWORD-SPINS 47
+awk -v v="$peak" 'BEGIN { exit !(v + 0 < 45) }' || fail WALK-HAND-SPINS 48
+awk -v v="$walkSpeed" 'BEGIN { exit !(v + 0 > 1.0) }' || fail WALK-NO-MOVEMENT 49
+
+art=""
+for attempt in $(seq 1 8); do
+  if grep -q 'shop-art ' "$OUT/walk.txt.norm"; then art=1; break; fi
+  sleep 5
+  adb logcat -d -s WoP:V >"$OUT/walk.txt" 2>&1 || true
+  normalize "$OUT/walk.txt"
+  log "waiting for the shop art probe ($attempt/8)"
+done
+grep -o 'shop-art[^\n]*' "$OUT/walk.txt.norm" | tail -1 || true
+[ -n "$art" ] || fail SHOP-ART-PROBE 50
+failedArt="$(grep -o 'failed":[0-9]*' "$OUT/walk.txt.norm" | tail -1 | cut -d: -f2)"
+log "shop art failures: $failedArt"
+[ "$failedArt" = "0" ] || fail SHOP-ART-MISSING 51
 
 echo "SMOKE OK"

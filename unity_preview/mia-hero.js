@@ -36,10 +36,14 @@ const VISIBLE_MESHES = [
 
 // The hero rig the village camera and world labels are framed for.
 const HERO_HEIGHT = 3.34;
-// Reference ground speeds (world units / second) for the borrowed cycles.
-const WALK_REFERENCE_SPEED = 1.35;
-const JOG_REFERENCE_SPEED = 3.1;
-const SPRINT_REFERENCE_SPEED = 4.9;
+// Fallback ground speeds (world units / second) for the borrowed cycles. The
+// live numbers are measured from the clips in `measureReferenceSpeeds`, because
+// these files walk at 1.93 and jog at 4.99 world units on the 3.34-unit rig.
+const WALK_REFERENCE_SPEED = 1.93;
+const JOG_REFERENCE_SPEED = 4.99;
+const SPRINT_REFERENCE_SPEED = 6.08;
+// Local X of a hand bone is the axis the palm rolls around while walking.
+const WRIST_SWAY_AXIS = new THREE.Vector3(1, 0, 0);
 
 const LOCOMOTION = ['Sword_Idle', 'Walk_Loop', 'Jog_Fwd_Loop', 'Sprint_Loop'];
 
@@ -889,17 +893,23 @@ export async function loadMiaHero(options = {}) {
     });
   };
 
-  LOCOMOTION.forEach((name) => {
-    const actions = actionSets.get(name);
-    if (!actions) return;
+  // Only the resting clip may contribute at load. Two three.js details matter
+  // here and both were wrong before:
+  //   * `fadeIn()` multiplies the action's master weight, so an action parked at
+  //     weight 0 can never fade in — the walk cycle was silent while the hero
+  //     slid around in the resting pose;
+  //   * every clip was left enabled at weight 1, so the resting pose was an
+  //     average of idle, walk and the combat clips (hence the open, frozen
+  //     hands and the sword swinging around a hand no clip ever wrote).
+  // The master weight stays at 1 for all of them; `enabled` gates the ones that
+  // are not running and the fades do the crossfade.
+  actionSets.forEach((actions, name) => {
     actions.forEach((action) => {
       action.setLoop(THREE.LoopRepeat, Infinity);
-      action.setEffectiveWeight(name === 'Sword_Idle' ? 1 : 0);
+      action.setEffectiveWeight(1);
+      action.enabled = name === 'Sword_Idle';
     });
   });
-
-  const idleActions = actionSets.get('Sword_Idle') || [];
-  idleActions.forEach((action) => action.setEffectiveWeight(1));
   mixer.update(0);
   root.updateMatrixWorld(true);
 
@@ -912,10 +922,59 @@ export async function loadMiaHero(options = {}) {
 
   // Constant local rotations applied after the mixer each frame: they never
   // touch the clip data, so damage, cooldowns and timings stay as authored.
-  const poseOffsets = [];
-  const offhandOffsets = [];
-  const wristOffsets = [];
+  //
+  // Every correction is grouped per bone and remembers the value the clip wrote
+  // (`base`) plus the value we left on the bone (`applied`). Several borrowed
+  // cycles (Jog, Sprint, the combat clips) do not animate every bone: a bone
+  // without a track keeps whatever the previous frame left, so multiplying the
+  // correction again compounds it — that is what used to spin the sword in the
+  // air and twist the resting hand. When the clip did not touch a bone this
+  // frame, the guard restores `base` before the correction is applied again.
+  const offsetGroups = [];
+  const offsetGroupFor = (bone) => {
+    let group = offsetGroups.find((entry) => entry.bone === bone);
+    if (!group) {
+      // `rest` is the authored idle pose of this bone: the value to settle on
+      // when the running clip has no track for it at all.
+      group = {
+        bone,
+        entries: [],
+        base: bone.quaternion.clone(),
+        applied: new THREE.Quaternion(),
+        rest: bone.quaternion.clone(),
+        used: false
+      };
+      offsetGroups.push(group);
+    }
+    return group;
+  };
+  /** `weight`: undefined = always full, otherwise multiplied by the one-shot fade. */
+  const addOffset = (bone, quaternion, weight, premultiply = false) => {
+    if (!bone) return null;
+    const group = offsetGroupFor(bone);
+    const entry = { quaternion, weight, premultiply };
+    group.entries.push(entry);
+    return entry;
+  };
   let correctionWeight = 1;
+  let gaitPhase = 0;
+  let lastDt = 1 / 60;
+
+  // One correction has to reach every copy of the bone: Mia's clothes (the
+  // ranger arms and the bracers) live on their own skeleton, so curling the
+  // skin's fingers alone left the visible hands open.
+  const boneCopies = new Map();
+  armatures.forEach(({ suffix, meshes }) => {
+    meshes[0].skeleton.bones.forEach((bone) => {
+      const base = suffix && bone.name.endsWith(suffix) ? bone.name.slice(0, -suffix.length) : bone.name;
+      if (!boneCopies.has(base)) boneCopies.set(base, []);
+      if (!boneCopies.get(base).includes(bone)) boneCopies.get(base).push(bone);
+    });
+  });
+  const eachBoneCopy = (name, visit) => {
+    const copies = boneCopies.get(name);
+    if (copies) copies.forEach(visit);
+  };
 
   const fist = measureFist(boneByName, 'r');
   const leftFist = measureFist(boneByName, 'l');
@@ -965,7 +1024,7 @@ export async function loadMiaHero(options = {}) {
       const parentWorld = hand.parent.getWorldQuaternion(new THREE.Quaternion());
       const correction = new THREE.Quaternion().setFromAxisAngle(axisWorld, angle);
       const local = parentWorld.clone().invert().multiply(correction).multiply(parentWorld);
-      wristOffsets.push({ bone: hand, quaternion: local });
+      eachBoneCopy('hand_r', (bone) => addOffset(bone, local.clone(), true, true));
     }
     // The fingers wrap the handle; their curl axis is the grip axis.
     const curl = (name, amount) => {
@@ -973,7 +1032,8 @@ export async function loadMiaHero(options = {}) {
       if (!bone) return;
       const worldQuaternion = bone.getWorldQuaternion(new THREE.Quaternion());
       const axis = fist.gripAxis.clone().applyQuaternion(worldQuaternion.clone().invert()).normalize();
-      poseOffsets.push({ bone, quaternion: new THREE.Quaternion().setFromAxisAngle(axis, amount) });
+      const quaternion = new THREE.Quaternion().setFromAxisAngle(axis, amount);
+      eachBoneCopy(name, (copy) => addOffset(copy, quaternion.clone()));
     };
     ['index', 'middle', 'ring', 'pinky'].forEach((finger, index) => {
       const scale = index === 3 ? 0.82 : 1;
@@ -983,9 +1043,8 @@ export async function loadMiaHero(options = {}) {
     });
     const thumbAxisLocal = fist.palmNormal.clone().applyQuaternion(handWorld.clone().invert()).normalize();
     [['thumb_01_r', -0.3], ['thumb_02_r', 0.42], ['thumb_03_r', 0.34]].forEach(([name, amount]) => {
-      const bone = boneByName.get(name);
-      if (!bone) return;
-      poseOffsets.push({ bone, quaternion: new THREE.Quaternion().setFromAxisAngle(thumbAxisLocal, amount) });
+      const quaternion = new THREE.Quaternion().setFromAxisAngle(thumbAxisLocal, amount);
+      eachBoneCopy(name, (bone) => addOffset(bone, quaternion.clone()));
     });
     // The free hand relaxes into a soft curl instead of an open claw.
     ['index', 'middle', 'ring', 'pinky'].forEach((finger) => {
@@ -993,10 +1052,8 @@ export async function loadMiaHero(options = {}) {
       if (!bone) return;
       const worldQuaternion = bone.getWorldQuaternion(new THREE.Quaternion());
       const axis = new THREE.Vector3(1, 0, 0).applyQuaternion(worldQuaternion).normalize();
-      offhandOffsets.push({
-        bone,
-        quaternion: new THREE.Quaternion().setFromAxisAngle(axis.applyQuaternion(worldQuaternion.clone().invert()).normalize(), 0.24)
-      });
+      const quaternion = new THREE.Quaternion().setFromAxisAngle(axis.applyQuaternion(worldQuaternion.clone().invert()).normalize(), 0.24);
+      eachBoneCopy(`${finger}_02_l`, (copy) => addOffset(copy, quaternion.clone()));
     });
   }
 
@@ -1073,29 +1130,47 @@ export async function loadMiaHero(options = {}) {
 
   // Shoulders relax slightly in idle/walk; the weight fades away for one-shots.
   [['upperarm_l', -0.3, 0.08], ['upperarm_r', 0.3, -0.08]].forEach(([name, roll, yaw]) => {
-    const bone = boneByName.get(name);
-    if (!bone) return;
     const quaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw, roll, 'XYZ'));
-    poseOffsets.push({ bone, quaternion, weight: 0 });
+    eachBoneCopy(name, (bone) => addOffset(bone, quaternion.clone(), true));
   });
 
+  // A carried blade should not ride a dead wrist: the borrowed jog/sprint cycles
+  // swing the shoulders but leave `hand_*` untouched, so a small sway keeps the
+  // sword and the shield alive. It is driven per frame in `update`.
+  const wristSwayRight = new THREE.Quaternion();
+  const wristSwayLeft = new THREE.Quaternion();
+  eachBoneCopy('hand_r', (bone) => addOffset(bone, wristSwayRight, true));
+  eachBoneCopy('hand_l', (bone) => addOffset(bone, wristSwayLeft, true));
+
+  const sameQuaternion = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y)
+    + Math.abs(a.z - b.z) + Math.abs(a.w - b.w) < 1e-9;
   const applyOffsets = (weight) => {
     const amount = new THREE.Quaternion();
-    for (let i = 0; i < poseOffsets.length; i++) {
-      const { bone, quaternion, weight: fixedWeight } = poseOffsets[i];
-      const w = fixedWeight === undefined ? 1 : weight;
-      if (w <= 0.001) continue;
-      amount.identity().slerp(quaternion, w);
-      bone.quaternion.multiply(amount);
-    }
-    for (let i = 0; i < offhandOffsets.length; i++) {
-      const { bone, quaternion } = offhandOffsets[i];
-      bone.quaternion.multiply(quaternion);
-    }
-    for (let i = 0; i < wristOffsets.length; i++) {
-      const { bone, quaternion } = wristOffsets[i];
-      amount.identity().slerp(quaternion, weight);
-      bone.quaternion.premultiply(amount);
+    for (let g = 0; g < offsetGroups.length; g++) {
+      const group = offsetGroups[g];
+      const bone = group.bone;
+      // If the running clip has no track for this bone the mixer leaves last
+      // frame's value alone, and applying the correction on top of it again
+      // would compound (a hand rolling forever, a sword spinning in the air).
+      // Keep the clip value separately and always rebuild from it.
+      if (group.used && sameQuaternion(bone.quaternion, group.applied)) {
+        // Nothing wrote it this frame: ease the stored clip value onto the
+        // authored resting pose instead of freezing the previous clip's angle.
+        group.base.slerp(group.rest, 1 - Math.exp(-lastDt * 9));
+      } else {
+        group.base.copy(bone.quaternion);
+      }
+      bone.quaternion.copy(group.base);
+      for (let i = 0; i < group.entries.length; i++) {
+        const { quaternion, weight: fadeWith, premultiply } = group.entries[i];
+        const w = fadeWith === undefined ? 1 : weight;
+        if (w <= 0.001) continue;
+        amount.identity().slerp(quaternion, w);
+        if (premultiply) bone.quaternion.premultiply(amount);
+        else bone.quaternion.multiply(amount);
+      }
+      group.applied.copy(bone.quaternion);
+      group.used = true;
     }
   };
 
@@ -1132,16 +1207,43 @@ export async function loadMiaHero(options = {}) {
   }
 
   let currentName = 'Sword_Idle';
-  const referenceSpeed = {
-    'Walk_Loop': WALK_REFERENCE_SPEED,
-    'Jog_Fwd_Loop': JOG_REFERENCE_SPEED,
-    'Sprint_Loop': SPRINT_REFERENCE_SPEED
+
+  /**
+   * Ground speed each borrowed cycle covers at its own tempo, measured from the
+   * clips themselves: the planted foot travels `2 x stride` per loop, and the
+   * rig is a 1.774-unit body scaled to HERO_HEIGHT. Matching the gameplay speed
+   * to this number is what stops the feet from skating.
+   */
+  const strideInModelUnits = {
+    'Walk_Loop': 0.682,
+    'Jog_Fwd_Loop': 1.237,
+    'Sprint_Loop': 1.077
   };
+  const referenceSpeed = {};
+  let speedsMeasured = false;
+  const measureReferenceSpeeds = () => {
+    const scale = root.scale.x || 1;
+    Object.entries(strideInModelUnits).forEach(([name, stride]) => {
+      const duration = byName.get(name)?.duration || 1;
+      referenceSpeed[name] = (2 * stride * scale) / Math.max(duration, 0.05);
+    });
+  };
+  measureReferenceSpeeds();
+
+  /**
+   * Walk until the walk cycle would look hurried, then take whichever of the
+   * faster cycles covers the ground speed most closely (fewest sliding feet).
+   */
   const speedToClip = (speed) => {
-    if (speed > SPRINT_REFERENCE_SPEED * 0.72) return 'Sprint_Loop';
-    if (speed > JOG_REFERENCE_SPEED * 0.62) return 'Jog_Fwd_Loop';
-    if (speed > 0.12) return 'Walk_Loop';
-    return 'Sword_Idle';
+    if (speed <= 0.12) return 'Sword_Idle';
+    const walk = referenceSpeed['Walk_Loop'] || WALK_REFERENCE_SPEED;
+    if (speed <= walk * 1.3) return 'Walk_Loop';
+    const jog = referenceSpeed['Jog_Fwd_Loop'] || JOG_REFERENCE_SPEED;
+    const sprint = referenceSpeed['Sprint_Loop'] || SPRINT_REFERENCE_SPEED;
+    if (!jog || !sprint) return 'Walk_Loop';
+    const jogError = Math.abs(Math.log(speed / jog));
+    const sprintError = Math.abs(Math.log(speed / sprint));
+    return sprintError < jogError ? 'Sprint_Loop' : 'Jog_Fwd_Loop';
   };
 
   let oneShotName = null;
@@ -1165,15 +1267,26 @@ export async function loadMiaHero(options = {}) {
   };
 
   const update = (dt, speed = 0) => {
+    lastDt = Math.max(dt, 1 / 240);
     if (!oneShotName) {
+      // The rig is scaled after load, so measure the clip speeds on the first
+      // frame with the scale that is actually in use.
+      if (!speedsMeasured) {
+        measureReferenceSpeeds();
+        speedsMeasured = true;
+      }
       const name = speedToClip(speed);
       if (name !== currentName && actionSets.has(name)) {
         currentName = name;
         setWeights(name, 0.26);
       }
       const reference = referenceSpeed[currentName];
-      const timeScale = reference ? THREE.MathUtils.clamp(speed / reference, 0.55, 1.6) : 1;
+      const timeScale = reference ? THREE.MathUtils.clamp(speed / reference, 0.62, 1.5) : 1;
       actionSets.get(currentName)?.forEach((action) => action.setEffectiveTimeScale(timeScale));
+      // One gait cycle per walk-length travelled, so the wrist sway stays in
+      // step with the legs while the borrowed cycles are played back faster.
+      const walk = referenceSpeed['Walk_Loop'] || WALK_REFERENCE_SPEED;
+      gaitPhase += (speed / Math.max(walk, 0.2)) * dt * Math.PI;
     } else {
       oneShotTimer -= dt;
       if (oneShotTimer <= 0) {
@@ -1186,6 +1299,11 @@ export async function loadMiaHero(options = {}) {
     // Combat clips are authored for the raw rig, so the resting wrist and
     // shoulder corrections fade out for one-shots and return afterwards.
     correctionWeight += ((oneShotName ? 0 : 1) - correctionWeight) * (1 - Math.exp(-dt * 11));
+    // Keep the wrist sway tiny and fade it out at a standstill, so the resting
+    // pose is exactly the authored one.
+    const sway = Math.min(1, speed / 1.2) * 0.11;
+    wristSwayRight.setFromAxisAngle(WRIST_SWAY_AXIS, Math.sin(gaitPhase) * sway);
+    wristSwayLeft.setFromAxisAngle(WRIST_SWAY_AXIS, Math.sin(gaitPhase + Math.PI) * sway * 0.7);
     mixer.update(dt);
     applyOffsets(correctionWeight);
   };
@@ -1218,6 +1336,11 @@ export async function loadMiaHero(options = {}) {
     setGear,
     gear: () => ({ ...currentGear }),
     weaponKinds: Object.keys(weaponLoadout),
+    // Which clip is running, and the prop actually in her hand right now.
+    clip: () => currentName,
+    // Ground speed each cycle covers at its own tempo (world units / second).
+    clipSpeeds: () => ({ ...referenceSpeed }),
+    worn: () => (weaponLoadout[currentGear.weapon] || weaponLoadout.sword).group,
     shield: shield.group,
     sword: sword.group,
     sash: tailLeft.mesh,

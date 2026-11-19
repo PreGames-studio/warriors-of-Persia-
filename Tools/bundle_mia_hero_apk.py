@@ -64,10 +64,13 @@ def shell_files() -> list[Path]:
     """Runtime files the bundled HTML still loads from disk (CSS, fonts, photos)."""
     files = [PREVIEW / "potion-shop.css", PREVIEW / "village-theme.css"]
     files += sorted((PREVIEW / "fonts").glob("*"))
-    for folder in ("blacksmith", "apothecary", "spells"):
+    # The shop art lives outside the bundle: keeper photos, the signature item
+    # pictures and the book covers. Leaving `merchants` out is what made several
+    # shops show cards with no picture in the installed APK.
+    for folder in ("blacksmith", "apothecary", "spells", "merchants"):
         folder_path = PREVIEW / "assets" / folder
         if folder_path.is_dir():
-            files += sorted(folder_path.glob("*"))
+            files += sorted(path for path in folder_path.rglob("*") if path.is_file())
     files.append(PREVIEW / "assets" / "hero" / "mia_hero.png")
     return [path for path in files if path.is_file()]
 
