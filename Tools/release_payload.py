@@ -35,7 +35,9 @@ def main() -> int:
     if args.mode == "create":
         payload.update({"tag_name": args.tag, "target_commitish": args.target, "draft": True})
     else:
-        payload.update({"draft": False, "make_latest": True})
+        # GitHub only honours the string form: a JSON boolean is silently
+        # ignored, which left the "Latest" badge on an old tag.
+        payload.update({"draft": False, "make_latest": "true"})
     print(json.dumps(payload, ensure_ascii=False))
     return 0
 
