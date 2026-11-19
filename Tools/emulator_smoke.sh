@@ -191,14 +191,7 @@ for attempt in $(seq 1 12); do
 done
 tail -8 "$OUT/gear.txt.norm" 2>/dev/null || true
 [ -n "$gear" ] || fail GEAR-NOT-SHOWN 36
-# The shop pictures are files beside the bundle, so check the APK really carries
-# them before blaming the renderer.
-for entry in assets/assets/merchants/keepers/jeweler.png \
-             assets/assets/merchants/signature/jeweler.png \
-             assets/assets/merchants/books/book-01.png \
-             assets/assets/merchants/merchant-hall.jpg; do
-  unzip -l "$APK" | grep -q " $entry$" || fail SHOP-ART-NOT-PACKAGED 41
-done
+
 grep -o 'gear-show[^\n]*' "$OUT/gear.txt.norm" | tail -1 || true
 grep -q 'closeup[^,}]*true' "$OUT/gear.txt.norm" || fail GEAR-NO-CLOSEUP 39
 grep -q 'cameraDistance[^,}]*[0-5]\.[0-9]' "$OUT/gear.txt.norm" || fail GEAR-CAMERA-FAR 40

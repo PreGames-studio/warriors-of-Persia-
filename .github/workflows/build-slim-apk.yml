@@ -10,11 +10,11 @@ on:
       version_code:
         description: Android versionCode
         required: false
-        default: "26"
+        default: "27"
       version_name:
         description: Android versionName
         required: false
-        default: "1.0.26"
+        default: "1.0.27"
   push:
     branches:
       - arena/32ca0dd4-warriors-of-persia
@@ -39,9 +39,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  VERSION_CODE: ${{ github.event.inputs.version_code || '26' }}
-  VERSION_NAME: ${{ github.event.inputs.version_name || '1.0.26' }}
-  TAG: v1.0.26
+  VERSION_CODE: ${{ github.event.inputs.version_code || '27' }}
+  VERSION_NAME: ${{ github.event.inputs.version_name || '1.0.27' }}
+  TAG: v1.0.27
 
 jobs:
   build:
@@ -187,7 +187,7 @@ jobs:
           python - <<'PY'
           import json, re, zipfile
           from pathlib import Path
-          apk = Path('artifacts/releases/WarriorsOfPersia_1.0.26.apk')
+          apk = Path('artifacts/releases/WarriorsOfPersia_1.0.27.apk')
           z = zipfile.ZipFile(apk)
           names = z.namelist()
           assert not any(n.startswith('assets/pbr_hq/') for n in names), 'HQ maps leaked into the APK'
@@ -204,6 +204,18 @@ jobs:
           assert b'WoPPack' in html
           assert b'__wopBag' in html, 'equipment/bag screen missing from the bundle'
           assert b'iv-slot' in html and b'inv-gear-secondary' in html, 'paper-doll slots missing'
+          # Shop pictures: the item art and the keeper photos are files, not part
+          # of the bundle, so they have to be inside the APK or the cards are blank.
+          for entry in ('assets/assets/merchants/keepers/jeweler.png',
+                        'assets/assets/merchants/signature/jeweler.png',
+                        'assets/assets/merchants/books/book-01.png',
+                        'assets/assets/merchants/merchant-hall.jpg'):
+              assert entry in names, entry
+          merchant_entries = [n for n in names if n.startswith('assets/assets/merchants/')]
+          assert len(merchant_entries) >= 40, merchant_entries[:5]
+          # Slim build: the 4K/8K maps live in the download, and the merchant art
+          # must stay the optimized WebP copies rather than the full-size originals.
+          assert apk.stat().st_size < 100 * 1024 * 1024, apk.stat().st_size
           assert b'MiaCastPivot' in html, 'cast pivot missing'
           # Shell assets are stored under assets/assets/... and served at /assets/...
           for slug in ('strike', 'orb', 'wave', 'storm'):
@@ -253,8 +265,8 @@ jobs:
         with:
           name: wop-slim-apk
           path: |
-            artifacts/releases/WarriorsOfPersia_1.0.26.apk
-            artifacts/quality/build-1.0.26*.json
+            artifacts/releases/WarriorsOfPersia_1.0.27.apk
+            artifacts/quality/build-1.0.27*.json
           retention-days: 7
 
       - name: Publish the release
