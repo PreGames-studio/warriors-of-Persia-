@@ -1,0 +1,108 @@
+name: Emulator smoke test of the published APK
+
+# Re-runnable check (no rebuild): installs the APK that is already published, boots it on an emulator, checks that
+# the WebView shell really runs the game, then downloads the HD graphics pack
+# through the game itself and confirms the textures switch over after a relaunch.
+# Also screenshots the new equipment/bag screen (artifact wop-emulator-shots)
+# and commits those screenshots under docs/releases/verification/.
+on:
+  workflow_dispatch:
+
+# The build workflow runs the same emulator checks right after it publishes, so
+# this copy is only for re-checking an already published APK by hand. Running
+# both at once made two software-GL emulators starve each other.
+
+permissions:
+  contents: write
+
+concurrency:
+  group: smoke-slim-apk
+  cancel-in-progress: true
+
+env:
+  VERSION_NAME: "1.0.25"
+  TAG: v1.0.25
+  PACKAGE: com.pregames.warriorsofpersia
+
+jobs:
+  emulator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download the published APK
+        run: |
+          set -euo pipefail
+          mkdir -p apk
+          curl -sSL --retry 3 -o "apk/WarriorsOfPersia_${VERSION_NAME}.apk" \
+            "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/WarriorsOfPersia_${VERSION_NAME}.apk"
+          ls -l apk
+          sha256sum apk/*.apk
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          ls -l /dev/kvm
+
+      - name: Boot the game on an emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          target: default
+          arch: x86_64
+          ram-size: 4096M
+          heap-size: 1024M
+          disable-animations: true
+          script: |
+            bash -o pipefail -c 'bash Tools/emulator_smoke.sh "apk/WarriorsOfPersia_${VERSION_NAME}.apk" 2>&1 | tee "$RUNNER_TEMP/smoke.log"'
+
+      - name: Publish the screenshots to the branch
+        if: success()
+        run: |
+          set -euo pipefail
+          mkdir -p docs/releases/verification
+          for name in inventory inventory2 spells; do
+            if [ -f "${{ runner.temp }}/$name.png" ]; then
+              cp "${{ runner.temp }}/$name.png" "docs/releases/verification/$name.png"
+            fi
+          done
+          if [ -z "$(git status --porcelain docs/releases/verification)" ]; then
+            echo "no new screenshots"
+            exit 0
+          fi
+          git config user.name "wop-ci"
+          git config user.email "ci@users.noreply.github.com"
+          git add docs/releases/verification
+          git commit -m "docs: emulator screenshots from run $GITHUB_RUN_ID"
+          git push origin "HEAD:refs/heads/${GITHUB_REF_NAME}"
+
+      - name: Keep the screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wop-emulator-shots
+          path: |
+            ${{ runner.temp }}/inventory.png
+            ${{ runner.temp }}/inventory2.png
+            ${{ runner.temp }}/spells.png
+            ${{ runner.temp }}/pack.png
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Surface the failure
+        if: failure()
+        run: |
+          python3 - <<'PY'
+          import glob, os, urllib.parse
+          parts = []
+          for path in ("smoke.log", "boot.txt", "pack.txt", "installed.txt"):
+              full = os.path.join(os.environ.get("RUNNER_TEMP", "/tmp"), path)
+              if os.path.exists(full):
+                  parts.append(f"### {path}\n" + open(full, encoding="utf-8", errors="replace").read()[-1800:])
+          text = "\n".join(parts) or "no log captured"
+          print("::error title=emulator-smoke::" + urllib.parse.quote(text, safe=" :;,._-/()[]{}"))
+          PY

@@ -6,6 +6,7 @@ import {
   MIA_ACTIONS_GLB_BASE64,
   MIA_COMBAT_GLB_BASE64
 } from './assets/hero/mia/mia-assets.js';
+import { weaponKindFor } from './equipment.js';
 import { addNormalDetail, addAlbedoDetail, strandRoughness, addCavityShade, waitForImage } from './mia-texture-detail.js';
 
 /**
@@ -52,6 +53,20 @@ function decodeBase64(base64) {
 function parseGLB(loader, base64) {
   return new Promise((resolve, reject) => {
     loader.parse(decodeBase64(base64), '', resolve, reject);
+  });
+}
+
+/**
+ * Load a candidate character GLB from a URL. Only the review harness uses this:
+ * it lets us render an art pass straight from a build artefact, without first
+ * re-embedding it in mia-assets.js.
+ */
+export async function parseGLBFromUrl(loader, url) {
+  const response = await fetch(url, { cache: 'no-store' });
+  if (!response.ok) throw new Error(`Mia GLB fetch failed: ${url} (${response.status})`);
+  const buffer = await response.arrayBuffer();
+  return new Promise((resolve, reject) => {
+    loader.parse(buffer, '', resolve, reject);
   });
 }
 
@@ -217,6 +232,12 @@ function upgradeMaterials(meshes, environment) {
       material.ior = 1.4;
 
       if (surface === 'skin') {
+        // The anime face pass (Tools/stylize_mia_face.py) reads best on smooth,
+        // evenly lit skin: the sculpted normal detail is eased off and a small
+        // warm emissive keeps the soft shadows from going grim.
+        material.normalScale.set(0.5, 0.5);
+        material.emissive.setHex(0x241610);
+        material.emissiveIntensity = 1;
         material.sheen = 0.16;
         material.sheenRoughness = 0.85;
         material.sheenColor.setHex(0xff9c80);
@@ -245,7 +266,9 @@ function upgradeMaterials(meshes, environment) {
         material.roughness = 0.38;
         material.specularIntensity = 0.6;
       } else if (surface === 'brow') {
-        material.color.setHex(0x4d3527);
+        // Warm mid-brown instead of near-black: the authored card is wide, so a
+        // dark tint read as a heavy frown on an otherwise soft face.
+        material.color.setHex(0x7d5540);
         material.roughness = 0.94;
         material.specularIntensity = 0.15;
         material.sheen = 0.2;
@@ -460,23 +483,205 @@ class Shamshir {
 }
 
 /**
+ * The weapons Mia can carry, all built in the same local space as the shamshir:
+ * the grip sits at y = 0 and the business end points along +Y.
+ */
+class WarHammer {
+  constructor(materials) {
+    const group = new THREE.Group();
+    group.name = 'MiaWarHammer';
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.032, 0.92, 12), materials.leather);
+    shaft.position.y = 0.34;
+    group.add(shaft);
+    for (let i = 0; i < 6; i += 1) {
+      const wrap = new THREE.Mesh(new THREE.TorusGeometry(0.031, 0.004, 5, 12), materials.gold);
+      wrap.rotation.x = Math.PI / 2;
+      wrap.position.y = -0.05 + i * 0.09;
+      group.add(wrap);
+    }
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.20, 0.15), materials.steelDark);
+    head.position.y = 0.84;
+    head.castShadow = true;
+    group.add(head);
+    // Two polished striking faces: the brightest part of the prop, so the hammer
+    // still reads as a hammer in a 640px-wide screenshot.
+    [-1, 1].forEach((side) => {
+      const face = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.22, 0.17), materials.steel);
+      face.position.set(side * 0.165, 0.84, 0);
+      group.add(face);
+    });
+    [-1, 1].forEach((side) => {
+      const cheek = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.20, 0.16), materials.gold);
+      cheek.position.set(side * 0.125, 0.84, 0);
+      group.add(cheek);
+    });
+    const band = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.035, 0.165), materials.gold);
+    band.position.y = 0.725;
+    group.add(band);
+    const spike = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.12, 10), materials.steel);
+    spike.position.y = 0.975;
+    group.add(spike);
+    this.group = group;
+  }
+}
+
+class BattleAxe {
+  constructor(materials) {
+    const group = new THREE.Group();
+    group.name = 'MiaBattleAxe';
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.03, 1.0, 12), materials.leather);
+    shaft.position.y = 0.30;
+    group.add(shaft);
+    const blade = new THREE.Shape();
+    blade.moveTo(0.03, 0.05);
+    blade.quadraticCurveTo(0.30, 0.10, 0.33, 0.30);
+    blade.quadraticCurveTo(0.34, 0.50, 0.26, 0.62);
+    blade.quadraticCurveTo(0.16, 0.42, 0.03, 0.40);
+    blade.closePath();
+    const geometry = new THREE.ExtrudeGeometry(blade, {
+      depth: 0.028, bevelEnabled: true, bevelSize: 0.006, bevelThickness: 0.006, bevelSegments: 2, curveSegments: 20
+    });
+    geometry.translate(0, 0, -0.014);
+    [-1, 1].forEach((side) => {
+      const wing = new THREE.Mesh(geometry, materials.steel);
+      wing.position.y = 0.62;
+      wing.scale.x = side;
+      wing.castShadow = true;
+      group.add(wing);
+    });
+    const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.10, 12), materials.gold);
+    collar.position.y = 0.62;
+    group.add(collar);
+    const pommel = new THREE.Mesh(new THREE.SphereGeometry(0.033, 12, 9), materials.gold);
+    pommel.position.y = -0.20;
+    group.add(pommel);
+    this.group = group;
+  }
+}
+
+class ImmortalSpear {
+  constructor(materials) {
+    const group = new THREE.Group();
+    group.name = 'MiaImmortalSpear';
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.026, 2.1, 12), materials.leather);
+    shaft.position.y = 0.55;
+    group.add(shaft);
+    const socket = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.024, 0.12, 12), materials.gold);
+    socket.position.y = 1.55;
+    group.add(socket);
+    const head = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.34, 12), materials.steel);
+    head.position.y = 1.78;
+    head.castShadow = true;
+    group.add(head);
+    [-1, 1].forEach((side) => {
+      const wing = new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.14, 8), materials.gold);
+      wing.position.set(side * 0.05, 1.60, 0);
+      wing.rotation.z = side * -0.5;
+      group.add(wing);
+    });
+    const butt = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.10, 10), materials.gold);
+    butt.position.y = -0.52;
+    butt.rotation.x = Math.PI;
+    group.add(butt);
+    this.group = group;
+  }
+}
+
+class ArashBow {
+  constructor(materials) {
+    const group = new THREE.Group();
+    group.name = 'MiaArashBow';
+    // The limb is a torus arc: it reads as a recurve from every camera angle and
+    // costs a fraction of an extruded bow profile.
+    const limb = new THREE.Mesh(
+      new THREE.TorusGeometry(0.62, 0.019, 8, 40, Math.PI * 0.86),
+      materials.leather
+    );
+    limb.rotation.z = Math.PI * 0.57;
+    limb.position.y = 0.30;
+    group.add(limb);
+    const string = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.98, 6), materials.steel);
+    string.position.set(0.13, 0.30, 0);
+    group.add(string);
+    [-1, 1].forEach((side) => {
+      const cap = new THREE.Mesh(new THREE.CapsuleGeometry(0.022, 0.05, 4, 8), materials.gold);
+      cap.position.set(0.13, 0.30 + side * 0.49, 0);
+      group.add(cap);
+    });
+    const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.14, 10), materials.gold);
+    grip.position.set(-0.05, 0.30, 0);
+    grip.rotation.z = Math.PI / 2;
+    group.add(grip);
+    this.group = group;
+  }
+}
+
+/** Kite shield with a raised golden lion, gripped at the boss like a viking round shield. */
+class KiteShield {
+  constructor(materials) {
+    const group = new THREE.Group();
+    group.name = 'MiaShield';
+    const face = new THREE.Shape();
+    face.moveTo(0, 0.34);
+    face.lineTo(0.26, 0.26);
+    face.quadraticCurveTo(0.30, -0.10, 0, -0.40);
+    face.quadraticCurveTo(-0.30, -0.10, -0.26, 0.26);
+    face.closePath();
+    const geometry = new THREE.ExtrudeGeometry(face, {
+      depth: 0.038, bevelEnabled: true, bevelSize: 0.008, bevelThickness: 0.008, bevelSegments: 2, curveSegments: 24
+    });
+    geometry.translate(0, 0, -0.019);
+    // Gold rim: the same silhouette, slightly enlarged and pushed back, so only
+    // a border shows around the steel face instead of covering it.
+    const rimGeometry = geometry.clone();
+    const rim = new THREE.Mesh(rimGeometry, materials.gold);
+    rim.scale.set(1.07, 1.07, 0.55);
+    rim.position.z = -0.010;
+    rim.castShadow = true;
+    group.add(rim);
+
+    const shell = new THREE.Mesh(geometry, materials.steelDark);
+    shell.castShadow = true;
+    group.add(shell);
+
+    // Painted chevron: two slim steel bands, clearly readable at gameplay range.
+    [-1, 1].forEach((side) => {
+      const band = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.30, 0.012), materials.steel);
+      band.position.set(side * 0.075, 0.02, 0.024);
+      band.rotation.z = side * 0.34;
+      group.add(band);
+    });
+
+    const boss = new THREE.Mesh(new THREE.SphereGeometry(0.085, 16, 12), materials.gold);
+    boss.scale.z = 0.55;
+    boss.position.z = 0.030;
+    group.add(boss);
+
+    const crest = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.16, 0.014), materials.gold);
+    crest.position.set(0, -0.18, 0.026);
+    group.add(crest);
+    this.group = group;
+  }
+}
+
+/**
  * Measure the fist so the sword sits in the palm instead of floating beside the
  * hand, and so the fingers can close around the grip. All values are expressed
- * in the right hand bone's local space.
+ * in the hand bone's local space. `side` picks the right (weapon) or left hand.
  */
-function measureFist(boneByName) {
-  const read = (name) => boneByName.get(name) || null;
-  const hand = read('hand_r');
+function measureFist(boneByName, side = 'r') {
+  const read = (name) => boneByName.get(name) || boneByName.get(`${name}_${side}`) || null;
+  const hand = read(`hand_${side}`);
   if (!hand) return null;
   hand.updateMatrixWorld(true);
   const inverse = new THREE.Matrix4().copy(hand.matrixWorld).invert();
   const local = (bone) => bone.getWorldPosition(new THREE.Vector3()).applyMatrix4(inverse);
 
-  const index = read('index_01_r');
-  const middle = read('middle_01_r');
-  const pinky = read('pinky_01_r');
-  const ring = read('ring_01_r');
-  const indexMid = read('index_02_r');
+  const index = read(`index_01_${side}`);
+  const middle = read(`middle_01_${side}`);
+  const pinky = read(`pinky_01_${side}`);
+  const ring = read(`ring_01_${side}`);
+  const indexMid = read(`index_02_${side}`);
   if (!index || !middle || !pinky || !ring || !indexMid) return null;
 
   const pIndex = local(index);
@@ -508,10 +713,10 @@ function gripOrientation(fist) {
 }
 
 export async function loadMiaHero(options = {}) {
-  const { renderer = null, materials = {} } = options;
+  const { renderer = null, materials = {}, baseGlbUrl = null } = options;
   const loader = new GLTFLoader();
   const [base, locomotion, actions, combat] = await Promise.all([
-    parseGLB(loader, MIA_BASE_GLB_BASE64),
+    baseGlbUrl ? parseGLBFromUrl(loader, baseGlbUrl) : parseGLB(loader, MIA_BASE_GLB_BASE64),
     parseGLB(loader, MIA_LOCOMOTION_GLB_BASE64),
     parseGLB(loader, MIA_ACTIONS_GLB_BASE64),
     parseGLB(loader, MIA_COMBAT_GLB_BASE64)
@@ -544,6 +749,11 @@ export async function loadMiaHero(options = {}) {
       visibleMeshes.push(mesh);
     });
   });
+
+  // Mia's face is painted as an anime-leaning portrait (Tools/stylize_mia_face.py):
+  // the slender brows live in the skin atlas, so the wide authored card is hidden
+  // rather than left as a second, heavier brow above it.
+  visibleMeshes.filter((mesh) => mesh.name === 'Eyebrows').forEach((mesh) => { mesh.visible = false; });
 
   upgradeMaterials(visibleMeshes, environment);
   // The atlas paints the shoulder plate cream; Mia wears gunmetal. Tint only the
@@ -707,16 +917,37 @@ export async function loadMiaHero(options = {}) {
   const wristOffsets = [];
   let correctionWeight = 1;
 
-  const fist = measureFist(boneByName);
+  const fist = measureFist(boneByName, 'r');
+  const leftFist = measureFist(boneByName, 'l');
+
+  /**
+   * Put a prop in a fist. Every model keeps its grip at the local origin, so the
+   * same palm/quaternion maths works for the sword, the hammer and the shield.
+   */
+  function placeInFist(group, { side = 'r', scale = 0.86, gripOffset = null, tilt = 0 } = {}) {
+    const target = side === 'l' ? leftFist : fist;
+    if (!target) return false;
+    group.scale.setScalar(scale);
+    group.quaternion.copy(gripOrientation(target));
+    if (tilt) {
+      // Swing the prop in the palm before it is placed: the resting wrist makes
+      // a blade hang down, which would bury a hammer or a spear in the floor.
+      group.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), tilt));
+    }
+    const offset = (gripOffset || new THREE.Vector3(0, 0, 0))
+      .clone()
+      .multiplyScalar(scale)
+      .applyQuaternion(group.quaternion);
+    group.position.copy(target.palmCenter).sub(offset);
+    target.hand.add(group);
+    return true;
+  }
+
   if (fist) {
     const gripScale = 0.86;
-    sword.group.scale.setScalar(gripScale);
-    sword.group.quaternion.copy(gripOrientation(fist));
-    const gripCentre = new THREE.Vector3(0, -0.093, 0)
-      .multiplyScalar(gripScale)
-      .applyQuaternion(sword.group.quaternion);
-    sword.group.position.copy(fist.palmCenter).sub(gripCentre);
-    fist.hand.add(sword.group);
+    // The shamshir's handle centre sits below its origin; every other prop is
+    // modelled around the grip itself.
+    placeInFist(sword.group, { scale: gripScale, gripOffset: new THREE.Vector3(0, -0.093, 0) });
     root.updateMatrixWorld(true);
 
     // Bend the wrist so the resting blade hangs down instead of sticking out
@@ -767,6 +998,77 @@ export async function loadMiaHero(options = {}) {
         quaternion: new THREE.Quaternion().setFromAxisAngle(axis.applyQuaternion(worldQuaternion.clone().invert()).normalize(), 0.24)
       });
     });
+  }
+
+  // ------------------------------------------------------------------
+  // LOADOUT — the weapon family and the shield the player has equipped.
+  // The base model ships one shamshir; the other families are built here in
+  // the same grip space, so swapping gear never needs a new GLB.
+  // ------------------------------------------------------------------
+  const propSet = {
+    steel: propMaterial('steel'),
+    steelDark: propMaterial('steelDark'),
+    gold: propMaterial('gold'),
+    leather: propMaterial('leather')
+  };
+  const radiantSteel = propSet.steel.clone();
+  radiantSteel.color = new THREE.Color(0xe6c168);
+  radiantSteel.metalness = 0.94;
+  radiantSteel.roughness = 0.26;
+  radiantSteel.emissive = new THREE.Color(0x2a1c05);
+  radiantSteel.emissiveIntensity = 0.35;
+  const radiantGold = propSet.gold.clone();
+  radiantGold.emissive = new THREE.Color(0x3b2606);
+
+  const radiant = new Shamshir({ ...propSet, steel: radiantSteel, gold: radiantGold });
+  radiant.group.name = 'MiaSwordRadiant';
+  const hammer = new WarHammer(propSet);
+  const axe = new BattleAxe(propSet);
+  const spear = new ImmortalSpear(propSet);
+  const bow = new ArashBow(propSet);
+  const shield = new KiteShield(propSet);
+
+  const weaponLoadout = {
+    sword: { group: sword.group, side: 'r', scale: 0.86, gripOffset: new THREE.Vector3(0, -0.093, 0) },
+    radiant: { group: radiant.group, side: 'r', scale: 0.86, gripOffset: new THREE.Vector3(0, -0.093, 0) },
+    hammer: { group: hammer.group, side: 'r', scale: 1.0, tilt: -1.75 },
+    axe: { group: axe.group, side: 'r', scale: 0.95, tilt: -1.75 },
+    spear: { group: spear.group, side: 'r', scale: 0.8, tilt: -1.55 },
+    bow: { group: bow.group, side: 'l', scale: 0.9 }
+  };
+  Object.entries(weaponLoadout).forEach(([kind, entry]) => {
+    if (kind === 'sword') { entry.group.visible = true; return; }
+    placeInFist(entry.group, entry);
+    entry.group.visible = false;
+  });
+  if (leftFist) {
+    // A centre-grip shield: its face looks along the palm normal and the grip
+    // bar runs across the palm, so the forearm takes the weight in every clip.
+    const basis = new THREE.Matrix4().makeBasis(leftFist.gripAxis, leftFist.sideAxis, leftFist.palmNormal);
+    shield.group.quaternion.setFromRotationMatrix(basis);
+    shield.group.scale.setScalar(0.95);
+    shield.group.position.copy(leftFist.palmCenter);
+    leftFist.hand.add(shield.group);
+    shield.group.visible = false;
+  }
+  const gearGroups = Array.from(new Set([
+    ...Object.values(weaponLoadout).map((entry) => entry.group),
+    shield.group
+  ]));
+  let currentGear = { weapon: 'sword', shield: false };
+
+  /** Show the weapon family (and shield) the player is wearing right now. */
+  function setGear(gear = {}) {
+    const worn = gear && gear.weapon ? gear.weapon.id : null;
+    let kind = weaponKindFor(worn);
+    if (!weaponLoadout[kind] || (kind === 'bow' && !leftFist)) kind = 'sword';
+    Object.entries(weaponLoadout).forEach(([key, entry]) => {
+      entry.group.visible = key === kind;
+    });
+    const showShield = Boolean(gear && gear.shield && kind !== 'bow' && leftFist);
+    shield.group.visible = showShield;
+    currentGear = { weapon: kind, shield: showShield };
+    return currentGear;
   }
 
   // Shoulders relax slightly in idle/walk; the weight fades away for one-shots.
@@ -893,10 +1195,11 @@ export async function loadMiaHero(options = {}) {
   // hidden for the single measurement.
   applyOffsets(1);
   root.updateMatrixWorld(true);
-  sword.group.visible = false;
+  const propsWereVisible = gearGroups.map((group) => group.visible);
+  gearGroups.forEach((group) => { group.visible = false; });
   tails.forEach((tail) => { tail.mesh.visible = false; });
   const bodyBounds = new THREE.Box3().setFromObject(rig);
-  sword.group.visible = true;
+  gearGroups.forEach((group, index) => { group.visible = propsWereVisible[index]; });
   tails.forEach((tail) => { tail.mesh.visible = true; });
   const size = new THREE.Vector3();
   bodyBounds.getSize(size);
@@ -912,6 +1215,10 @@ export async function loadMiaHero(options = {}) {
     mixer,
     playOneShot,
     update,
+    setGear,
+    gear: () => ({ ...currentGear }),
+    weaponKinds: Object.keys(weaponLoadout),
+    shield: shield.group,
     sword: sword.group,
     sash: tailLeft.mesh,
     tails: tails.map((tail) => tail.mesh),

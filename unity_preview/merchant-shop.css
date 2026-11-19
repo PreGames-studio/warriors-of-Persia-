@@ -3,3 +3,8 @@
 .merchant-modal.bookshop .merchant-scene>img{object-position:50% 50%}.merchant-modal.bookshop .merchant-stock{background:linear-gradient(130deg,#30291e,#111b18 65%)}
 
 .merchant-modal.dedicated-keeper .merchant-scene>img{object-position:50% 50%}
+
+
+/* WebView 83 has no `inset` shorthand: repeat the physical offsets. */
+.merchant-modal { top: 0; right: 0; bottom: 0; left: 0; }
+.merchant-scene:after { top: 0; right: 0; bottom: 0; left: 0; }

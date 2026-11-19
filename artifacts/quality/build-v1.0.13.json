@@ -1,0 +1,22 @@
+{
+  "output": "artifacts/releases/WarriorsOfPersia_1.0.13_HQ_8K.apk",
+  "bytes": 272429255,
+  "sha256": "4262bb28b43397e0f0f45d548119f46848fd565177d2bab8cadcebd61d2eca01",
+  "sourceBytes": 272417787,
+  "sourceSha256": "426e3cf5ea4a55d38bfc007a5d08efc84d329f19aec977e5411147d482e4d5f7",
+  "entries": 99,
+  "manifest": {
+    "versionCode": 13,
+    "versionName": "1.0.13",
+    "installLocation": 0,
+    "compileSdkVersion": 28,
+    "compileSdkVersionCodename": "9",
+    "package": "com.pregames.warriorsofpersia",
+    "platformBuildVersionCode": 28,
+    "platformBuildVersionName": 9
+  },
+  "schemes": [
+    1,
+    2
+  ]
+}

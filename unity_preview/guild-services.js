@@ -1,3 +1,4 @@
+import { clearNode } from './dom-compat.js';
 export function registerGuildMember(state){
   if(state.currentZone!=='guild')return {ok:false,message:'ثبت‌نام فقط در گیلد انجام می‌شود.'};
   if(state.guildMembership?.registered)return {ok:false,message:'شما قبلاً عضو گیلد شده‌اید.'};
@@ -21,7 +22,7 @@ export function createGuildServices({state,onSave,onChange,onToast}){
   function transaction(result){onToast(result.message,result.ok?'#d8b66a':'#f87171');if(result.ok){onChange();onSave();}render();}
   function render(){
     modal.querySelector('.guild-service-title').textContent=role==='registrar'?'دفتر ثبت‌نام گیلد':'پیشخوان خرید غنائم ماجراجویان';
-    const body=modal.querySelector('.guild-service-body');body.replaceChildren();
+    const body=modal.querySelector('.guild-service-body');clearNode(body);
     const p=document.createElement('p');p.textContent=role==='registrar'?(state.guildMembership?.registered?`عضو گیلد: ${state.guildMembership.name} — رتبه: ${state.guildMembership.rank}`:'ثبت‌نام رایگان است. عضویت شما به‌صورت دائمی ذخیره می‌شود.'):`موجودی: ${state.coins} سکه — خرید آیتم‌ها با ۳۵٪ قیمت اصلی؛ امتیازهای قبلاً اعمال‌شده تغییر نمی‌کنند.`;body.appendChild(p);
     if(role==='registrar'){
       const b=document.createElement('button');b.className='top-btn gold';b.textContent=state.guildMembership?.registered?'عضویت ثبت شده است':'ثبت‌نام در گیلد';b.disabled=!!state.guildMembership?.registered;b.onclick=()=>transaction(registerGuildMember(state));body.appendChild(b);

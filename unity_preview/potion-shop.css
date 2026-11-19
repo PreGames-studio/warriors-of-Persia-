@@ -699,3 +699,7 @@
 @media (prefers-reduced-motion: reduce) {
   .ap-modal *, .ap-modal *::before, .ap-modal *::after { animation: none !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
+
+
+/* WebView 83 has no `inset` shorthand. */
+#potion-shop, .ap-scene, #ap-particles { top: 0; right: 0; bottom: 0; left: 0; }

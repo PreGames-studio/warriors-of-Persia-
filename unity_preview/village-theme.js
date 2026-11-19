@@ -587,15 +587,25 @@ export function createPersianVillageKit(THREE) {
       contactShadow.material.opacity = .85 - Math.min(.3, Math.abs(speed) * .05);
     };
     group.userData.playAction = (name) => (hero ? hero.playOneShot(name) : null);
+    // Gear the player is wearing: the weapon family and the off-hand shield.
+    group.userData.setGear = (gear) => (hero && hero.setGear ? hero.setGear(gear) : null);
+    group.userData.gearState = () => (hero && hero.gear ? hero.gear() : null);
     group.userData.getMia = () => hero;
     group.userData.actualSpeed = 0;
+    // Dedicated node for spell-cast body motion (lunge, spin, leap). Movement
+    // code owns `group` and the model owns its own root, so the cast pose needs
+    // a parent of its own to avoid fighting either of them.
+    const castPivot = new THREE.Group();
+    castPivot.name = 'MiaCastPivot';
+    group.add(castPivot);
+    group.userData.castPivot = castPivot;
 
     loadMiaHero({
       renderer: activeRenderer,
       materials: { steel, steelDark, gold, leather: gripLeather, cape }
     }).then((loaded) => {
       hero = loaded;
-      group.add(loaded.root);
+      castPivot.add(loaded.root);
       // Apply any movement that happened while the GLB was parsing.
       hero.update(1 / 60, pendingSpeed);
       group.userData.modelReady = true;
