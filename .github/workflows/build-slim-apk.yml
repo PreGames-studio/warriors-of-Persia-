@@ -17,6 +17,7 @@ on:
         default: "1.0.26"
   push:
     branches:
+      - arena/32ca0dd4-warriors-of-persia
       - arena/c0915d8c-warriors-of-persia
       - arena/c0915d8c-warriors-of-Persia
     paths:
