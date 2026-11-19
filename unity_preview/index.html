@@ -5036,9 +5036,70 @@
     // how the hand and the worn sword behave. `relSpread` would be ~0 when the
     // sword is rigid in the fist; a spinning prop shows up as a large number.
     let walkProbe = null;
+    /**
+     * Step the hero at a fixed 60 Hz and report how the clip and the worn prop
+     * behave. The emulator renders at ~2 fps under software GL, so measuring
+     * per rendered frame would only measure the frame rate.
+     */
+    function auditGait(speed, seconds = 2.6) {
+      const mesh = state.party[0] && state.party[0].mesh;
+      const mia = mesh && mesh.userData && mesh.userData.getMia ? mesh.userData.getMia() : null;
+      if (!mia || !mia.bone || !mia.update) return null;
+      const hand = mia.bone('hand_r');
+      const prop = mia.worn ? mia.worn() : mia.sword;
+      if (!hand || !prop) return null;
+      const dt = 1 / 60;
+      const frames = Math.round(seconds / dt);
+      // The 0.26 s crossfade between two cycles bends every joint of the arm
+      // chain at once, so a couple of frames inside it read as a large delta.
+      // Judge the gait after the blend has settled, and keep the blend peak
+      // separately as a coarse "the rig exploded" tripwire.
+      const warmup = Math.round(0.5 / dt);
+      const handQuaternion = new THREE.Quaternion();
+      const propQuaternion = new THREE.Quaternion();
+      let reference = null;
+      let spread = 0;
+      let peak = 0;
+      let pop = 0;
+      let previous = null;
+      let clip = null;
+      for (let frame = 0; frame < frames; frame++) {
+        mia.update(dt, speed);
+        mia.root.updateMatrixWorld(true);
+        clip = mia.clip ? mia.clip() : clip;
+        hand.getWorldQuaternion(handQuaternion);
+        prop.getWorldQuaternion(propQuaternion);
+        const relative = handQuaternion.clone().invert().multiply(propQuaternion);
+        if (!reference) reference = relative.clone();
+        const arc = THREE.MathUtils.radToDeg(relative.angleTo(reference));
+        spread = Math.max(spread, Math.min(arc, 360 - arc));
+        if (previous) {
+          const delta = THREE.MathUtils.radToDeg(previous.angleTo(handQuaternion));
+          pop = Math.max(pop, delta);
+          if (frame >= warmup) peak = Math.max(peak, delta);
+        }
+        previous = handQuaternion.clone();
+      }
+      return {
+        clip,
+        spread: Number(spread.toFixed(1)),
+        peak: Number(peak.toFixed(1)),
+        pop: Number(pop.toFixed(1))
+      };
+    }
     function startWalkProbe(seconds = 6) {
       const mia = state.party[0] && state.party[0].mesh && state.party[0].mesh.userData.getMia
         ? state.party[0].mesh.userData.getMia() : null;
+      // Fixed-rate audit first: this is the number the CI gate reads.
+      window.__wopWalkAudit = null;
+      try {
+        const walk = auditGait(2.13);
+        const jog = auditGait(5.53);
+        const sprint = auditGait(6.74);
+        window.__wopWalkAudit = { walk, jog, sprint };
+      } catch (err) {
+        window.__wopWalkAudit = { error: String(err && err.message ? err.message : err) };
+      }
       walkProbe = {
         until: performance.now() + seconds * 1000,
         started: performance.now(),
@@ -5083,12 +5144,24 @@
         joyVec.x = 0;
         joyVec.y = 0;
         const speeds = probe.speeds.filter((value) => value > 0.01);
+        const audit = window.__wopWalkAudit || {};
         const result = {
           samples: probe.samples,
           clips: probe.clips,
           relSpread: Number(probe.relSpread.toFixed(1)),
-          handPeak: Number(probe.handPeak.toFixed(1)),
-          speed: speeds.length ? Number((speeds.reduce((a, b) => a + b, 0) / speeds.length).toFixed(2)) : 0
+          speed: speeds.length ? Number((speeds.reduce((a, b) => a + b, 0) / speeds.length).toFixed(2)) : 0,
+          walkClip: audit.walk ? audit.walk.clip : null,
+          walkSpread: audit.walk ? audit.walk.spread : null,
+          walkPeak: audit.walk ? audit.walk.peak : null,
+          walkPop: audit.walk ? audit.walk.pop : null,
+          jogClip: audit.jog ? audit.jog.clip : null,
+          jogSpread: audit.jog ? audit.jog.spread : null,
+          jogPeak: audit.jog ? audit.jog.peak : null,
+          jogPop: audit.jog ? audit.jog.pop : null,
+          sprintClip: audit.sprint ? audit.sprint.clip : null,
+          sprintSpread: audit.sprint ? audit.sprint.spread : null,
+          sprintPeak: audit.sprint ? audit.sprint.peak : null,
+          sprintPop: audit.sprint ? audit.sprint.pop : null
         };
         walkProbe = null;
         window.__wopWalkResult = JSON.stringify(result);
@@ -5454,7 +5527,10 @@
         }
 
         const len = Math.hypot(mx, mz);
-        const walkingSpeed = state.currentZone === 'village' ? 4.4 : 6.0;
+        // The village pace has to stay inside the walk cycle's own ground
+        // speed band: past it the hero is jogging, and the jog clip carries
+        // no wrist work, which reads as frozen open hands.
+        const walkingSpeed = state.currentZone === 'village' ? 3.0 : 6.0;
         const deadZone = .07;
         const inputStrength = len > deadZone ? Math.min(1, (len - deadZone) / (1 - deadZone)) : 0;
         const invLen = len > 0 ? 1 / len : 0;

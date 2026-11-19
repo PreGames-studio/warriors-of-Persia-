@@ -222,15 +222,31 @@ tail -10 "$OUT/walk.txt.norm" 2>/dev/null || true
 [ -n "$walk" ] || fail WALK-NOT-SHOWN 45
 grep -o 'walk-probe[^\n]*' "$OUT/walk.txt.norm" | tail -1 || true
 grep -q 'clips":\[[^]]*\(Walk_Loop\|Jog_Fwd_Loop\)' "$OUT/walk.txt.norm" || fail WALK-NO-CYCLE 46
-spread="$(grep -o 'relSpread":[0-9.]*' "$OUT/walk.txt.norm" | tail -1 | cut -d: -f2)"
-peak="$(grep -o 'handPeak":[0-9.]*' "$OUT/walk.txt.norm" | tail -1 | cut -d: -f2)"
 walkSpeed="$(grep -o 'speed":[0-9.]*' "$OUT/walk.txt.norm" | tail -1 | cut -d: -f2)"
-log "walk: spread=$spread peak=$peak speed=$walkSpeed"
-[ -n "$spread" ] || fail WALK-NO-PROBE 45
-# The sword must stay put in the fist and the hand must not roll over freely.
-awk -v v="$spread" 'BEGIN { exit !(v + 0 < 6) }' || fail WALK-SWORD-SPINS 47
-awk -v v="$peak" 'BEGIN { exit !(v + 0 < 45) }' || fail WALK-HAND-SPINS 48
+log "walk: live speed=$walkSpeed"
+[ -n "$walkSpeed" ] || fail WALK-NO-PROBE 45
 awk -v v="$walkSpeed" 'BEGIN { exit !(v + 0 > 1.0) }' || fail WALK-NO-MOVEMENT 49
+
+# The clip/pose audit is stepped at a fixed 60 Hz inside the page, so these
+# numbers do not depend on how slow the software renderer is.
+grep -q '"walkClip":"Walk_Loop"' "$OUT/walk.txt.norm" || fail WALK-NO-WALK-CYCLE 52
+grep -q '"jogClip":"Jog_Fwd_Loop"' "$OUT/walk.txt.norm" || fail WALK-NO-JOG-CYCLE 53
+grep -q '"sprintClip":"Sprint_Loop"' "$OUT/walk.txt.norm" || fail WALK-NO-SPRINT-CYCLE 54
+for gait in walk jog sprint; do
+  spread="$(grep -o "\"${gait}Spread\":[0-9.]*" "$OUT/walk.txt.norm" | tail -1 | cut -d: -f2)"
+  peak="$(grep -o "\"${gait}Peak\":[0-9.]*" "$OUT/walk.txt.norm" | tail -1 | cut -d: -f2)"
+  pop="$(grep -o "\"${gait}Pop\":[0-9.]*" "$OUT/walk.txt.norm" | tail -1 | cut -d: -f2)"
+  log "$gait: sword drift=$spread hand peak=$peak blend pop=$pop"
+  [ -n "$spread" ] && [ -n "$peak" ] && [ -n "$pop" ] || fail WALK-NO-PROBE 45
+  # The sword must stay locked in the fist (the prop is a child of the wrist
+  # bone, so any drift means the prop was torn off the hand).
+  awk -v v="$spread" 'BEGIN { exit !(v + 0 < 2) }' || fail WALK-SWORD-SPINS 47
+  # Settled gait: locally 1.7 deg/frame walking, 8.1 jogging, 7.3 sprinting.
+  awk -v v="$peak" 'BEGIN { exit !(v + 0 < 30) }' || fail WALK-HAND-SPINS 48
+  # Crossfade between cycles bends the whole arm at once (~38 deg worst case);
+  # anything near a full turn means the pose is unrolling.
+  awk -v v="$pop" 'BEGIN { exit !(v + 0 < 70) }' || fail WALK-HAND-SPINS 48
+done
 
 art=""
 for attempt in $(seq 1 8); do

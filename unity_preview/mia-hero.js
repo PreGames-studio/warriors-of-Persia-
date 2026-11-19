@@ -1237,7 +1237,7 @@ export async function loadMiaHero(options = {}) {
   const speedToClip = (speed) => {
     if (speed <= 0.12) return 'Sword_Idle';
     const walk = referenceSpeed['Walk_Loop'] || WALK_REFERENCE_SPEED;
-    if (speed <= walk * 1.3) return 'Walk_Loop';
+    if (speed <= walk * 1.45) return 'Walk_Loop';
     const jog = referenceSpeed['Jog_Fwd_Loop'] || JOG_REFERENCE_SPEED;
     const sprint = referenceSpeed['Sprint_Loop'] || SPRINT_REFERENCE_SPEED;
     if (!jog || !sprint) return 'Walk_Loop';

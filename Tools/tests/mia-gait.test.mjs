@@ -160,8 +160,10 @@ expect('slow movement plays the walk cycle', walk.clip === 'Walk_Loop', walk.cli
 expect('the walk steps instead of sliding', walk.footLift > 0.08, `foot lift ${walk.footLift}`);
 expect('the arms swing while walking', walk.handSpan > 0.12, `hand travel ${walk.handSpan}`);
 
-const village = run(3, 4.4);
-expect('village speed plays the jog cycle', village.clip === 'Jog_Fwd_Loop', village.clip);
+const village = run(3, 3.0);
+expect('village speed plays the walk cycle', village.clip === 'Walk_Loop', village.clip);
+const jog = run(3, 4.4);
+expect('a faster chase plays the jog cycle', jog.clip === 'Jog_Fwd_Loop', jog.clip);
 
 // The cycles are chosen by whichever covers the ground speed most closely, so
 // the dungeon speed lands on the jog cycle and a real sprint is a bit faster.
@@ -170,7 +172,7 @@ expect('dungeon speed plays a running cycle', dungeon.clip === 'Jog_Fwd_Loop' ||
 const sprint = run(2, 7.4);
 expect('a full sprint plays the sprint cycle', sprint.clip === 'Sprint_Loop', sprint.clip);
 
-for (const [label, result] of [['idle', idle], ['walk', walk], ['jog', village], ['sprint', sprint]]) {
+for (const [label, result] of [['idle', idle], ['walk', walk], ['village', village], ['jog', jog], ['sprint', sprint]]) {
   expect(`the sword stays rigid in the fist (${label})`, result.spread < 6, `relative drift ${result.spread}°`);
   expect(`the hand does not roll over (${label})`, result.peak < 45, `peak ${result.peak}°/frame`);
   expect(`the fingers keep their grip (${label})`, result.fingerDrift < 25, `drift ${result.fingerDrift}°`);
