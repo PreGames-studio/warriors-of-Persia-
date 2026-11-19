@@ -10,13 +10,14 @@ on:
       version_code:
         description: Android versionCode
         required: false
-        default: "25"
+        default: "27"
       version_name:
         description: Android versionName
         required: false
-        default: "1.0.25"
+        default: "1.0.27"
   push:
     branches:
+      - arena/32ca0dd4-warriors-of-persia
       - arena/c0915d8c-warriors-of-persia
       - arena/c0915d8c-warriors-of-Persia
     paths:
@@ -25,6 +26,7 @@ on:
       - "unity_preview/**"
       - "Tools/bundle_mia_hero_apk.py"
       - "Tools/emulator_smoke.sh"
+      - "Tools/tests/**"
       - "Tools/build_pack_apk.py"
       - "Tools/build_graphics_pack.py"
       - "Tools/build_android_launcher.py"
@@ -37,9 +39,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  VERSION_CODE: ${{ github.event.inputs.version_code || '25' }}
-  VERSION_NAME: ${{ github.event.inputs.version_name || '1.0.25' }}
-  TAG: v1.0.25
+  VERSION_CODE: ${{ github.event.inputs.version_code || '27' }}
+  VERSION_NAME: ${{ github.event.inputs.version_name || '1.0.27' }}
+  TAG: v1.0.27
 
 jobs:
   build:
@@ -68,6 +70,13 @@ jobs:
           npm install --global esbuild@0.21.5
           java -version
           esbuild --version
+
+      - name: Unit checks for the hero rig and the gear table
+        run: |
+          set -euo pipefail
+          exec > >(tee -a "$RUNNER_TEMP/step.log") 2>&1
+          node Tools/tests/equipment.test.mjs
+          node Tools/tests/mia-gait.test.mjs
 
       - name: Locate the Android SDK
         run: |
@@ -178,7 +187,7 @@ jobs:
           python - <<'PY'
           import json, re, zipfile
           from pathlib import Path
-          apk = Path('artifacts/releases/WarriorsOfPersia_1.0.25.apk')
+          apk = Path('artifacts/releases/WarriorsOfPersia_1.0.27.apk')
           z = zipfile.ZipFile(apk)
           names = z.namelist()
           assert not any(n.startswith('assets/pbr_hq/') for n in names), 'HQ maps leaked into the APK'
@@ -195,6 +204,18 @@ jobs:
           assert b'WoPPack' in html
           assert b'__wopBag' in html, 'equipment/bag screen missing from the bundle'
           assert b'iv-slot' in html and b'inv-gear-secondary' in html, 'paper-doll slots missing'
+          # Shop pictures: the item art and the keeper photos are files, not part
+          # of the bundle, so they have to be inside the APK or the cards are blank.
+          for entry in ('assets/assets/merchants/keepers/jeweler.png',
+                        'assets/assets/merchants/signature/jeweler.png',
+                        'assets/assets/merchants/books/book-01.png',
+                        'assets/assets/merchants/merchant-hall.jpg'):
+              assert entry in names, entry
+          merchant_entries = [n for n in names if n.startswith('assets/assets/merchants/')]
+          assert len(merchant_entries) >= 40, merchant_entries[:5]
+          # Slim build: the 4K/8K maps live in the download, and the merchant art
+          # must stay the optimized WebP copies rather than the full-size originals.
+          assert apk.stat().st_size < 100 * 1024 * 1024, apk.stat().st_size
           assert b'MiaCastPivot' in html, 'cast pivot missing'
           # Shell assets are stored under assets/assets/... and served at /assets/...
           for slug in ('strike', 'orb', 'wave', 'storm'):
@@ -244,8 +265,8 @@ jobs:
         with:
           name: wop-slim-apk
           path: |
-            artifacts/releases/WarriorsOfPersia_1.0.25.apk
-            artifacts/quality/build-1.0.25*.json
+            artifacts/releases/WarriorsOfPersia_1.0.27.apk
+            artifacts/quality/build-1.0.27*.json
           retention-days: 7
 
       - name: Publish the release
@@ -325,7 +346,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p docs/releases/verification
-          for name in inventory inventory2 spells gear; do
+          for name in inventory inventory2 spells gear walk; do
             if [ -f "${{ runner.temp }}/$name.png" ]; then
               cp "${{ runner.temp }}/$name.png" "docs/releases/verification/$name.png"
             fi
@@ -335,6 +356,9 @@ jobs:
           fi
           if [ -f "${{ runner.temp }}/gear-probe.txt" ]; then
             cp "${{ runner.temp }}/gear-probe.txt" docs/releases/verification/gear-probe.txt
+          fi
+          if [ -f "${{ runner.temp }}/walk-probe.txt" ]; then
+            cp "${{ runner.temp }}/walk-probe.txt" docs/releases/verification/walk-probe.txt
           fi
           if [ -z "$(git status --porcelain docs/releases/verification)" ]; then
             echo "no new screenshots"
@@ -357,6 +381,8 @@ jobs:
             ${{ runner.temp }}/bag-probe.txt
             ${{ runner.temp }}/gear.png
             ${{ runner.temp }}/gear-probe.txt
+            ${{ runner.temp }}/walk.png
+            ${{ runner.temp }}/walk-probe.txt
             ${{ runner.temp }}/spells.png
             ${{ runner.temp }}/pack.png
           if-no-files-found: warn
