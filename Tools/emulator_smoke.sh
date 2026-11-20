@@ -204,19 +204,44 @@ log "---- walking, the sword in the fist and the shop pictures ----"
 adb shell am force-stop "$PACKAGE"
 sleep 3
 adb logcat -c
-adb shell am start -n "$PACKAGE/.MainActivity" --es wop_walk 12 --es wop_shopart 1 >/dev/null || fail LAUNCH-FAILED 42
+# 20 s of real time: ten of them walking, the rest on the automatic run, so the
+# screenshots land inside both halves of the test.
+adb shell am start -n "$PACKAGE/.MainActivity" --es wop_walk 20 --es wop_shopart 1 >/dev/null || fail LAUNCH-FAILED 42
+
+# A frame grabbed while she is still walking: the pose on screen is the one the
+# player sees, with the walk badge above the stick.
+walking=""
+for attempt in $(seq 1 12); do
+  sleep 3
+  adb logcat -d -s WoP:V >"$OUT/walk.txt" 2>&1 || true
+  normalize "$OUT/walk.txt"
+  if grep -q 'walk-start' "$OUT/walk.txt.norm"; then walking=1; break; fi
+  log "waiting for the walk to start ($attempt/12)"
+done
+[ -n "$walking" ] || fail WALK-NOT-SHOWN 45
+adb shell screencap -p /sdcard/walk.png && adb pull /sdcard/walk.png "$OUT/walk.png" >/dev/null 2>&1 || fail SCREENSHOT-FAILED 43
+[ -s "$OUT/walk.png" ] || fail SCREENSHOT-EMPTY 44
+
+# The automatic run must announce itself about ten seconds in; grab that frame too.
+ran=""
+for attempt in $(seq 1 12); do
+  adb logcat -d -s WoP:V >"$OUT/walk.txt" 2>&1 || true
+  normalize "$OUT/walk.txt"
+  if grep -q 'auto-run-start' "$OUT/walk.txt.norm"; then ran=1; break; fi
+  sleep 4
+done
+adb shell screencap -p /sdcard/walk-run.png && adb pull /sdcard/walk-run.png "$OUT/walk-run.png" >/dev/null 2>&1 || true
+[ -n "$ran" ] || fail AUTORUN-NOT-STARTED 55
+grep -o 'auto-run-start[^\n]*' "$OUT/walk.txt.norm" | tail -1 || true
+
 walk=""
 for attempt in $(seq 1 12); do
-  sleep 7
+  sleep 5
   adb logcat -d -s WoP:V >"$OUT/walk.txt" 2>&1 || true
   normalize "$OUT/walk.txt"
   if grep -q 'walk-probe' "$OUT/walk.txt.norm"; then walk=1; break; fi
   log "waiting for the walk probe ($attempt/12)"
 done
-# A frame taken while the synthetic walk is still running: the pose on screen is
-# the one the player sees while walking.
-adb shell screencap -p /sdcard/walk.png && adb pull /sdcard/walk.png "$OUT/walk.png" >/dev/null 2>&1 || fail SCREENSHOT-FAILED 43
-[ -s "$OUT/walk.png" ] || fail SCREENSHOT-EMPTY 44
 cp "$OUT/walk.txt.norm" "$OUT/walk-probe.txt" 2>/dev/null || true
 tail -10 "$OUT/walk.txt.norm" 2>/dev/null || true
 [ -n "$walk" ] || fail WALK-NOT-SHOWN 45
@@ -232,6 +257,18 @@ awk -v v="$walkSpeed" 'BEGIN { exit !(v + 0 > 1.0) }' || fail WALK-NO-MOVEMENT 4
 grep -q '"walkClip":"Walk_Loop"' "$OUT/walk.txt.norm" || fail WALK-NO-WALK-CYCLE 52
 grep -q '"jogClip":"Jog_Fwd_Loop"' "$OUT/walk.txt.norm" || fail WALK-NO-JOG-CYCLE 53
 grep -q '"sprintClip":"Sprint_Loop"' "$OUT/walk.txt.norm" || fail WALK-NO-SPRINT-CYCLE 54
+
+# One pace everywhere plus the automatic run: she has to switch to running on
+# her own after ten seconds of walking, with no extra button pressed.
+grep -q '"runAfterSeconds":10' "$OUT/walk.txt.norm" || fail WALK-NO-PROBE 45
+grep -q 'run' <<<"$(grep -o '"gaitModes":\[[^]]*\]' "$OUT/walk.txt.norm" | tail -1)" || fail AUTORUN-NOT-STARTED 55
+autoAfter="$(grep -o '"autoRunAfter":[0-9.]*' "$OUT/walk.txt.norm" | tail -1 | cut -d: -f2)"
+runPeak="$(grep -o '"runPeak":[0-9.]*' "$OUT/walk.txt.norm" | tail -1 | cut -d: -f2)"
+log "auto-run: started after ${autoAfter}s, peak speed $runPeak"
+[ -n "$autoAfter" ] || fail AUTORUN-NOT-STARTED 55
+# It must be the ten-second rule and nothing else: not instant, not never.
+awk -v v="$autoAfter" 'BEGIN { exit !(v + 0 >= 9 && v + 0 <= 13.5) }' || fail AUTORUN-TIMING 56
+awk -v v="$runPeak" 'BEGIN { exit !(v + 0 > 4.0) }' || fail AUTORUN-SLOW 57
 for gait in walk jog sprint; do
   spread="$(grep -o "\"${gait}Spread\":[0-9.]*" "$OUT/walk.txt.norm" | tail -1 | cut -d: -f2)"
   peak="$(grep -o "\"${gait}Peak\":[0-9.]*" "$OUT/walk.txt.norm" | tail -1 | cut -d: -f2)"

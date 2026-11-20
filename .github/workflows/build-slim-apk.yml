@@ -10,13 +10,14 @@ on:
       version_code:
         description: Android versionCode
         required: false
-        default: "27"
+        default: "28"
       version_name:
         description: Android versionName
         required: false
-        default: "1.0.27"
+        default: "1.0.28"
   push:
     branches:
+      - arena/c885c4dc-warriors-of-persia
       - arena/32ca0dd4-warriors-of-persia
       - arena/c0915d8c-warriors-of-persia
       - arena/c0915d8c-warriors-of-Persia
@@ -39,9 +40,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  VERSION_CODE: ${{ github.event.inputs.version_code || '27' }}
-  VERSION_NAME: ${{ github.event.inputs.version_name || '1.0.27' }}
-  TAG: v1.0.27
+  VERSION_CODE: ${{ github.event.inputs.version_code || '28' }}
+  VERSION_NAME: ${{ github.event.inputs.version_name || '1.0.28' }}
+  TAG: v1.0.28
 
 jobs:
   build:
@@ -76,6 +77,7 @@ jobs:
           set -euo pipefail
           exec > >(tee -a "$RUNNER_TEMP/step.log") 2>&1
           node Tools/tests/equipment.test.mjs
+          node Tools/tests/locomotion.test.mjs
           node Tools/tests/mia-gait.test.mjs
 
       - name: Locate the Android SDK
@@ -187,7 +189,7 @@ jobs:
           python - <<'PY'
           import json, re, zipfile
           from pathlib import Path
-          apk = Path('artifacts/releases/WarriorsOfPersia_1.0.27.apk')
+          apk = Path('artifacts/releases/WarriorsOfPersia_1.0.28.apk')
           z = zipfile.ZipFile(apk)
           names = z.namelist()
           assert not any(n.startswith('assets/pbr_hq/') for n in names), 'HQ maps leaked into the APK'
@@ -265,8 +267,8 @@ jobs:
         with:
           name: wop-slim-apk
           path: |
-            artifacts/releases/WarriorsOfPersia_1.0.27.apk
-            artifacts/quality/build-1.0.27*.json
+            artifacts/releases/WarriorsOfPersia_1.0.28.apk
+            artifacts/quality/build-1.0.28*.json
           retention-days: 7
 
       - name: Publish the release
@@ -346,7 +348,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p docs/releases/verification
-          for name in inventory inventory2 spells gear walk; do
+          for name in inventory inventory2 spells gear walk walk-run; do
             if [ -f "${{ runner.temp }}/$name.png" ]; then
               cp "${{ runner.temp }}/$name.png" "docs/releases/verification/$name.png"
             fi
@@ -382,6 +384,7 @@ jobs:
             ${{ runner.temp }}/gear.png
             ${{ runner.temp }}/gear-probe.txt
             ${{ runner.temp }}/walk.png
+            ${{ runner.temp }}/walk-run.png
             ${{ runner.temp }}/walk-probe.txt
             ${{ runner.temp }}/spells.png
             ${{ runner.temp }}/pack.png

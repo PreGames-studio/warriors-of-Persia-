@@ -352,6 +352,55 @@
       align-items: center;
       justify-content: center;
     }
+    /* Walk / auto-run pill, parked right above the movement stick. */
+    #gait-badge {
+      position: absolute;
+      bottom: 130px;
+      left: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 11px 5px 9px;
+      border-radius: 999px;
+      background: rgba(9, 16, 28, 0.8);
+      border: 1px solid rgba(125, 211, 252, 0.55);
+      color: #e0f2fe;
+      font-family: 'Vazirmatn', sans-serif;
+      font-size: 11.5px;
+      font-weight: 700;
+      direction: rtl;
+      white-space: nowrap;
+      z-index: 26;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity .22s ease, transform .22s ease, border-color .22s ease,
+                  color .22s ease, box-shadow .22s ease;
+    }
+    #gait-badge.show { opacity: 1; transform: translateY(0); }
+    #gait-badge.run {
+      border-color: #fbbf24;
+      color: #fde68a;
+      box-shadow: 0 0 16px rgba(251, 191, 36, 0.45);
+    }
+    #gait-icon { font-size: 14px; line-height: 1; }
+    #gait-meter {
+      width: 46px;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.35);
+      overflow: hidden;
+    }
+    #gait-fill {
+      display: block;
+      width: 0%;
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #38bdf8, #22d3ee);
+      transition: width .2s linear;
+    }
+    #gait-badge.run #gait-meter { display: none; }
+
     .joystick-knob {
       width: 44px;
       height: 44px;
@@ -1259,6 +1308,7 @@
   body.wop-bag-open .skill-btn,
   body.wop-bag-open .btn-basic-attack,
   body.wop-bag-open .joystick-zone,
+  body.wop-bag-open #gait-badge,
   body.wop-bag-open .minimap-card,
   body.wop-bag-open #labels-layer,
   body.wop-bag-open #toast-banner,
@@ -1692,6 +1742,13 @@
       <button class="cam-switch-btn" id="btn-cam-mode">🎥 دوربین: سوم‌شخص (پشت‌سر هیرو)</button>
     </div>
 
+    <!-- WALK / AUTO-RUN INDICATOR (ABOVE THE JOYSTICK) -->
+    <div id="gait-badge" role="status" aria-live="polite">
+      <span id="gait-icon">🚶</span>
+      <span id="gait-label">راه رفتن</span>
+      <span id="gait-meter"><span id="gait-fill"></span></span>
+    </div>
+
     <!-- VIRTUAL JOYSTICK (BOTTOM-LEFT) -->
     <div class="joystick-zone" id="joystick-zone">
       <div class="joystick-knob" id="joystick-knob"></div>
@@ -1989,6 +2046,7 @@
     import { createGuildServices } from './guild-services.js';
     import { GUILD, guildWalkHeight, guildCanWalkTo, guildUpperFloorBlocked, guildDoorReached, buildGuildExterior, buildGuildInteriorStage } from './adventure-guild.js';
     import { dungeonReturnArrival, arrivalPartyPosition } from './portal-arrival.js';
+    import { createGait, WALK_SPEED, RUN_SPEED, RUN_AFTER_SECONDS } from './locomotion.js';
     import { smoothAngle, dragLookTarget } from './camera-motion.js';
     import { installDragLook } from './camera-look.js';
     import { mapMarkerMetrics, drawShopMarker, drawPlayerMarker } from './map-markers.js';
@@ -3601,6 +3659,13 @@
       heroGear: () => heroGearState(),
       // CI: walk forward for a few seconds and report how the worn sword behaves.
       walkStart: (seconds = 6) => startWalkProbe(Number(seconds) || 6),
+      gait: () => ({
+        mode: heroGait.mode(),
+        progress: Number(heroGait.progress().toFixed(2)),
+        speed: heroGait.speed(),
+        badge: gaitBadge ? Boolean(gaitBadge.classList.contains('show')) : false,
+        badgeRun: gaitBadge ? Boolean(gaitBadge.classList.contains('run')) : false
+      }),
       walkResult: () => window.__wopWalkResult || null,
       // CI: every keeper and item image a shop can ask for must load from the
       // packaged assets, otherwise the shop shows empty cards.
@@ -5093,8 +5158,10 @@
       // Fixed-rate audit first: this is the number the CI gate reads.
       window.__wopWalkAudit = null;
       try {
-        const walk = auditGait(2.13);
-        const jog = auditGait(5.53);
+        // The two paces the game actually uses, plus the sprint cycle so the
+        // rig is still checked at its fastest authored tempo.
+        const walk = auditGait(WALK_SPEED);
+        const jog = auditGait(RUN_SPEED);
         const sprint = auditGait(6.74);
         window.__wopWalkAudit = { walk, jog, sprint };
       } catch (err) {
@@ -5112,7 +5179,11 @@
         handPeak: 0,
         samples: 0,
         clips: [],
-        speeds: []
+        speeds: [],
+        // Auto-run evidence: when the pace switched and how fast she got.
+        autoRunAt: null,
+        runPeak: 0,
+        gaitModes: []
       };
       joyVec.x = 0;
       joyVec.y = -1;
@@ -5123,6 +5194,12 @@
       const probe = walkProbe;
       probe.samples += 1;
       probe.speeds.push(speed);
+      const gaitMode = heroGait.mode();
+      if (probe.gaitModes.indexOf(gaitMode) < 0) probe.gaitModes.push(gaitMode);
+      if (gaitMode === 'run') {
+        if (probe.autoRunAt === null) probe.autoRunAt = (performance.now() - probe.started) / 1000;
+        probe.runPeak = Math.max(probe.runPeak, speed);
+      }
       const clip = probe.clipOf ? probe.clipOf() : null;
       if (clip && probe.clips.indexOf(clip) < 0) probe.clips.push(clip);
       if (probe.hand && probe.sword) {
@@ -5148,6 +5225,12 @@
         const result = {
           samples: probe.samples,
           clips: probe.clips,
+          gaitModes: probe.gaitModes,
+          autoRunAfter: probe.autoRunAt === null ? null : Number(probe.autoRunAt.toFixed(1)),
+          runPeak: Number(probe.runPeak.toFixed(2)),
+          walkSpeedTarget: Number(WALK_SPEED.toFixed(2)),
+          runSpeedTarget: Number(RUN_SPEED.toFixed(2)),
+          runAfterSeconds: RUN_AFTER_SECONDS,
           relSpread: Number(probe.relSpread.toFixed(1)),
           speed: speeds.length ? Number((speeds.reduce((a, b) => a + b, 0) / speeds.length).toFixed(2)) : 0,
           walkClip: audit.walk ? audit.walk.clip : null,
@@ -5170,6 +5253,41 @@
     }
     let heroMoveSpeed = 0;
     let heroAnimationSpeed = 0;
+    // One pace everywhere, and the automatic run after ten seconds of walking.
+    const heroGait = createGait();
+    const gaitBadge = document.getElementById('gait-badge');
+    const gaitIcon = document.getElementById('gait-icon');
+    const gaitLabel = document.getElementById('gait-label');
+    const gaitFill = document.getElementById('gait-fill');
+    let gaitHudMode = '';
+    let autoRunToastShown = false;
+    function updateGaitHud() {
+      if (!gaitBadge) return;
+      const mode = heroGait.mode();
+      if (mode === 'idle') {
+        if (gaitHudMode !== 'idle') {
+          gaitHudMode = 'idle';
+          gaitBadge.classList.remove('show', 'run');
+        }
+        return;
+      }
+      if (mode !== gaitHudMode) {
+        gaitHudMode = mode;
+        const running = mode === 'run';
+        gaitBadge.classList.toggle('run', running);
+        gaitBadge.classList.add('show');
+        gaitIcon.textContent = running ? '🏃' : '🚶';
+        gaitLabel.textContent = running ? 'دویدن (خودکار)' : 'راه رفتن';
+        if (running && !autoRunToastShown) {
+          autoRunToastShown = true;
+          showToast('🏃 میا بعد از ۱۰ ثانیه راه رفتن، خودکار می‌دود.', '#fbbf24');
+          // Read by the emulator job: the run has to start on its own.
+          try { console.info('auto-run-start ' + (performance.now() / 1000).toFixed(1)); } catch (err) {}
+        }
+      }
+      if (mode !== 'run') gaitFill.style.width = (heroGait.progress() * 100).toFixed(0) + '%';
+      else gaitFill.style.width = '100%';
+    }
     const heroMoveDirection = new THREE.Vector3();
     const heroVelocity = new THREE.Vector3();
     const heroTargetVelocity = new THREE.Vector3();
@@ -5464,7 +5582,10 @@
 
     function animate() {
       requestAnimationFrame(animate);
-      const dt = Math.min(clock.getDelta(), 0.1);
+      // The walk clock follows real time (the render frame rate can be low on
+      // a phone), while the simulation keeps its own capped step.
+      const frameDelta = clock.getDelta();
+      const dt = Math.min(frameDelta, 0.1);
       heroSpells.update(dt);
       syncHeroGear();
       const elapsed = clock.getElapsedTime();
@@ -5527,10 +5648,13 @@
         }
 
         const len = Math.hypot(mx, mz);
-        // The village pace has to stay inside the walk cycle's own ground
-        // speed band: past it the hero is jogging, and the jog clip carries
-        // no wrist work, which reads as frozen open hands.
-        const walkingSpeed = state.currentZone === 'village' ? 3.0 : 6.0;
+        // Every zone moves Mia at the same pace. The clock runs on the ground
+        // she actually covered last frame, so pushing into a wall never builds
+        // up a run, and after ten seconds of walking she breaks into the
+        // automatic run on her own — no extra button, in any zone.
+        heroGait.update(frameDelta, leader.mesh.userData.actualSpeed || 0);
+        updateGaitHud();
+        const walkingSpeed = heroGait.speed();
         const deadZone = .07;
         const inputStrength = len > deadZone ? Math.min(1, (len - deadZone) / (1 - deadZone)) : 0;
         const invLen = len > 0 ? 1 / len : 0;

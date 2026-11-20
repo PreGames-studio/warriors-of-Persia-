@@ -12,6 +12,7 @@
  */
 import * as THREE from '../../unity_preview/lib/three.module.js';
 import { GLTFLoader } from '../../unity_preview/lib/GLTFLoader.js';
+import { WALK_SPEED, RUN_SPEED } from '../../unity_preview/locomotion.js';
 
 // ---------------------------------------------------------------- DOM stubs
 const makeCanvas = () => ({
@@ -152,6 +153,14 @@ function run(seconds, speed, settleFrames = 24) {
 const checks = [];
 const expect = (label, ok, detail) => checks.push({ label, ok: Boolean(ok), detail });
 
+// The pace the game actually walks and runs at (unity_preview/locomotion.js)
+// has to land on the matching cycle, otherwise the feet slide or she plays a
+// cycle that has no wrist work.
+const gameWalk = run(3, WALK_SPEED);
+expect('the game walk pace plays the walk cycle', gameWalk.clip === 'Walk_Loop', `${WALK_SPEED} -> ${gameWalk.clip}`);
+const gameRun = run(3, RUN_SPEED);
+expect('the game run pace plays the running cycle', gameRun.clip === 'Jog_Fwd_Loop', `${RUN_SPEED} -> ${gameRun.clip}`);
+
 const idle = run(1.2, 0);
 expect('idle uses the resting clip', idle.clip === 'Sword_Idle', idle.clip);
 
@@ -160,8 +169,6 @@ expect('slow movement plays the walk cycle', walk.clip === 'Walk_Loop', walk.cli
 expect('the walk steps instead of sliding', walk.footLift > 0.08, `foot lift ${walk.footLift}`);
 expect('the arms swing while walking', walk.handSpan > 0.12, `hand travel ${walk.handSpan}`);
 
-const village = run(3, 3.0);
-expect('village speed plays the walk cycle', village.clip === 'Walk_Loop', village.clip);
 const jog = run(3, 4.4);
 expect('a faster chase plays the jog cycle', jog.clip === 'Jog_Fwd_Loop', jog.clip);
 
@@ -172,7 +179,7 @@ expect('dungeon speed plays a running cycle', dungeon.clip === 'Jog_Fwd_Loop' ||
 const sprint = run(2, 7.4);
 expect('a full sprint plays the sprint cycle', sprint.clip === 'Sprint_Loop', sprint.clip);
 
-for (const [label, result] of [['idle', idle], ['walk', walk], ['village', village], ['jog', jog], ['sprint', sprint]]) {
+for (const [label, result] of [['idle', idle], ['walk', walk], ['game walk', gameWalk], ['jog', jog], ['game run', gameRun], ['sprint', sprint]]) {
   expect(`the sword stays rigid in the fist (${label})`, result.spread < 6, `relative drift ${result.spread}°`);
   expect(`the hand does not roll over (${label})`, result.peak < 45, `peak ${result.peak}°/frame`);
   expect(`the fingers keep their grip (${label})`, result.fingerDrift < 25, `drift ${result.fingerDrift}°`);
