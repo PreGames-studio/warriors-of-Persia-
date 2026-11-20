@@ -21,8 +21,13 @@ export const RUN_AFTER_SECONDS = 10;
 export const STOP_GRACE_SECONDS = 0.7;
 /** Below this ground speed the hero is considered standing, not walking. */
 export const MOVING_SPEED = 0.25;
-/** A single frame never advances the clock by more than this (resume, hitch). */
-const MAX_STEP_SECONDS = 0.5;
+/**
+ * A single frame never advances the clock by more than this (resume, a long
+ * hitch). It is deliberately above one second: a software-GL phone can render
+ * a frame in ~0.6 s, and clamping that to half would make "ten seconds" take
+ * twenty on exactly the devices that need the honest number.
+ */
+const MAX_STEP_SECONDS = 1;
 
 /**
  * Track how long the hero has been walking and decide the pace.
