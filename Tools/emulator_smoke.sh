@@ -204,19 +204,43 @@ log "---- walking, the sword in the fist and the shop pictures ----"
 adb shell am force-stop "$PACKAGE"
 sleep 3
 adb logcat -c
-adb shell am start -n "$PACKAGE/.MainActivity" --es wop_walk 12 --es wop_shopart 1 >/dev/null || fail LAUNCH-FAILED 42
+# 26 s of real time: ten of them walking, the rest on the automatic run, so the
+# screenshots land inside both halves of the test.
+adb logcat -G 16M >/dev/null 2>&1 || true
+adb shell am start -n "$PACKAGE/.MainActivity" --es wop_walk 26 --es wop_shopart 1 >/dev/null || fail LAUNCH-FAILED 42
+
+# One loop for the whole stage: the first sighting of the walk gives the walking
+# screenshot, the first sighting of the automatic run gives the running one, and
+# the probe's own JSON ends the loop. The page logs every step, so nothing here
+# depends on hitting a narrow window.
 walk=""
-for attempt in $(seq 1 12); do
-  sleep 7
+walkShot=""
+runShot=""
+for attempt in $(seq 1 40); do
   adb logcat -d -s WoP:V >"$OUT/walk.txt" 2>&1 || true
   normalize "$OUT/walk.txt"
+  if [ -z "$walkShot" ] && grep -q 'walk-start' "$OUT/walk.txt.norm"; then
+    walkShot=1
+    adb shell screencap -p /sdcard/walk.png && adb pull /sdcard/walk.png "$OUT/walk.png" >/dev/null 2>&1 || fail SCREENSHOT-FAILED 43
+    [ -s "$OUT/walk.png" ] || fail SCREENSHOT-EMPTY 44
+    log "walk screenshot taken ($attempt)"
+  fi
+  if [ -z "$runShot" ] && grep -q 'auto-run-start' "$OUT/walk.txt.norm"; then
+    runShot=1
+    adb shell screencap -p /sdcard/walk-run.png && adb pull /sdcard/walk-run.png "$OUT/walk-run.png" >/dev/null 2>&1 || true
+    log "auto-run screenshot taken ($attempt)"
+  fi
   if grep -q 'walk-probe' "$OUT/walk.txt.norm"; then walk=1; break; fi
-  log "waiting for the walk probe ($attempt/12)"
+  sleep 5
+  log "waiting for the walk probe ($attempt/40)"
 done
-# A frame taken while the synthetic walk is still running: the pose on screen is
-# the one the player sees while walking.
-adb shell screencap -p /sdcard/walk.png && adb pull /sdcard/walk.png "$OUT/walk.png" >/dev/null 2>&1 || fail SCREENSHOT-FAILED 43
-[ -s "$OUT/walk.png" ] || fail SCREENSHOT-EMPTY 44
+[ -n "$walkShot" ] || fail WALK-NOT-SHOWN 45
+if [ -z "$walk" ]; then
+  grep -o 'gait [a-z]*[^\n]*' "$OUT/walk.txt.norm" | tail -10 || true
+  grep -o 'walk-start[^\n]*' "$OUT/walk.txt.norm" | tail -3 || true
+  grep -o 'webview-wait[^\n]*' "$OUT/walk.txt.norm" | tail -3 || true
+  fail WALK-NO-PROBE 45
+fi
 cp "$OUT/walk.txt.norm" "$OUT/walk-probe.txt" 2>/dev/null || true
 tail -10 "$OUT/walk.txt.norm" 2>/dev/null || true
 [ -n "$walk" ] || fail WALK-NOT-SHOWN 45
@@ -227,11 +251,21 @@ log "walk: live speed=$walkSpeed"
 [ -n "$walkSpeed" ] || fail WALK-NO-PROBE 45
 awk -v v="$walkSpeed" 'BEGIN { exit !(v + 0 > 1.0) }' || fail WALK-NO-MOVEMENT 49
 
+# The live probe: she has to actually travel, and the clips she played must be
+# real gait cycles.
+grep -o 'walk-probe[^\n]*' "$OUT/walk.txt.norm" | tail -1 || true
+grep -q 'clips\":\[[^]]*\(Walk_Loop\|Jog_Fwd_Loop\)' "$OUT/walk.txt.norm" || fail WALK-NO-CYCLE 46
+walkSpeed="$(grep -o 'speed\":[0-9.]*' "$OUT/walk.txt.norm" | tail -1 | cut -d: -f2)"
+log "walk: live speed=$walkSpeed"
+[ -n "$walkSpeed" ] || fail WALK-NO-PROBE 45
+awk -v v="$walkSpeed" 'BEGIN { exit !(v + 0 > 1.0) }' || fail WALK-NO-MOVEMENT 49
+
 # The clip/pose audit is stepped at a fixed 60 Hz inside the page, so these
 # numbers do not depend on how slow the software renderer is.
 grep -q '"walkClip":"Walk_Loop"' "$OUT/walk.txt.norm" || fail WALK-NO-WALK-CYCLE 52
 grep -q '"jogClip":"Jog_Fwd_Loop"' "$OUT/walk.txt.norm" || fail WALK-NO-JOG-CYCLE 53
 grep -q '"sprintClip":"Sprint_Loop"' "$OUT/walk.txt.norm" || fail WALK-NO-SPRINT-CYCLE 54
+
 for gait in walk jog sprint; do
   spread="$(grep -o "\"${gait}Spread\":[0-9.]*" "$OUT/walk.txt.norm" | tail -1 | cut -d: -f2)"
   peak="$(grep -o "\"${gait}Peak\":[0-9.]*" "$OUT/walk.txt.norm" | tail -1 | cut -d: -f2)"
@@ -241,12 +275,36 @@ for gait in walk jog sprint; do
   # The sword must stay locked in the fist (the prop is a child of the wrist
   # bone, so any drift means the prop was torn off the hand).
   awk -v v="$spread" 'BEGIN { exit !(v + 0 < 2) }' || fail WALK-SWORD-SPINS 47
-  # Settled gait: locally 1.7 deg/frame walking, 8.1 jogging, 7.3 sprinting.
+  # Settled gait: locally 1.7 deg/step walking, 8.1 jogging, 7.3 sprinting.
   awk -v v="$peak" 'BEGIN { exit !(v + 0 < 30) }' || fail WALK-HAND-SPINS 48
-  # Crossfade between cycles bends the whole arm at once (~38 deg worst case);
-  # anything near a full turn means the pose is unrolling.
-  awk -v v="$pop" 'BEGIN { exit !(v + 0 < 70) }' || fail WALK-HAND-SPINS 48
+  # The 0.26 s crossfade between two cycles bends the whole arm at once, and the
+  # audit starts from rest, so a one-off bend of ~90 deg is the blend, not a
+  # spin; anything near a full turn means the pose is unrolling.
+  awk -v v="$pop" 'BEGIN { exit !(v + 0 < 120) }' || fail WALK-HAND-SPINS 48
 done
+
+# One pace everywhere plus the automatic run: she has to switch to running on
+# her own after ten seconds of walking, with no extra button pressed.
+grep -q '"runAfterSeconds":10' "$OUT/walk.txt.norm" || fail WALK-NO-PROBE 45
+grep -q 'run' <<<"$(grep -o '"gaitModes":\[[^]]*\]' "$OUT/walk.txt.norm" | tail -1)" || fail AUTORUN-NOT-STARTED 55
+autoAfter="$(grep -o '"autoRunAfter":[0-9.]*' "$OUT/walk.txt.norm" | tail -1 | cut -d: -f2)"
+walkedAtRun="$(grep -o '"walkedAtRun":[0-9.]*' "$OUT/walk.txt.norm" | tail -1 | cut -d: -f2)"
+runPeak="$(grep -o '"runPeak":[0-9.]*' "$OUT/walk.txt.norm" | tail -1 | cut -d: -f2)"
+log "auto-run: after ${autoAfter}s of wall time, ${walkedAtRun}s of walking, peak speed $runPeak"
+if [ -z "$autoAfter" ]; then
+  grep -o 'gait [a-z]*[^\n]*' "$OUT/walk.txt.norm" | tail -10 || true
+  grep -o 'walk-start[^\n]*' "$OUT/walk.txt.norm" | tail -3 || true
+  fail AUTORUN-NOT-STARTED 55
+fi
+# It must be the ten-second rule and nothing else: not instant, not never. The
+# rule counts walking time, so that is what is gated (9-11 s); wall time is only
+# bounded loosely, because this emulator renders a frame every ~1 s and the
+# hero can be held by a wall. The exact ten seconds at a 1.2 s frame rate is
+# pinned by the unit test in Tools/tests/locomotion.test.mjs.
+[ -n "$walkedAtRun" ] || fail AUTORUN-NOT-STARTED 55
+awk -v v="$walkedAtRun" 'BEGIN { exit !(v + 0 >= 9 && v + 0 <= 11) }' || fail AUTORUN-TIMING 56
+awk -v v="$autoAfter" 'BEGIN { exit !(v + 0 <= 25) }' || fail AUTORUN-TIMING 56
+awk -v v="$runPeak" 'BEGIN { exit !(v + 0 > 4.0) }' || fail AUTORUN-SLOW 57
 
 art=""
 for attempt in $(seq 1 8); do
