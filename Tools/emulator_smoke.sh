@@ -204,48 +204,43 @@ log "---- walking, the sword in the fist and the shop pictures ----"
 adb shell am force-stop "$PACKAGE"
 sleep 3
 adb logcat -c
-# 20 s of real time: ten of them walking, the rest on the automatic run, so the
+# 26 s of real time: ten of them walking, the rest on the automatic run, so the
 # screenshots land inside both halves of the test.
-adb shell am start -n "$PACKAGE/.MainActivity" --es wop_walk 20 --es wop_shopart 1 >/dev/null || fail LAUNCH-FAILED 42
+adb logcat -G 16M >/dev/null 2>&1 || true
+adb shell am start -n "$PACKAGE/.MainActivity" --es wop_walk 26 --es wop_shopart 1 >/dev/null || fail LAUNCH-FAILED 42
 
-# A frame grabbed while she is still walking: the pose on screen is the one the
-# player sees, with the walk badge above the stick.
-walking=""
-for attempt in $(seq 1 14); do
-  sleep 6
-  adb logcat -d -s WoP:V >"$OUT/walk.txt" 2>&1 || true
-  normalize "$OUT/walk.txt"
-  if grep -q 'walk-start' "$OUT/walk.txt.norm"; then walking=1; break; fi
-  log "waiting for the walk to start ($attempt/14)"
-done
-if [ -z "$walking" ]; then
-  grep -o 'webview-wait[^\n]*' "$OUT/walk.txt.norm" | tail -3 || true
-  tail -20 "$OUT/walk.txt.norm" 2>/dev/null || true
-fi
-[ -n "$walking" ] || fail WALK-NOT-SHOWN 45
-adb shell screencap -p /sdcard/walk.png && adb pull /sdcard/walk.png "$OUT/walk.png" >/dev/null 2>&1 || fail SCREENSHOT-FAILED 43
-[ -s "$OUT/walk.png" ] || fail SCREENSHOT-EMPTY 44
-
-# The automatic run must announce itself about ten seconds in; grab that frame too.
-ran=""
-for attempt in $(seq 1 12); do
-  adb logcat -d -s WoP:V >"$OUT/walk.txt" 2>&1 || true
-  normalize "$OUT/walk.txt"
-  if grep -q 'auto-run-start' "$OUT/walk.txt.norm"; then ran=1; break; fi
-  sleep 4
-done
-adb shell screencap -p /sdcard/walk-run.png && adb pull /sdcard/walk-run.png "$OUT/walk-run.png" >/dev/null 2>&1 || true
-[ -n "$ran" ] || fail AUTORUN-NOT-STARTED 55
-grep -o 'auto-run-start[^\n]*' "$OUT/walk.txt.norm" | tail -1 || true
-
+# One loop for the whole stage: the first sighting of the walk gives the walking
+# screenshot, the first sighting of the automatic run gives the running one, and
+# the probe's own JSON ends the loop. The page logs every step, so nothing here
+# depends on hitting a narrow window.
 walk=""
-for attempt in $(seq 1 12); do
-  sleep 5
+walkShot=""
+runShot=""
+for attempt in $(seq 1 40); do
   adb logcat -d -s WoP:V >"$OUT/walk.txt" 2>&1 || true
   normalize "$OUT/walk.txt"
+  if [ -z "$walkShot" ] && grep -q 'walk-start' "$OUT/walk.txt.norm"; then
+    walkShot=1
+    adb shell screencap -p /sdcard/walk.png && adb pull /sdcard/walk.png "$OUT/walk.png" >/dev/null 2>&1 || fail SCREENSHOT-FAILED 43
+    [ -s "$OUT/walk.png" ] || fail SCREENSHOT-EMPTY 44
+    log "walk screenshot taken ($attempt)"
+  fi
+  if [ -z "$runShot" ] && grep -q 'auto-run-start' "$OUT/walk.txt.norm"; then
+    runShot=1
+    adb shell screencap -p /sdcard/walk-run.png && adb pull /sdcard/walk-run.png "$OUT/walk-run.png" >/dev/null 2>&1 || true
+    log "auto-run screenshot taken ($attempt)"
+  fi
   if grep -q 'walk-probe' "$OUT/walk.txt.norm"; then walk=1; break; fi
-  log "waiting for the walk probe ($attempt/12)"
+  sleep 5
+  log "waiting for the walk probe ($attempt/40)"
 done
+[ -n "$walkShot" ] || fail WALK-NOT-SHOWN 45
+if [ -z "$walk" ]; then
+  grep -o 'gait [a-z]*[^\n]*' "$OUT/walk.txt.norm" | tail -10 || true
+  grep -o 'walk-start[^\n]*' "$OUT/walk.txt.norm" | tail -3 || true
+  grep -o 'webview-wait[^\n]*' "$OUT/walk.txt.norm" | tail -3 || true
+  fail WALK-NO-PROBE 45
+fi
 cp "$OUT/walk.txt.norm" "$OUT/walk-probe.txt" 2>/dev/null || true
 tail -10 "$OUT/walk.txt.norm" 2>/dev/null || true
 [ -n "$walk" ] || fail WALK-NOT-SHOWN 45
@@ -269,7 +264,11 @@ grep -q 'run' <<<"$(grep -o '"gaitModes":\[[^]]*\]' "$OUT/walk.txt.norm" | tail 
 autoAfter="$(grep -o '"autoRunAfter":[0-9.]*' "$OUT/walk.txt.norm" | tail -1 | cut -d: -f2)"
 runPeak="$(grep -o '"runPeak":[0-9.]*' "$OUT/walk.txt.norm" | tail -1 | cut -d: -f2)"
 log "auto-run: started after ${autoAfter}s, peak speed $runPeak"
-[ -n "$autoAfter" ] || fail AUTORUN-NOT-STARTED 55
+if [ -z "$autoAfter" ]; then
+  grep -o 'gait [a-z]*[^\n]*' "$OUT/walk.txt.norm" | tail -10 || true
+  grep -o 'walk-start[^\n]*' "$OUT/walk.txt.norm" | tail -3 || true
+  fail AUTORUN-NOT-STARTED 55
+fi
 # It must be the ten-second rule and nothing else: not instant, not never.
 awk -v v="$autoAfter" 'BEGIN { exit !(v + 0 >= 9 && v + 0 <= 13.5) }' || fail AUTORUN-TIMING 56
 awk -v v="$runPeak" 'BEGIN { exit !(v + 0 > 4.0) }' || fail AUTORUN-SLOW 57

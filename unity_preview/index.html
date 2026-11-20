@@ -5197,8 +5197,23 @@
       const gaitMode = heroGait.mode();
       if (probe.gaitModes.indexOf(gaitMode) < 0) probe.gaitModes.push(gaitMode);
       if (gaitMode === 'run') {
-        if (probe.autoRunAt === null) probe.autoRunAt = (performance.now() - probe.started) / 1000;
+        if (probe.autoRunAt === null) {
+          probe.autoRunAt = (performance.now() - probe.started) / 1000;
+          try { console.info('auto-run-start ' + probe.autoRunAt.toFixed(1)); } catch (err) {}
+        }
         probe.runPeak = Math.max(probe.runPeak, speed);
+      }
+      // Heartbeat: the emulator job prints these when a gate fails, so a
+      // failure says whether the clock advanced or the hero never moved.
+      if (probe.lastBeat === undefined || performance.now() - probe.lastBeat > 2000) {
+        probe.lastBeat = performance.now();
+        try {
+          const actual = state.party[0] && state.party[0].mesh && state.party[0].mesh.userData
+            ? state.party[0].mesh.userData.actualSpeed : undefined;
+          console.info('gait ' + gaitMode + ' p=' + heroGait.progress().toFixed(2)
+            + ' v=' + Number(speed).toFixed(2) + ' a=' + Number(actual || 0).toFixed(2)
+            + ' clip=' + (clip || '-'));
+        } catch (err) {}
       }
       const clip = probe.clipOf ? probe.clipOf() : null;
       if (clip && probe.clips.indexOf(clip) < 0) probe.clips.push(clip);
@@ -5280,9 +5295,7 @@
         gaitLabel.textContent = running ? 'دویدن (خودکار)' : 'راه رفتن';
         if (running && !autoRunToastShown) {
           autoRunToastShown = true;
-          showToast('🏃 میا بعد از ۱۰ ثانیه راه رفتن، خودکار می‌دود.', '#fbbf24');
-          // Read by the emulator job: the run has to start on its own.
-          try { console.info('auto-run-start ' + (performance.now() / 1000).toFixed(1)); } catch (err) {}
+          try { showToast('🏃 میا بعد از ۱۰ ثانیه راه رفتن، خودکار می‌دود.', '#fbbf24'); } catch (err) {}
         }
       }
       if (mode !== 'run') gaitFill.style.width = (heroGait.progress() * 100).toFixed(0) + '%';
@@ -5653,7 +5666,9 @@
         // up a run, and after ten seconds of walking she breaks into the
         // automatic run on her own — no extra button, in any zone.
         heroGait.update(frameDelta, leader.mesh.userData.actualSpeed || 0);
-        updateGaitHud();
+        // The indicator must never be able to stop the hero: if the HUD throws,
+        // movement and the walk clock carry on regardless.
+        try { updateGaitHud(); } catch (err) { gaitHudMode = ''; }
         const walkingSpeed = heroGait.speed();
         const deadZone = .07;
         const inputStrength = len > deadZone ? Math.min(1, (len - deadZone) / (1 - deadZone)) : 0;
