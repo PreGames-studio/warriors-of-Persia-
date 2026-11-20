@@ -5199,7 +5199,11 @@
       if (gaitMode === 'run') {
         if (probe.autoRunAt === null) {
           probe.autoRunAt = (performance.now() - probe.started) / 1000;
-          try { console.info('auto-run-start ' + probe.autoRunAt.toFixed(1)); } catch (err) {}
+          // The rule counts walking time, not wall time: the hero may be held
+          // by a wall, and the emulator renders a frame every ~1 s. Report
+          // both, so the gate judges the rule and not the device.
+          probe.walkedAtRun = Number((heroGait.progress() * RUN_AFTER_SECONDS).toFixed(1));
+          try { console.info('auto-run-start ' + probe.autoRunAt.toFixed(1) + ' walked ' + probe.walkedAtRun); } catch (err) {}
         }
         probe.runPeak = Math.max(probe.runPeak, speed);
       }
@@ -5242,6 +5246,7 @@
           clips: probe.clips,
           gaitModes: probe.gaitModes,
           autoRunAfter: probe.autoRunAt === null ? null : Number(probe.autoRunAt.toFixed(1)),
+          walkedAtRun: probe.walkedAtRun === undefined ? null : probe.walkedAtRun,
           runPeak: Number(probe.runPeak.toFixed(2)),
           walkSpeedTarget: Number(WALK_SPEED.toFixed(2)),
           runSpeedTarget: Number(RUN_SPEED.toFixed(2)),

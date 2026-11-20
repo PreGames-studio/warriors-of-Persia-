@@ -288,18 +288,22 @@ done
 grep -q '"runAfterSeconds":10' "$OUT/walk.txt.norm" || fail WALK-NO-PROBE 45
 grep -q 'run' <<<"$(grep -o '"gaitModes":\[[^]]*\]' "$OUT/walk.txt.norm" | tail -1)" || fail AUTORUN-NOT-STARTED 55
 autoAfter="$(grep -o '"autoRunAfter":[0-9.]*' "$OUT/walk.txt.norm" | tail -1 | cut -d: -f2)"
+walkedAtRun="$(grep -o '"walkedAtRun":[0-9.]*' "$OUT/walk.txt.norm" | tail -1 | cut -d: -f2)"
 runPeak="$(grep -o '"runPeak":[0-9.]*' "$OUT/walk.txt.norm" | tail -1 | cut -d: -f2)"
-log "auto-run: started after ${autoAfter}s, peak speed $runPeak"
+log "auto-run: after ${autoAfter}s of wall time, ${walkedAtRun}s of walking, peak speed $runPeak"
 if [ -z "$autoAfter" ]; then
   grep -o 'gait [a-z]*[^\n]*' "$OUT/walk.txt.norm" | tail -10 || true
   grep -o 'walk-start[^\n]*' "$OUT/walk.txt.norm" | tail -3 || true
   fail AUTORUN-NOT-STARTED 55
 fi
 # It must be the ten-second rule and nothing else: not instant, not never. The
-# window is loose at the top because this emulator renders a frame every ~1 s,
-# and the exact "ten seconds on a slow device" case is pinned by the unit test
-# in Tools/tests/locomotion.test.mjs (10.8 s at a 1.2 s frame).
-awk -v v="$autoAfter" 'BEGIN { exit !(v + 0 >= 9 && v + 0 <= 15) }' || fail AUTORUN-TIMING 56
+# rule counts walking time, so that is what is gated (9-11 s); wall time is only
+# bounded loosely, because this emulator renders a frame every ~1 s and the
+# hero can be held by a wall. The exact ten seconds at a 1.2 s frame rate is
+# pinned by the unit test in Tools/tests/locomotion.test.mjs.
+[ -n "$walkedAtRun" ] || fail AUTORUN-NOT-STARTED 55
+awk -v v="$walkedAtRun" 'BEGIN { exit !(v + 0 >= 9 && v + 0 <= 11) }' || fail AUTORUN-TIMING 56
+awk -v v="$autoAfter" 'BEGIN { exit !(v + 0 <= 25) }' || fail AUTORUN-TIMING 56
 awk -v v="$runPeak" 'BEGIN { exit !(v + 0 > 4.0) }' || fail AUTORUN-SLOW 57
 for gait in walk jog sprint; do
   spread="$(grep -o "\"${gait}Spread\":[0-9.]*" "$OUT/walk.txt.norm" | tail -1 | cut -d: -f2)"
