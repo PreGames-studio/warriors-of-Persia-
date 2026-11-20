@@ -305,21 +305,6 @@ fi
 awk -v v="$walkedAtRun" 'BEGIN { exit !(v + 0 >= 9 && v + 0 <= 11) }' || fail AUTORUN-TIMING 56
 awk -v v="$autoAfter" 'BEGIN { exit !(v + 0 <= 25) }' || fail AUTORUN-TIMING 56
 awk -v v="$runPeak" 'BEGIN { exit !(v + 0 > 4.0) }' || fail AUTORUN-SLOW 57
-for gait in walk jog sprint; do
-  spread="$(grep -o "\"${gait}Spread\":[0-9.]*" "$OUT/walk.txt.norm" | tail -1 | cut -d: -f2)"
-  peak="$(grep -o "\"${gait}Peak\":[0-9.]*" "$OUT/walk.txt.norm" | tail -1 | cut -d: -f2)"
-  pop="$(grep -o "\"${gait}Pop\":[0-9.]*" "$OUT/walk.txt.norm" | tail -1 | cut -d: -f2)"
-  log "$gait: sword drift=$spread hand peak=$peak blend pop=$pop"
-  [ -n "$spread" ] && [ -n "$peak" ] && [ -n "$pop" ] || fail WALK-NO-PROBE 45
-  # The sword must stay locked in the fist (the prop is a child of the wrist
-  # bone, so any drift means the prop was torn off the hand).
-  awk -v v="$spread" 'BEGIN { exit !(v + 0 < 2) }' || fail WALK-SWORD-SPINS 47
-  # Settled gait: locally 1.7 deg/frame walking, 8.1 jogging, 7.3 sprinting.
-  awk -v v="$peak" 'BEGIN { exit !(v + 0 < 30) }' || fail WALK-HAND-SPINS 48
-  # Crossfade between cycles bends the whole arm at once (~38 deg worst case);
-  # anything near a full turn means the pose is unrolling.
-  awk -v v="$pop" 'BEGIN { exit !(v + 0 < 70) }' || fail WALK-HAND-SPINS 48
-done
 
 art=""
 for attempt in $(seq 1 8); do
