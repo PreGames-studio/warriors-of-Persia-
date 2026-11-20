@@ -295,8 +295,11 @@ if [ -z "$autoAfter" ]; then
   grep -o 'walk-start[^\n]*' "$OUT/walk.txt.norm" | tail -3 || true
   fail AUTORUN-NOT-STARTED 55
 fi
-# It must be the ten-second rule and nothing else: not instant, not never.
-awk -v v="$autoAfter" 'BEGIN { exit !(v + 0 >= 9 && v + 0 <= 13.5) }' || fail AUTORUN-TIMING 56
+# It must be the ten-second rule and nothing else: not instant, not never. The
+# window is loose at the top because this emulator renders a frame every ~1 s,
+# and the exact "ten seconds on a slow device" case is pinned by the unit test
+# in Tools/tests/locomotion.test.mjs (10.8 s at a 1.2 s frame).
+awk -v v="$autoAfter" 'BEGIN { exit !(v + 0 >= 9 && v + 0 <= 15) }' || fail AUTORUN-TIMING 56
 awk -v v="$runPeak" 'BEGIN { exit !(v + 0 > 4.0) }' || fail AUTORUN-SLOW 57
 for gait in walk jog sprint; do
   spread="$(grep -o "\"${gait}Spread\":[0-9.]*" "$OUT/walk.txt.norm" | tail -1 | cut -d: -f2)"

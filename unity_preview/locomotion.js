@@ -22,12 +22,13 @@ export const STOP_GRACE_SECONDS = 0.7;
 /** Below this ground speed the hero is considered standing, not walking. */
 export const MOVING_SPEED = 0.25;
 /**
- * A single frame never advances the clock by more than this (resume, a long
- * hitch). It is deliberately above one second: a software-GL phone can render
- * a frame in ~0.6 s, and clamping that to half would make "ten seconds" take
- * twenty on exactly the devices that need the honest number.
+ * A single frame never advances the clock by more than this. It is deliberately
+ * generous: a software-GL phone can take over a second per frame, and a cap
+ * near that would turn "ten seconds" into sixteen on exactly the devices that
+ * need the honest number. Two seconds still swallows a resume from background,
+ * which is the case this guard exists for.
  */
-const MAX_STEP_SECONDS = 1;
+const MAX_STEP_SECONDS = 2;
 
 /**
  * Track how long the hero has been walking and decide the pace.

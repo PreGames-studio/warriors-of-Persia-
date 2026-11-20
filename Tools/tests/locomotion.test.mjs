@@ -63,6 +63,15 @@ expect('reset returns to the start', custom.mode() === 'idle' && custom.progress
 const resumed = createGait();
 resumed.update(30, WALK_SPEED);
 expect('a long hitch does not skip the walk', resumed.mode() === 'walk', resumed.mode());
+// ...but a genuinely slow device (a frame every ~1.2 s under software GL) still
+// gets an honest ten seconds instead of sixteen.
+const slow = createGait();
+let slowSeconds = 0;
+while (slow.mode() !== 'run' && slowSeconds < 20) {
+  slow.update(1.2, WALK_SPEED);
+  slowSeconds += 1.2;
+}
+expect('a slow device still runs at ten seconds', slowSeconds >= 10 && slowSeconds <= 12.5, `${slowSeconds.toFixed(1)}s`);
 
 let failed = 0;
 for (const check of checks) {
