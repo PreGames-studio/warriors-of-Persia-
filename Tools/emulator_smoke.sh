@@ -211,13 +211,17 @@ adb shell am start -n "$PACKAGE/.MainActivity" --es wop_walk 20 --es wop_shopart
 # A frame grabbed while she is still walking: the pose on screen is the one the
 # player sees, with the walk badge above the stick.
 walking=""
-for attempt in $(seq 1 12); do
-  sleep 3
+for attempt in $(seq 1 14); do
+  sleep 6
   adb logcat -d -s WoP:V >"$OUT/walk.txt" 2>&1 || true
   normalize "$OUT/walk.txt"
   if grep -q 'walk-start' "$OUT/walk.txt.norm"; then walking=1; break; fi
-  log "waiting for the walk to start ($attempt/12)"
+  log "waiting for the walk to start ($attempt/14)"
 done
+if [ -z "$walking" ]; then
+  grep -o 'webview-wait[^\n]*' "$OUT/walk.txt.norm" | tail -3 || true
+  tail -20 "$OUT/walk.txt.norm" 2>/dev/null || true
+fi
 [ -n "$walking" ] || fail WALK-NOT-SHOWN 45
 adb shell screencap -p /sdcard/walk.png && adb pull /sdcard/walk.png "$OUT/walk.png" >/dev/null 2>&1 || fail SCREENSHOT-FAILED 43
 [ -s "$OUT/walk.png" ] || fail SCREENSHOT-EMPTY 44

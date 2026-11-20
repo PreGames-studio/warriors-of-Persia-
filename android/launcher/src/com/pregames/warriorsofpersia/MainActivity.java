@@ -126,7 +126,17 @@ public class MainActivity extends Activity {
         attempt[0] = new Runnable() {
             @Override
             public void run() {
-                if (webView == null) return;
+                if (webView == null) {
+                    // A cold start builds the WebView well after the first
+                    // attempt. Dropping the hook here used to silence the whole
+                    // test, so keep waiting for it instead.
+                    tries[0]++;
+                    if (tries[0] < 40) {
+                        Log.i(TAG, "webview-wait " + tries[0]);
+                        new Handler(Looper.getMainLooper()).postDelayed(attempt[0], 3000);
+                    }
+                    return;
+                }
                 tries[0]++;
                 webView.evaluateJavascript(
                         "(window.__wopBag && window.__wopBag.showcase) ? JSON.stringify(window.__wopBag.showcase('" + kind + "')) : 'wait'",
@@ -159,7 +169,17 @@ public class MainActivity extends Activity {
         attempt[0] = new Runnable() {
             @Override
             public void run() {
-                if (webView == null) return;
+                if (webView == null) {
+                    // A cold start builds the WebView well after the first
+                    // attempt. Dropping the hook here used to silence the whole
+                    // test, so keep waiting for it instead.
+                    tries[0]++;
+                    if (tries[0] < 40) {
+                        Log.i(TAG, "webview-wait " + tries[0]);
+                        new Handler(Looper.getMainLooper()).postDelayed(attempt[0], 3000);
+                    }
+                    return;
+                }
                 tries[0]++;
                 webView.evaluateJavascript(
                         "window.__wopBag && window.__wopBag.walkStart ? (window.__wopBag.walkStart(" + (seconds == null ? 6 : seconds) + ") ? 'true' : 'false') : 'wait'",
@@ -208,7 +228,17 @@ public class MainActivity extends Activity {
         attempt[0] = new Runnable() {
             @Override
             public void run() {
-                if (webView == null) return;
+                if (webView == null) {
+                    // A cold start builds the WebView well after the first
+                    // attempt. Dropping the hook here used to silence the whole
+                    // test, so keep waiting for it instead.
+                    tries[0]++;
+                    if (tries[0] < 40) {
+                        Log.i(TAG, "webview-wait " + tries[0]);
+                        new Handler(Looper.getMainLooper()).postDelayed(attempt[0], 3000);
+                    }
+                    return;
+                }
                 tries[0]++;
                 webView.evaluateJavascript(
                         "window.__wopBag && window.__wopBag.shopArtStart ? String(window.__wopBag.shopArtStart()) : 'wait'",
