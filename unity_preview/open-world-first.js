@@ -1,6 +1,6 @@
 /** The original west bank (-128..-11, -88..88) expanded 10x per axis = 100x area. */
 export const WEST_FIELD = Object.freeze({minX:-1181,maxX:-11,minZ:-880,maxZ:880,originalArea:117*176});
-export const OPEN_WORLD_BOUNDS = Object.freeze({x:1181,z:880,minX:-1181,maxX:128,minZ:-880,maxZ:880});
+export const OPEN_WORLD_BOUNDS = Object.freeze({x:1181,z:880,minX:-1181,maxX:1181,minZ:-880,maxZ:880});
 export const WEST_SPAWN = Object.freeze({x:-1120,z:0});
 export const VILLAGE_GATE = Object.freeze({x:-1150,z:0});
 export const SAFE_TRAIL_HALF_WIDTH = 7;
@@ -11,7 +11,17 @@ export const OPEN_WORLD_ROUTES = [
  [[-630,-50],[-620,-360],[-550,-770]],
  [[-630,-50],[-600,330],[-550,770]],
  [[32,3],[43,-12],[54,-28]],
- [[58,0],[69,14],[78,30]]
+ [[58,0],[69,14],[78,30]],
+ // Three original, interconnected lanes and jungle corridors east of the bridge.
+ [[124,4],[260,0],[440,0],[650,0],[860,0],[1160,0]],
+ [[32,3],[120,-150],[250,-390],[430,-680],[700,-770],[1000,-770],[1160,-600],[1160,0]],
+ [[32,3],[120,150],[250,390],[430,680],[700,770],[1000,770],[1160,600],[1160,0]],
+ [[260,0],[300,-240],[430,-420],[700,-430],[860,-600],[1000,-770]],
+ [[260,0],[300,240],[430,420],[700,430],[860,600],[1000,770]],
+ [[650,0],[700,-200],[700,-430]],
+ [[650,0],[700,200],[700,430]],
+ [[860,0],[1000,-200],[1160,-600]],
+ [[860,0],[1000,200],[1160,600]]
 ];
 export function routeDistance(x,z,routes=OPEN_WORLD_ROUTES){
  let nearest=Infinity;
@@ -24,7 +34,7 @@ export function routeDistance(x,z,routes=OPEN_WORLD_ROUTES){
 }
 export const isSafeWestTrail=(x,z)=>x<-7&&routeDistance(x,z)<=SAFE_TRAIL_HALF_WIDTH;
 export function isOpenWorldLand(x,z){
- return (x>=WEST_FIELD.minX&&x<=-7&&Math.abs(z)<=880)||(x>=-7&&x<=128&&Math.abs(z)<=88);
+ return (x>=WEST_FIELD.minX&&x<=-7&&Math.abs(z)<=880)||(x>=-7&&x<=1181&&Math.abs(z)<=880);
 }
 export function slimeCanMove(from,to){
  if(to.x<-1170||to.x>-24||Math.abs(to.z)>868)return false;

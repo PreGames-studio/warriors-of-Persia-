@@ -38,7 +38,21 @@ function createExpandedOpenWorldPlan(){
     const p={x,z,y:combatHeight('open_world',1,x,z),scale:.7+random()*1.9,yaw:random()*Math.PI};
     (random()<.68?trees:rocks).push(p);
   }
-  return {bounds:OPEN_WORLD_BOUNDS,routes:OPEN_WORLD_ROUTES,portals:[[VILLAGE_GATE.x,VILLAGE_GATE.z],[54,-28],[78,30]],plots:[],trees,rocks,slimes,fire:false,landmarks:[
+  // East-bank lanes stay clear. Small clusters use the village's existing
+  // instanced architecture, keeping both dungeon entrances and bridge open.
+  const plots=[], bushes=[];
+  const portals=[[54,-28],[78,30],[30,-4],[58,10]];
+  for(let i=0;i<1600;i++){
+    const x=150+random()*1010, z=(random()*2-1)*850;
+    if(routeDistance(x,z)<22 || portals.some(p=>Math.hypot(x-p[0],z-p[1])<28)) continue;
+    if(i<260 && !plots.some(p=>Math.hypot(p.x-x,p.z-z)<25)) {
+      plots.push({x,z,y:combatHeight('open_world',1,x,z),scale:.8,rotY:Math.round(random()*4)*Math.PI/2,floors:1+Math.floor(random()*3),kind:'house'});
+    } else if(!plots.some(p=>Math.hypot(p.x-x,p.z-z)<12)) {
+      const item={x,z,y:combatHeight('open_world',1,x,z),scale:.8+random()*1.3,yaw:random()*Math.PI};
+      (random()<.58?bushes:random()<.6?trees:rocks).push(item);
+    }
+  }
+  return {bounds:OPEN_WORLD_BOUNDS,routes:OPEN_WORLD_ROUTES,portals:[[VILLAGE_GATE.x,VILLAGE_GATE.z],[54,-28],[78,30]],plots,trees,rocks,bushes,slimes,fire:false,landmarks:[
     {x:-550,z:770,title:'چشم‌انداز دامنه',symbol:'△'},{x:0,z:0,title:'پل رودخانه',symbol:'≋'}]};
 }
 
@@ -102,7 +116,11 @@ export function buildCombatLandscape(THREE, kit, materials, zone, tier, plan) {
   const ground = zone === 'open_world' ? kit.materials.ground : plan.fire ? materials.volcanicRock : materials.highlandGrass;
   if(zone==='open_world'){
     surface(WEST_FIELD.maxX-WEST_FIELD.minX,WEST_FIELD.maxZ-WEST_FIELD.minZ,(WEST_FIELD.maxX+WEST_FIELD.minX)/2,0,ground);
-    surface(141,180,59.5,0,ground);
+    // Tile the expanded bank: each geometry stays within 16-bit index limits.
+    for(let ix=0;ix<4;ix++) for(let iz=0;iz<6;iz++) {
+      const w=1188/4, d=1760/6;
+      surface(w,d,-7+w*(ix+.5),-880+d*(iz+.5),ground);
+    }
   }else surface(plan.bounds.x * 2 + 4, plan.bounds.z * 2 + 4, 0, 0, ground);
   // Sloping ribbons share exactly the terrain height; no floating box roads.
   plan.routes.forEach(route => route.slice(1).forEach((b, i) => {
@@ -131,6 +149,11 @@ export function buildCombatLandscape(THREE, kit, materials, zone, tier, plan) {
   batch(new THREE.DodecahedronGeometry(1.6, 0), plan.fire ? materials.volcanicRock : materials.mountainRock, plan.rocks, .7, .85);
   batch(new THREE.CylinderGeometry(.18, .3, 3, 6), materials.darkWood, plan.trees, 1.5);
   batch(new THREE.ConeGeometry(1.7, 6, 7), materials.cypressFoliage, plan.trees, 4.4);
+  if (plan.bushes) {
+    // Rounded, low cover instead of upright tree silhouettes.
+    batch(new THREE.IcosahedronGeometry(2.2, 1), kit.materials.leaf, plan.bushes, .9, .48);
+    batch(new THREE.IcosahedronGeometry(1.25, 1), kit.materials.leafLight, plan.bushes, 1.35, .55);
+  }
   if (plan.fire) {
     // Ember seams are outside traversal routes; warm emissive material is reused.
     batch(new THREE.OctahedronGeometry(.5), materials.portalFire, plan.rocks.filter((_, i) => i % 4 === 0), .7);
