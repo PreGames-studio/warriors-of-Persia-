@@ -3226,21 +3226,6 @@
         mapRoot.add(bridge);
         addWorldLabel('🌉 پل رودخانه خروشان', new THREE.Vector3(0, 4.8, 0), '#7dd3fc');
 
-        [[-72, -56, 15, 24], [-42, -58, 17, 28], [-16, -55, 14, 22], [24, -55, 18, 30], [52, -57, 21, 35], [82, -54, 17, 27]].filter(([px])=>px>0).forEach(([px, pz, r, h]) => {
-          const pk = new THREE.Group();
-          pk.position.set(px, 0, pz);
-          const rk = new THREE.Mesh(new THREE.ConeGeometry(r, h, 7), MATS.mountainRock);
-          rk.position.y = h * 0.5;
-          const sn = new THREE.Mesh(new THREE.ConeGeometry(r * 0.45, h * 0.4, 7), MATS.snowCap);
-          sn.position.y = h * 0.8;
-          pk.add(rk, sn);
-          mapRoot.add(pk);
-        });
-
-        [[-78, -28], [-70, 30], [-45, -34], [-32, 35], [36, -36], [72, -32], [68, -14]].filter(([tx])=>tx>0).forEach(([tx, tz]) => {
-          mapRoot.add(buildCypress3D(tx, 0, tz, 1.05));
-        });
-
         const pVil = buildPortal3D(VILLAGE_GATE.x, 0, VILLAGE_GATE.z, MATS.portalGreen, '⬅️ ورود به روستای امن (بازار و کوچه‌ها)', '#4ade80', 'village', 1);
         pVil.rotation.y = Math.PI / 2;
         const pFor = buildPortal3D(54, 1.2, -28, MATS.portalPurple, '🟣 دانجن ۱: جنگل باستانی (Lv.1)', '#d8b4fe', 'dungeon', 1);
@@ -3301,6 +3286,7 @@
         floatingLabels.forEach(label => { label.pos.y += combatHeight(zoneId, tier, label.pos.x, label.pos.z); });
         mapRoot.add(activeCave?buildCave(THREE,activeCave,MATS.volcanicRock):buildCombatLandscape(THREE, villageKit, MATS, zoneId, tier, activeCombatPlan));
         activeCombatPlan.plots.forEach(plot => addOrientedCollider(plot.x, plot.z, 4.7 * plot.scale * villageKit.districtBuildingScale, 3.75 * plot.scale * villageKit.districtBuildingScale, plot.rotY));
+        (activeCombatPlan.walls || []).forEach(rock => addColliderBox(rock.x, rock.z, 2 * rock.scale, 2 * rock.scale));
         activeCombatPlan.landmarks.forEach(p => addWorldLabel(`${p.symbol} ${p.title}`, new THREE.Vector3(p.x, combatHeight(zoneId, tier, p.x, p.z) + 7, p.z), '#d8b66a'));
       }
 
@@ -5423,9 +5409,6 @@
         const plan = activeCombatPlan;
         mmCtx.fillStyle = plan.fire ? '#46352e' : '#284735'; mmCtx.fillRect(0, 0, w, h);
         if (state.currentZone === 'open_world') {
-          const edge=toMM({x:-7,z:-88}),bottom=toMM({x:128,z:88});
-          mmCtx.fillStyle='#0c1715';mmCtx.fillRect(edge.x,0,w-edge.x,h);
-          mmCtx.fillStyle='#284735';mmCtx.fillRect(edge.x,edge.y,w-edge.x,bottom.y-edge.y);
           mmCtx.fillStyle = '#287ea0'; const a = toMM({x:-7,z:0}), b = toMM({x:7,z:0}); mmCtx.fillRect(a.x,0,b.x-a.x,h);
         }
         mmCtx.strokeStyle = '#b4a282'; mmCtx.lineWidth = mapExpanded ? 5 : 2;

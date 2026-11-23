@@ -1,6 +1,6 @@
 /** The original west bank (-128..-11, -88..88) expanded 10x per axis = 100x area. */
 export const WEST_FIELD = Object.freeze({minX:-1181,maxX:-11,minZ:-880,maxZ:880,originalArea:117*176});
-export const OPEN_WORLD_BOUNDS = Object.freeze({x:1181,z:880,minX:-1181,maxX:128,minZ:-880,maxZ:880});
+export const OPEN_WORLD_BOUNDS = Object.freeze({x:1181,z:880,minX:-1181,maxX:1181,minZ:-880,maxZ:880});
 export const WEST_SPAWN = Object.freeze({x:-1120,z:0});
 export const VILLAGE_GATE = Object.freeze({x:-1150,z:0});
 export const SAFE_TRAIL_HALF_WIDTH = 7;
@@ -11,7 +11,15 @@ export const OPEN_WORLD_ROUTES = [
  [[-630,-50],[-620,-360],[-550,-770]],
  [[-630,-50],[-600,330],[-550,770]],
  [[32,3],[43,-12],[54,-28]],
- [[58,0],[69,14],[78,30]]
+ [[58,0],[69,14],[78,30]],
+ // Winding exploration trails, not competitive lanes.
+ [[124,4],[220,20],[340,-20],[470,25],[620,10],[780,55],[940,35],[1160,70]],
+ [[220,20],[240,-115],[310,-240],[430,-310],[540,-450],[700,-500]],
+ [[470,25],[450,155],[520,265],[670,310],[760,440],[900,490]],
+ [[780,55],[860,-65],[930,-190],[1060,-240]],
+ [[340,-20],[300,130],[235,225],[210,350]],
+ [[620,10],[690,-110],[740,-230],[730,-350]],
+ [[940,35],[1000,145],[1080,260],[1100,390]]
 ];
 export function routeDistance(x,z,routes=OPEN_WORLD_ROUTES){
  let nearest=Infinity;
@@ -24,7 +32,7 @@ export function routeDistance(x,z,routes=OPEN_WORLD_ROUTES){
 }
 export const isSafeWestTrail=(x,z)=>x<-7&&routeDistance(x,z)<=SAFE_TRAIL_HALF_WIDTH;
 export function isOpenWorldLand(x,z){
- return (x>=WEST_FIELD.minX&&x<=-7&&Math.abs(z)<=880)||(x>=-7&&x<=128&&Math.abs(z)<=88);
+ return (x>=WEST_FIELD.minX&&x<=-7&&Math.abs(z)<=880)||(x>=-7&&x<=1181&&Math.abs(z)<=880);
 }
 export function slimeCanMove(from,to){
  if(to.x<-1170||to.x>-24||Math.abs(to.z)>868)return false;
