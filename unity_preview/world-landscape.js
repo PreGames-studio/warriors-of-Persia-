@@ -1,5 +1,6 @@
 import {CAVE,createCave,buildCave} from './cave-dungeon.js';
 import { WEST_FIELD, OPEN_WORLD_BOUNDS, OPEN_WORLD_ROUTES, VILLAGE_GATE, routeDistance, createSlimeSpawns } from './open-world-first.js';
+export const BUSH_CARDS_PER_CLUMP = 50;
 /** Shared deterministic landscape grammar for every combat map.
  * Existing PBR architecture/materials are reused; no remote assets.
  */
@@ -35,6 +36,8 @@ function createExpandedOpenWorldPlan(){
     const x=west ? -1175+random()*1150 : 18+random()*106;
     const z=(random()*2-1)*(west?870:84);
     if(routeDistance(x,z)<13||slimes.some(p=>Math.hypot(p.x-x,p.z-z)<5))continue;
+    // Keep the former west bank untouched; sparse east trees no longer hide the terrain.
+    if(!west)continue;
     const p={x,z,y:combatHeight('open_world',1,x,z),scale:.7+random()*1.9,yaw:random()*Math.PI};
     (random()<.68?trees:rocks).push(p);
   }
@@ -49,7 +52,7 @@ function createExpandedOpenWorldPlan(){
       plots.push({x,z,y:combatHeight('open_world',1,x,z),scale:.8,rotY:Math.round(random()*4)*Math.PI/2,floors:1+Math.floor(random()*3),kind:'house'});
     } else if(!plots.some(p=>Math.hypot(p.x-x,p.z-z)<12)) {
       const item={x,z,y:combatHeight('open_world',1,x,z),scale:.8+random()*1.3,yaw:random()*Math.PI};
-      (random()<.58?bushes:random()<.6?trees:rocks).push(item);
+      (random()<.78?bushes:random()<.35?trees:rocks).push(item);
     }
   }
   // Short irregular rock ridges create landmarks and cover, while leaving
@@ -84,8 +87,27 @@ function createExpandedOpenWorldPlan(){
       if(clearFeature(px,pz,14)) bushes.push({x:px,z:pz,y:combatHeight('open_world',1,px,pz),scale:1.1,yaw:n*.6});
     }
   }
+  // Grass fringes along the stone edges, leaving the path and portal buffers clear.
+  walls.forEach((wall,i)=>{
+    if(i%2) return;
+    for(let n=0;n<5;n++){
+      const angle=wall.yaw+n*1.18, radius=4.8+(n%2)*2;
+      const px=wall.x+Math.sin(angle)*radius, pz=wall.z-Math.cos(angle)*radius;
+      if(clearFeature(px,pz,14)) bushes.push({x:px,z:pz,y:combatHeight('open_world',1,px,pz),scale:.95+random()*.65,yaw:angle});
+    }
+  });
+  // Fill the near-bank clearings too, rather than waiting until far beyond
+  // the dungeon entrances for the first meaningful clusters of vegetation.
+  for(let x=30;x<=150;x+=12) for(let z=-78;z<=78;z+=12){
+    const px=x+(random()-.5)*4,pz=z+(random()-.5)*4;
+    if(!clearFeature(px,pz,14)) continue;
+    for(let n=0;n<3;n++){
+      const bx=px+(random()-.5)*5,bz=pz+(random()-.5)*5;
+      if(clearFeature(bx,bz,14)) bushes.push({x:bx,z:bz,y:combatHeight('open_world',1,bx,bz),scale:.8+random()*.7,yaw:random()*Math.PI});
+    }
+  }
   // Organic bush clusters: visual cover only, not a hidden-hero mechanic.
-  for(let x=40;x<1150;x+=55) for(let z=-810;z<=810;z+=75){
+  for(let x=40;x<1150;x+=45) for(let z=-810;z<=810;z+=60){
     const cx=x+(random()-.5)*16,cz=z+(random()-.5)*16;
     if(!clearFeature(cx,cz,20) || walls.some(p=>Math.hypot(cx-p.x,cz-p.z)<12))continue;
     for(let n=0;n<4;n++){
@@ -94,7 +116,23 @@ function createExpandedOpenWorldPlan(){
       bushes.push({x:px,z:pz,y:combatHeight('open_world',1,px,pz),scale:.8+random()*.8,yaw:random()*Math.PI});
     }
   }
-  return {bounds:OPEN_WORLD_BOUNDS,routes:OPEN_WORLD_ROUTES,portals:[[VILLAGE_GATE.x,VILLAGE_GATE.z],[54,-28],[78,30]],plots,trees,rocks,bushes,walls,slimes,fire:false,landmarks:[
+  // Preserve every existing clump and add four local companions: exactly 5x
+  // the previous density. Shrink offsets at path/portal boundaries.
+  const baseBushCount=bushes.length;
+  for(let i=0;i<baseBushCount;i++){
+    const parent=bushes[i];
+    for(let n=0;n<4;n++){
+      const angle=parent.yaw+n*Math.PI/2+i*.071;
+      let distance=1.6+(n%2)*.85, x=parent.x, z=parent.z;
+      for(let attempt=0;attempt<5;attempt++){
+        const px=parent.x+Math.cos(angle)*distance, pz=parent.z+Math.sin(angle)*distance;
+        if(clearFeature(px,pz,14)){x=px;z=pz;break;}
+        distance*=.5;
+      }
+      bushes.push({x,z,y:combatHeight('open_world',1,x,z),scale:parent.scale*(.72+(n%3)*.1),yaw:angle});
+    }
+  }
+  return {bounds:OPEN_WORLD_BOUNDS,routes:OPEN_WORLD_ROUTES,portals:[[VILLAGE_GATE.x,VILLAGE_GATE.z],[54,-28],[78,30]],plots,trees,rocks,bushes,baseBushCount,walls,slimes,fire:false,landmarks:[
     {x:-550,z:770,title:'چشم‌انداز دامنه',symbol:'△'},{x:0,z:0,title:'پل رودخانه',symbol:'≋'}]};
 }
 
@@ -180,24 +218,112 @@ export function buildCombatLandscape(THREE, kit, materials, zone, tier, plan) {
   }));
   if (plan.plots.length) root.add(kit.buildDistrict(plan.plots));
   const matrix = new THREE.Object3D();
-  function batch(geometry, material, items, yOffset, scaleY = 1) {
+  function batch(geometry, material, items, yOffset, scaleY = 1, castShadow = true) {
     if (!items.length) return;
     const mesh = new THREE.InstancedMesh(geometry, material, items.length);
     items.forEach((p, i) => {
       matrix.position.set(p.x, p.y + yOffset * p.scale, p.z); matrix.rotation.set(0, p.yaw, 0); matrix.scale.set(p.scale, p.scale * scaleY, p.scale); matrix.updateMatrix(); mesh.setMatrixAt(i, matrix.matrix);
     });
-    mesh.castShadow = true; mesh.receiveShadow = true; mesh.computeBoundingSphere(); root.add(mesh);
+    mesh.castShadow = castShadow; mesh.receiveShadow = true; mesh.computeBoundingSphere(); root.add(mesh);
+    return mesh;
   }
   batch(new THREE.DodecahedronGeometry(1.6, 0), plan.fire ? materials.volcanicRock : materials.mountainRock, plan.rocks, .7, .85);
   batch(new THREE.CylinderGeometry(.18, .3, 3, 6), materials.darkWood, plan.trees, 1.5);
   batch(new THREE.ConeGeometry(1.7, 6, 7), materials.cypressFoliage, plan.trees, 4.4);
-  if (plan.walls) {
-    batch(new THREE.DodecahedronGeometry(2.6, 1), kit.materials.stone, plan.walls, 1.6, 1.35);
+  if (plan.walls && plan.walls.length) {
+    // Weathered, flattened slabs rather than spherical masonry boulders.
+    // The lumpy outline is generated once and shared by every instance.
+    const stone = new THREE.SphereGeometry(2.6, 20, 12);
+    const v = stone.attributes.position;
+    for (let i=0;i<v.count;i++) {
+      const x=v.getX(i), y=v.getY(i), z=v.getZ(i);
+      const noise=1+.12*Math.sin(x*2.1+z*1.5+y*1.2)+.05*Math.sin(x*4.3-z*2.8);
+      v.setXYZ(i,x*noise*1.35,Math.max(-1.35,Math.min(1.3,y*.72*noise)),z*noise*.88);
+    }
+    stone.computeVertexNormals();
+    // Locally generated grain and hairline seams add weathered detail without
+    // downloading textures or embedding third-party artwork.
+    const canvas=document.createElement('canvas'); canvas.width=canvas.height=256;
+    const ctx=canvas.getContext('2d'), pixels=ctx.createImageData(256,256);
+    for(let y=0;y<256;y++) for(let x=0;x<256;x++){
+      const n=Math.sin(x*12.9898+y*78.233)*43758.5453;
+      const grain=(n-Math.floor(n)-.5)*24;
+      const layered=10*Math.sin(x*.105+Math.sin(y*.11)*1.4)+8*Math.sin(y*.19+x*.025);
+      const seam=Math.abs(Math.sin(y*.072+Math.sin(x*.036)*1.8))<.035 ? -26 : 0;
+      const c=Math.max(70,Math.min(235,174+grain+layered+seam));
+      const k=(y*256+x)*4; pixels.data[k]=c; pixels.data[k+1]=c; pixels.data[k+2]=c; pixels.data[k+3]=255;
+    }
+    ctx.putImageData(pixels,0,0);
+    const stoneTexture=new THREE.CanvasTexture(canvas);
+    const stoneMaterial = new THREE.MeshStandardMaterial({color:0x68786a,map:stoneTexture,roughness:1});
+    const capMaterial = new THREE.MeshStandardMaterial({color:0x314f35,roughness:1});
+    batch(stone, stoneMaterial, plan.walls, 1.05, 1);
+    // Moss crowns break the hard stone silhouette and blend into the shrubs.
+    batch(new THREE.IcosahedronGeometry(1.55,1), capMaterial, plan.walls.filter((_,i)=>i%2===0), 1.9, .22);
   }
-  if (plan.bushes) {
-    // Rounded, low cover instead of upright tree silhouettes.
-    batch(new THREE.IcosahedronGeometry(2.2, 1), kit.materials.leaf, plan.bushes, .9, .48);
-    batch(new THREE.IcosahedronGeometry(1.25, 1), kit.materials.leafLight, plan.bushes, 1.35, .55);
+  if (plan.bushes && plan.bushes.length) {
+    // Fifty independently oriented botanical cards are packed into one shared
+    // geometry. This multiplies visible bush count without allocating one
+    // million Object3Ds or one million instance matrices.
+    const atlas=document.createElement('canvas'); atlas.width=1024; atlas.height=256;
+    const paint=atlas.getContext('2d');
+    let leafSeed=73491;
+    const randomLeaf=()=>{leafSeed=(Math.imul(leafSeed,1664525)+1013904223)>>>0;return leafSeed/4294967296;};
+    for(let variant=0;variant<4;variant++){
+      const origin=variant*256;
+      for(let n=0;n<26;n++){
+        const rootX=origin+128+(randomLeaf()-.5)*74, rootY=235-randomLeaf()*25;
+        const tipX=origin+128+(randomLeaf()-.5)*206;
+        const tipY=34+randomLeaf()*145, width=8+randomLeaf()*19;
+        const midX=(rootX+tipX)*.5, midY=(rootY+tipY)*.5;
+        const green=92+Math.floor(randomLeaf()*75);
+        paint.fillStyle=`rgb(${Math.floor(green*.40)},${green},${Math.floor(green*.43)})`;
+        paint.beginPath();paint.moveTo(rootX,rootY);
+        paint.quadraticCurveTo(midX-width,midY,tipX,tipY);
+        paint.quadraticCurveTo(midX+width,midY,rootX,rootY);paint.fill();
+        paint.strokeStyle='rgba(183,207,121,0.25)';paint.lineWidth=1;
+        paint.beginPath();paint.moveTo(rootX,rootY);paint.quadraticCurveTo(midX,midY,tipX,tipY);paint.stroke();
+      }
+    }
+    const foliageTexture=new THREE.CanvasTexture(atlas);
+    if(THREE.SRGBColorSpace) foliageTexture.colorSpace=THREE.SRGBColorSpace;
+    const positions=[], uvs=[], indices=[];
+    for(let n=0;n<BUSH_CARDS_PER_CLUMP;n++){
+      const angle=n*2.399963, radius=.2+1.25*Math.sqrt(n/(BUSH_CARDS_PER_CLUMP-1));
+      const x=Math.cos(angle)*radius,z=Math.sin(angle)*radius;
+      const facing=angle*.63, dx=Math.cos(facing)*.52, dz=Math.sin(facing)*.52;
+      const h=1.30+(n%7)*.11, lean=.12+(n%3)*.07;
+      const k=n*4, v=n%4, u0=(v*256+3)/1024,u1=((v+1)*256-3)/1024;
+      positions.push(x-dx,0,z-dz, x+dx,0,z+dz,
+        x-dx+Math.cos(angle)*lean,h,z-dz+Math.sin(angle)*lean,
+        x+dx+Math.cos(angle)*lean,h,z+dz+Math.sin(angle)*lean);
+      uvs.push(u0,0,u1,0,u0,1,u1,1);
+      indices.push(k,k+1,k+2,k+1,k+3,k+2);
+    }
+    const foliage=new THREE.BufferGeometry();
+    foliage.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+    foliage.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));
+    foliage.setIndex(indices);foliage.computeVertexNormals();
+    const grass=new THREE.MeshStandardMaterial({map:foliageTexture,color:0xb9d8b6,
+      roughness:1,side:THREE.DoubleSide,alphaTest:.32});
+    // Spatial batches let the renderer cull distant vegetation; all plants
+    // remain present rather than reducing density or quality on mobile.
+    const tiles=new Map();
+    plan.bushes.forEach((p,i)=>{
+      const key=`${Math.floor(p.x/100)},${Math.floor(p.z/100)}`;
+      if(!tiles.has(key)) tiles.set(key,[]);
+      tiles.get(key).push({p,i});
+    });
+    const variation=new THREE.Color();
+    tiles.forEach(entries=>{
+      const grassMesh=batch(foliage,grass,entries.map(e=>e.p),0,1,false);
+      entries.forEach(({i},index)=>{
+        const t=Math.abs((Math.sin(i*12.9898)*43758.5453)%1);
+        variation.setRGB(.9+t*.1,.9+t*.1,.88+t*.12);
+        grassMesh.setColorAt(index,variation);
+      });
+      grassMesh.instanceColor.needsUpdate=true;
+    });
   }
   if (plan.fire) {
     // Ember seams are outside traversal routes; warm emissive material is reused.

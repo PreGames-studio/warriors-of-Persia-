@@ -1,4 +1,4 @@
-name: Build east-bank preview APK
+name: Validate east-bank preview APK
 
 # v1.0.13 shipped every 4K/8K map inside the APK (272 MB). This workflow builds
 # the slim variant instead: the game and a lossless 2K texture set stay in the
@@ -253,13 +253,9 @@ jobs:
             artifacts/quality/build-1.0.30*.json
           retention-days: 7
 
-      - name: Publish prerelease without changing Latest
-        run: |
-          gh release create "$TAG" "$RUNNER_TEMP"/out/* --target "$GITHUB_SHA" --prerelease --latest=false --title "East bank preview 1.0.30" --notes-file "$RUNNER_TEMP/notes.md"
+  # The APK is an Actions artifact only. Do not overwrite the approved
+  # prerelease or change the Latest release while validating branch changes.
 
-  # Real-device check: install the freshly published APK on an emulator, confirm
-  # the game boots inside the new WebView shell, download the real HD pack through
-  # the game and confirm it is served from app storage after a relaunch.
   smoke:
     needs: [build]
     runs-on: ubuntu-latest
