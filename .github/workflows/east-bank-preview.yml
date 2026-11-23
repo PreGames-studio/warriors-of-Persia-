@@ -21,9 +21,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  VERSION_CODE: ${{ '29' }}
-  VERSION_NAME: ${{ '1.0.29' }}
-  TAG: v1.0.29-east-preview
+  VERSION_CODE: ${{ '30' }}
+  VERSION_NAME: ${{ '1.0.30' }}
+  TAG: v1.0.30-east-preview
 
 jobs:
   build:
@@ -171,7 +171,7 @@ jobs:
           python - <<'PY'
           import json, re, zipfile
           from pathlib import Path
-          apk = Path('artifacts/releases/WarriorsOfPersia_1.0.29.apk')
+          apk = Path('artifacts/releases/WarriorsOfPersia_1.0.30.apk')
           z = zipfile.ZipFile(apk)
           names = z.namelist()
           assert not any(n.startswith('assets/pbr_hq/') for n in names), 'HQ maps leaked into the APK'
@@ -249,13 +249,13 @@ jobs:
         with:
           name: wop-slim-apk
           path: |
-            artifacts/releases/WarriorsOfPersia_1.0.29.apk
-            artifacts/quality/build-1.0.29*.json
+            artifacts/releases/WarriorsOfPersia_1.0.30.apk
+            artifacts/quality/build-1.0.30*.json
           retention-days: 7
 
       - name: Publish prerelease without changing Latest
         run: |
-          gh release create "$TAG" "$RUNNER_TEMP"/out/* --target "$GITHUB_SHA" --prerelease --latest=false --title "East bank preview 1.0.29" --notes-file "$RUNNER_TEMP/notes.md"
+          gh release create "$TAG" "$RUNNER_TEMP"/out/* --target "$GITHUB_SHA" --prerelease --latest=false --title "East bank preview 1.0.30" --notes-file "$RUNNER_TEMP/notes.md"
 
   # Real-device check: install the freshly published APK on an emulator, confirm
   # the game boots inside the new WebView shell, download the real HD pack through

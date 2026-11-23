@@ -9,6 +9,14 @@ assert(!isOpenWorldLand(0, 881));
 const plan = createCombatPlan('open_world');
 assert.deepEqual(plan, createCombatPlan('open_world'), 'generation is deterministic');
 assert(plan.plots.length > 50 && plan.bushes.length > 100);
+assert(plan.walls.length > 20 && plan.walls.some(p => p.x < 120));
+for (const wall of plan.walls) {
+  assert(wall.x > 25 && routeDistance(wall.x, wall.z) > 20);
+  assert.equal(wall.y, combatHeight('open_world', 1, wall.x, wall.z));
+  for (const [x,z] of [[54,-28],[78,30]]) assert(Math.hypot(wall.x-x,wall.z-z)>38);
+}
+for (const bush of plan.bushes.filter(p => p.x > 25)) assert(routeDistance(bush.x, bush.z) >= 13);
+
 for (const plot of plan.plots) {
   assert(plot.x > 0 && routeDistance(plot.x, plot.z) >= 22);
   assert.equal(plot.y, combatHeight('open_world', 1, plot.x, plot.z));

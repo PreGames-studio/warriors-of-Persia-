@@ -3286,6 +3286,7 @@
         floatingLabels.forEach(label => { label.pos.y += combatHeight(zoneId, tier, label.pos.x, label.pos.z); });
         mapRoot.add(activeCave?buildCave(THREE,activeCave,MATS.volcanicRock):buildCombatLandscape(THREE, villageKit, MATS, zoneId, tier, activeCombatPlan));
         activeCombatPlan.plots.forEach(plot => addOrientedCollider(plot.x, plot.z, 4.7 * plot.scale * villageKit.districtBuildingScale, 3.75 * plot.scale * villageKit.districtBuildingScale, plot.rotY));
+        (activeCombatPlan.walls || []).forEach(rock => addColliderBox(rock.x, rock.z, 2 * rock.scale, 2 * rock.scale));
         activeCombatPlan.landmarks.forEach(p => addWorldLabel(`${p.symbol} ${p.title}`, new THREE.Vector3(p.x, combatHeight(zoneId, tier, p.x, p.z) + 7, p.z), '#d8b66a'));
       }
 

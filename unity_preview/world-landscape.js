@@ -52,7 +52,49 @@ function createExpandedOpenWorldPlan(){
       (random()<.58?bushes:random()<.6?trees:rocks).push(item);
     }
   }
-  return {bounds:OPEN_WORLD_BOUNDS,routes:OPEN_WORLD_ROUTES,portals:[[VILLAGE_GATE.x,VILLAGE_GATE.z],[54,-28],[78,30]],plots,trees,rocks,bushes,slimes,fire:false,landmarks:[
+  // Short irregular rock ridges create landmarks and cover, while leaving
+  // generous gaps around roads, buildings, portal approaches and the bridge.
+  const walls=[];
+  const clearFeature=(x,z,margin)=>x>25 && x<1160 && Math.abs(z)<855 &&
+    routeDistance(x,z)>margin && portals.every(p=>Math.hypot(x-p[0],z-p[1])>margin+18) &&
+    plots.every(p=>Math.hypot(x-p.x,z-p.z)>margin+10);
+  const centres=[];
+  for(let x=45;x<1150;x+=72) for(let z=-810;z<=810;z+=90){
+    const cx=x+(random()-.5)*20, cz=z+(random()-.5)*20;
+    if(!clearFeature(cx,cz,35) || centres.some(p=>Math.hypot(p.x-cx,p.z-cz)<60))continue;
+    centres.push({x:cx,z:cz});
+    const angle=random()*Math.PI, count=3+Math.floor(random()*3);
+    for(let n=0;n<count;n++){
+      const offset=(n-(count-1)/2)*4.2;
+      const px=cx+Math.cos(angle)*offset, pz=cz+Math.sin(angle)*offset;
+      if(!clearFeature(px,pz,22))continue;
+      walls.push({x:px,z:pz,y:combatHeight('open_world',1,px,pz),yaw:angle+n*.18,
+        scale:1.15+random()*.5});
+    }
+  }
+  // Hand-placed groups make the new landscape legible as soon as the player
+  // crosses the bridge; the same clearance rules protect the dungeon routes.
+  for (const [cx,cz] of [[36,-62],[38,66],[105,-52],[112,60]]) {
+    for(let n=0;n<4;n++) {
+      const px=cx+(n-1.5)*4, pz=cz+Math.sin(n)*2;
+      if(clearFeature(px,pz,20)) walls.push({x:px,z:pz,y:combatHeight('open_world',1,px,pz),yaw:n*.3,scale:1.25});
+    }
+    for(let n=0;n<7;n++) {
+      const px=cx-6+n*2, pz=cz+8+(n%3)*2;
+      if(clearFeature(px,pz,14)) bushes.push({x:px,z:pz,y:combatHeight('open_world',1,px,pz),scale:1.1,yaw:n*.6});
+    }
+  }
+  // Organic bush clusters: visual cover only, not a hidden-hero mechanic.
+  for(let x=40;x<1150;x+=55) for(let z=-810;z<=810;z+=75){
+    const cx=x+(random()-.5)*16,cz=z+(random()-.5)*16;
+    if(!clearFeature(cx,cz,20) || walls.some(p=>Math.hypot(cx-p.x,cz-p.z)<12))continue;
+    for(let n=0;n<4;n++){
+      const px=cx+(random()-.5)*7,pz=cz+(random()-.5)*7;
+      if(!clearFeature(px,pz,14))continue;
+      bushes.push({x:px,z:pz,y:combatHeight('open_world',1,px,pz),scale:.8+random()*.8,yaw:random()*Math.PI});
+    }
+  }
+  return {bounds:OPEN_WORLD_BOUNDS,routes:OPEN_WORLD_ROUTES,portals:[[VILLAGE_GATE.x,VILLAGE_GATE.z],[54,-28],[78,30]],plots,trees,rocks,bushes,walls,slimes,fire:false,landmarks:[
     {x:-550,z:770,title:'چشم‌انداز دامنه',symbol:'△'},{x:0,z:0,title:'پل رودخانه',symbol:'≋'}]};
 }
 
@@ -149,6 +191,9 @@ export function buildCombatLandscape(THREE, kit, materials, zone, tier, plan) {
   batch(new THREE.DodecahedronGeometry(1.6, 0), plan.fire ? materials.volcanicRock : materials.mountainRock, plan.rocks, .7, .85);
   batch(new THREE.CylinderGeometry(.18, .3, 3, 6), materials.darkWood, plan.trees, 1.5);
   batch(new THREE.ConeGeometry(1.7, 6, 7), materials.cypressFoliage, plan.trees, 4.4);
+  if (plan.walls) {
+    batch(new THREE.DodecahedronGeometry(2.6, 1), kit.materials.stone, plan.walls, 1.6, 1.35);
+  }
   if (plan.bushes) {
     // Rounded, low cover instead of upright tree silhouettes.
     batch(new THREE.IcosahedronGeometry(2.2, 1), kit.materials.leaf, plan.bushes, .9, .48);
