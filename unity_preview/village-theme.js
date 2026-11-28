@@ -578,6 +578,7 @@ export function createPersianVillageKit(THREE) {
     // Forward the movement signal to the model as soon as it finishes loading.
     let hero = null;
     let pendingSpeed = 0;
+    let pendingGear = null;
     group.userData.updateLocomotion = (dt, speed = 0) => {
       pendingSpeed = speed;
       if (hero) hero.update(dt, speed);
@@ -587,8 +588,12 @@ export function createPersianVillageKit(THREE) {
       contactShadow.material.opacity = .85 - Math.min(.3, Math.abs(speed) * .05);
     };
     group.userData.playAction = (name) => (hero ? hero.playOneShot(name) : null);
-    // Gear the player is wearing: the weapon family and the off-hand shield.
-    group.userData.setGear = (gear) => (hero && hero.setGear ? hero.setGear(gear) : null);
+    // Preserve the latest loadout even when a save or purchase arrives before
+    // the asynchronous character model is ready.
+    group.userData.setGear = (gear) => {
+      pendingGear = gear;
+      return hero && hero.setGear ? hero.setGear(gear) : null;
+    };
     group.userData.gearState = () => (hero && hero.gear ? hero.gear() : null);
     group.userData.getMia = () => hero;
     group.userData.actualSpeed = 0;
@@ -606,6 +611,7 @@ export function createPersianVillageKit(THREE) {
     }).then((loaded) => {
       hero = loaded;
       castPivot.add(loaded.root);
+      if (pendingGear) hero.setGear(pendingGear);
       // Apply any movement that happened while the GLB was parsing.
       hero.update(1 / 60, pendingSpeed);
       group.userData.modelReady = true;

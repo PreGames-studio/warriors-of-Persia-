@@ -78,6 +78,7 @@ jobs:
           set -euo pipefail
           exec > >(tee -a "$RUNNER_TEMP/step.log") 2>&1
           node Tools/tests/east-bank.test.mjs
+          node Tools/tests/graphics-settings.test.mjs
           node Tools/tests/equipment.test.mjs
           node Tools/tests/locomotion.test.mjs
           node Tools/tests/mia-gait.test.mjs

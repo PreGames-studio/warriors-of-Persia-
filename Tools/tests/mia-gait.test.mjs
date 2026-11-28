@@ -169,6 +169,27 @@ expect('slow movement plays the walk cycle', walk.clip === 'Walk_Loop', walk.cli
 expect('the walk steps instead of sliding', walk.footLift > 0.08, `foot lift ${walk.footLift}`);
 expect('the arms swing while walking', walk.handSpan > 0.12, `hand travel ${walk.handSpan}`);
 
+// Check the blade path, not just its rigidity relative to the hand. In the
+// root frame the right side is negative X; the tip should be below and outside
+// the grip while walking/running, rather than crossing in front of the abdomen.
+for (const speed of [WALK_SPEED, RUN_SPEED]) {
+  for(let frame=0;frame<40;frame++) model.update(1/60,speed);
+  let worstSide=Infinity, worstDown=Infinity;
+  let minLeft=Infinity,maxLeft=-Infinity,minRight=Infinity,maxRight=-Infinity;
+  for(let frame=0;frame<120;frame++){
+    model.update(1/60,speed); model.root.updateMatrixWorld(true);
+    const tip=model.root.worldToLocal(sword.localToWorld(new THREE.Vector3(.09,.98,0)));
+    const grip=model.root.worldToLocal(sword.localToWorld(new THREE.Vector3(0,-.093,0)));
+    worstSide=Math.min(worstSide,grip.x-tip.x); worstDown=Math.min(worstDown,grip.y-tip.y);
+    const left=model.root.worldToLocal(model.bone('hand_l').getWorldPosition(new THREE.Vector3()));
+    const right=model.root.worldToLocal(hand.getWorldPosition(new THREE.Vector3()));
+    minLeft=Math.min(minLeft,left.z);maxLeft=Math.max(maxLeft,left.z);
+    minRight=Math.min(minRight,right.z);maxRight=Math.max(maxRight,right.z);
+  }
+  expect(`blade stays below and outside the grip at ${speed}`,worstSide>.20 && worstDown>.35,`${worstSide.toFixed(2)} side / ${worstDown.toFixed(2)} down`);
+  expect(`both hands swing at ${speed}`,maxLeft-minLeft>.04 && maxRight-minRight>.04,`${(maxLeft-minLeft).toFixed(2)} / ${(maxRight-minRight).toFixed(2)}`);
+}
+
 const jog = run(3, 4.4);
 expect('a faster chase plays the jog cycle', jog.clip === 'Jog_Fwd_Loop', jog.clip);
 
@@ -201,6 +222,99 @@ expect('every armature gets the same grip pose', handQuaternions.length >= 2 && 
   `${handQuaternions.length} copies, spread ${handSpread.toFixed(1)}°`);
 const curled = degrees(model.bone('index_02_r').quaternion.angleTo(new THREE.Quaternion()));
 expect('the fingers are closed around the grip', curled > 20, `curl ${curled.toFixed(0)}°`);
+
+// Interrupted blends must continue from the weights already on screen, not
+// jump to a full-weight old clip when another spell arrives.
+const spellNames = ['Sword_Light_A', 'OverhandThrow', 'Sword_UpperCut', 'Sword_Heavy_A'];
+run(0.8, WALK_SPEED);
+const first = model.playOneShot(spellNames[0]);
+model.update(1 / 60, WALK_SPEED);
+const beforeInterrupt = first[0].getEffectiveWeight();
+const second = model.playOneShot(spellNames[1]);
+model.update(1 / 60, WALK_SPEED);
+const afterInterrupt = first[0].getEffectiveWeight();
+expect('interrupted cast retains its partial blend weight', beforeInterrupt > 0 && afterInterrupt <= beforeInterrupt && afterInterrupt < 0.2,
+  `${beforeInterrupt.toFixed(3)} -> ${afterInterrupt.toFixed(3)}`);
+expect('the next cast starts blending in', second[0].getEffectiveWeight() > 0, `${second[0].getEffectiveWeight().toFixed(3)}`);
+for (const name of spellNames) {
+  const actions = model.playOneShot(name);
+  expect(`${name} has a playable body animation`, Boolean(actions && actions.length), `${actions?.length || 0} armatures`);
+  let peakWeight = 0;
+  for (let frame=0; frame<35; frame++) {
+    model.update(1 / 60, RUN_SPEED);
+    peakWeight = Math.max(peakWeight, actions[0].getEffectiveWeight());
+  }
+  expect(`${name} actually blends into the rig`, peakWeight > 0.5, `weight ${peakWeight.toFixed(2)}`);
+  for (let frame=0; frame<180; frame++) model.update(1 / 60, RUN_SPEED);
+  expect(`${name} returns to running`, model.clip() === 'Jog_Fwd_Loop', model.clip());
+}
+
+// Exercise rapid stop/start/reversal of the requested gait during crossfades.
+let maxTransitionAngle = 0;
+let previousTransition = worldQuaternion(hand);
+for (const speed of [0, WALK_SPEED, RUN_SPEED, WALK_SPEED, 0, RUN_SPEED, 0]) {
+  for (let frame=0; frame<8; frame++) {
+    model.update(1/60,speed); model.root.updateMatrixWorld(true);
+    const now = worldQuaternion(hand);
+    maxTransitionAngle = Math.max(maxTransitionAngle, degrees(now.angleTo(previousTransition)));
+    previousTransition = now;
+  }
+}
+expect('rapid gait transitions avoid an extreme wrist pop', maxTransitionAngle < 35, `${maxTransitionAngle.toFixed(1)}°/frame`);
+
+// Wear everything from the shop on the real animated rig. Every part must be
+// attached to the expected joint, follow it while moving, and disappear when
+// its equipment cell is cleared (including both left and right limbs).
+const fullGear = {
+  weapon: { id:'iron_sword' }, shield:{ id:'iron_shield' },
+  helmet:{ id:'iron_helmet' }, chest:{ id:'armor_persian' },
+  gauntlets:{ id:'armored_gauntlets' }, boots:{ id:'armored_boots' }
+};
+model.setGear(fullGear);
+const tunic = model.meshes.find(mesh => mesh.name === 'Female_Ranger_Body');
+expect('tunic does not poke through the worn cuirass', tunic && !tunic.visible, 'tunic hidden under armor');
+const parts = [
+  ['EquippedHelmet','Head'], ['EquippedChest','spine_02'],
+  ['gauntlets-lowerarm_l','lowerarm_l'], ['gauntlets-lowerarm_r','lowerarm_r'],
+  ['boots-calf_l','calf_l'], ['boots-calf_r','calf_r'],
+  ['boots-ball_l','ball_l'], ['boots-ball_r','ball_r']
+];
+for (const [name, joint] of parts) {
+  const part = model.root.getObjectByName(name), bone = model.bone(joint);
+  expect(`${name} appears on ${joint}`, Boolean(part?.visible && part.parent === bone), `${part?.parent?.name || 'missing'}`);
+  const initial = part?.matrix.clone();
+  let localStable = true;
+  for (const speed of [0, WALK_SPEED, RUN_SPEED]) {
+    for (let i=0;i<30;i++) model.update(1/60,speed);
+    part?.updateMatrix();
+    localStable &&= part?.visible && initial.elements.every((v, i) => Math.abs(v-part.matrix.elements[i]) < 1e-6);
+  }
+  expect(`${name} stays attached during idle, walk and run`, localStable, 'local transform stable');
+}
+for (const [id,kind] of Object.entries({iron_sword:'sword',sword_radiant:'radiant',war_hammer:'hammer',battle_axe_double:'axe',immortal_spear:'spear',bow_arash:'bow'})) {
+  const state = model.setGear({...fullGear, weapon:{id}});
+  for(let i=0;i<30;i++) model.update(1/60,RUN_SPEED);
+  expect(`${id} is visible during running`, state.weapon === kind && model.worn()?.visible, kind);
+  expect(`${id} keeps the equipped shield visible`, state.shield && (kind !== 'bow' ? model.shield.visible : model.root.getObjectByName('EquippedShieldOnBack').visible), state.shieldLocation);
+}
+const cuirass = model.root.getObjectByName('ChestOnSpine');
+const persianMaterial = cuirass.children.find(child => child.geometry?.type === 'LatheGeometry').material;
+const royalDetail = model.root.getObjectByName('RoyalCuirassFiligree');
+expect('Persian armor omits royal ornament', royalDetail && !royalDetail.visible, 'Persian finish');
+expect('waist has two shaped overlapping plates', ['CuirassWaistLame0','CuirassWaistLame1'].every(name => !!model.root.getObjectByName(name)), 'layered waist');
+expect('shield rivets are instanced for rendering', model.shield.getObjectByName('ShieldRivets')?.isInstancedMesh, 'shared draw call');
+expect('the stored shield retains its details', model.root.getObjectByName('EquippedShieldOnBack')?.getObjectByName('ShieldRivets')?.isInstancedMesh, 'shield on back');
+model.setGear({...fullGear,chest:{id:'chest_plate_royal'}});
+expect('royal ornament appears on the royal armor', royalDetail.visible, 'engraved finish');
+const royalMaterial = cuirass.children.find(child => child.geometry?.type === 'LatheGeometry').material;
+expect('royal cuirass is selected',model.gear().chest === 'chest_plate_royal' && royalMaterial !== persianMaterial,'distinct royal finish');
+expect('armor has an offline surface detail map', Boolean(persianMaterial.bumpMap || persianMaterial.normalMap), 'forged surface');
+model.setGear(fullGear);
+expect('switching back hides royal ornament', !royalDetail.visible, 'Persian finish restored');
+model.setGear({});
+expect('original tunic returns when armor is removed', tunic.visible, 'original outfit restored');
+expect('empty weapon and shield cells hide those items', model.worn() === null && !model.shield.visible && !model.root.getObjectByName('EquippedShieldOnBack').visible,'empty cells');
+for (const [name] of parts) expect(`${name} disappears when unequipped`, !model.root.getObjectByName(name)?.visible, name);
 
 let failed = 0;
 for (const check of checks) {

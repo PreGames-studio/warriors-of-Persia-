@@ -648,21 +648,49 @@ class KiteShield {
     shell.castShadow = true;
     group.add(shell);
 
-    // Painted chevron: two slim steel bands, clearly readable at gameplay range.
-    [-1, 1].forEach((side) => {
-      const band = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.30, 0.012), materials.steel);
-      band.position.set(side * 0.075, 0.02, 0.024);
-      band.rotation.z = side * 0.34;
-      group.add(band);
-    });
-
-    const boss = new THREE.Mesh(new THREE.SphereGeometry(0.085, 16, 12), materials.gold);
-    boss.scale.z = 0.55;
+    // Curved steel ribs and a raised boss follow the shield profile instead of
+    // the flat rectangular bars that used to make the face look toy-like.
+    const rib = (points, radius, material) => {
+      const curve = new THREE.CatmullRomCurve3(points.map(point => new THREE.Vector3(...point)));
+      const mesh = new THREE.Mesh(new THREE.TubeGeometry(curve, 18, radius, 6, false), material);
+      group.add(mesh);
+      return mesh;
+    };
+    for (const side of [-1, 1]) {
+      rib([[side*.035,.25,.027],[side*.14,.19,.027],[side*.18,.04,.027],
+        [side*.12,-.14,.027],[side*.025,-.31,.027]], .008, materials.steel);
+    }
+    const boss = new THREE.Mesh(new THREE.SphereGeometry(0.085, 20, 14), materials.gold);
+    boss.scale.z = 0.48;
     boss.position.z = 0.030;
     group.add(boss);
-
-    const crest = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.16, 0.014), materials.gold);
-    crest.position.set(0, -0.18, 0.026);
+    const bossRim = new THREE.Mesh(new THREE.TorusGeometry(.088, .006, 6, 28), materials.steel);
+    bossRim.position.z = .028;
+    group.add(bossRim);
+    // Rivets share one draw call, keeping the detail inexpensive on mobile.
+    const points = [[0,.305],[.115,.27],[.225,.235],[.235,.13],[.22,.02],[.18,-.09],
+      [.12,-.20],[.055,-.30],[0,-.36],[-.055,-.30],[-.12,-.20],[-.18,-.09],
+      [-.22,.02],[-.235,.13],[-.225,.235],[-.115,.27]];
+    const rivets = new THREE.InstancedMesh(new THREE.SphereGeometry(.008, 8, 6), materials.gold, points.length);
+    rivets.name = 'ShieldRivets';
+    const transform = new THREE.Object3D();
+    points.forEach(([x,y], index) => {
+      transform.position.set(x,y,.027); transform.scale.set(1,1,.55); transform.updateMatrix();
+      rivets.setMatrixAt(index, transform.matrix);
+    });
+    rivets.instanceMatrix.needsUpdate = true;
+    rivets.computeBoundingSphere();
+    group.add(rivets);
+    // The lower finial is softly tapered rather than a block of metal.
+    const finial = new THREE.Shape();
+    finial.moveTo(0,-.12); finial.quadraticCurveTo(.038,-.15,.028,-.20);
+    finial.quadraticCurveTo(.02,-.25,0,-.28);
+    finial.quadraticCurveTo(-.02,-.25,-.028,-.20);
+    finial.quadraticCurveTo(-.038,-.15,0,-.12);
+    const crest = new THREE.Mesh(new THREE.ExtrudeGeometry(finial, {
+      depth:.006, bevelEnabled:true, bevelSize:.003, bevelThickness:.002, bevelSegments:2, curveSegments:12
+    }), materials.gold);
+    crest.position.z = .025;
     group.add(crest);
     this.group = group;
   }
@@ -883,31 +911,39 @@ export async function loadMiaHero(options = {}) {
     actionSets.set(name, actions);
   });
 
+  // Crossfade from the weights actually visible now, not from an assumed 0/1.
+  // Three's fadeIn/fadeOut restart their ramps at 0/1, which pops when a new
+  // spell or movement change interrupts an unfinished blend.
+  const blendWeights = new Map(Array.from(actionSets.keys(), name => [name, name === 'Sword_Idle' ? 1 : 0]));
+  let blend = null;
   const setWeights = (name, duration) => {
-    actionSets.forEach((actions, key) => {
-      actions.forEach((action) => {
-        action.enabled = true;
-        if (key === name) action.fadeIn(duration);
-        else action.fadeOut(duration);
+    if (!actionSets.has(name)) return;
+    blend = { from: new Map(blendWeights), name, duration: Math.max(duration, 0.001), elapsed: 0 };
+    actionSets.get(name).forEach(action => { action.enabled = true; action.play(); });
+  };
+  const advanceBlend = (dt) => {
+    if (!blend) return;
+    blend.elapsed = Math.min(blend.duration, blend.elapsed + Math.max(0, dt));
+    const t = blend.elapsed / blend.duration;
+    // Smoothstep has zero slope at either end, avoiding a harsh pose change.
+    const eased = t * t * (3 - 2 * t);
+    actionSets.forEach((actions, name) => {
+      const weight = THREE.MathUtils.lerp(blend.from.get(name) || 0, name === blend.name ? 1 : 0, eased);
+      blendWeights.set(name, weight);
+      actions.forEach(action => {
+        action.setEffectiveWeight(weight);
+        action.enabled = weight > 0.00001 || name === blend.name;
       });
     });
+    if (t >= 1) blend = null;
   };
 
-  // Only the resting clip may contribute at load. Two three.js details matter
-  // here and both were wrong before:
-  //   * `fadeIn()` multiplies the action's master weight, so an action parked at
-  //     weight 0 can never fade in — the walk cycle was silent while the hero
-  //     slid around in the resting pose;
-  //   * every clip was left enabled at weight 1, so the resting pose was an
-  //     average of idle, walk and the combat clips (hence the open, frozen
-  //     hands and the sword swinging around a hand no clip ever wrote).
-  // The master weight stays at 1 for all of them; `enabled` gates the ones that
-  // are not running and the fades do the crossfade.
+  // Only idle contributes at load; all later transitions use blendWeights.
   actionSets.forEach((actions, name) => {
     actions.forEach((action) => {
       action.setLoop(THREE.LoopRepeat, Infinity);
-      action.setEffectiveWeight(1);
       action.enabled = name === 'Sword_Idle';
+      action.setEffectiveWeight(name === 'Sword_Idle' ? 1 : 0);
     });
   });
   mixer.update(0);
@@ -1068,6 +1104,40 @@ export async function loadMiaHero(options = {}) {
     gold: propMaterial('gold'),
     leather: propMaterial('leather')
   };
+  // Subtle brushed-forging texture, generated offline and shared by the new
+  // armor pieces. Existing forge maps are retained when the caller has them.
+  const armorCanvas = document.createElement('canvas');
+  armorCanvas.width = armorCanvas.height = 256;
+  const armorContext = armorCanvas.getContext('2d');
+  const pixels = armorContext.createImageData(256, 256);
+  let grain = 0x627f19;
+  for (let y = 0; y < 256; y++) {
+    for (let x = 0; x < 256; x++) {
+      grain = (Math.imul(grain, 1664525) + 1013904223) >>> 0;
+      const brushed = ((x * 37 + (y >> 4) * 17) % 53 === 0) ? 26 : 0;
+      const value = Math.max(0, Math.min(255, 160 + ((grain >>> 27) - 16) * 2 + brushed));
+      const i = (y * 256 + x) * 4;
+      pixels.data[i] = pixels.data[i + 1] = pixels.data[i + 2] = value;
+      pixels.data[i + 3] = 255;
+    }
+  }
+  armorContext.putImageData(pixels, 0, 0);
+  const armorGrain = new THREE.CanvasTexture(armorCanvas);
+  armorGrain.wrapS = armorGrain.wrapT = THREE.RepeatWrapping;
+  armorGrain.repeat.set(2, 2);
+  const armorMaterial = (source) => {
+    const material = source.clone();
+    material.roughness = Math.max(material.roughness, .48);
+    if (!material.bumpMap && !material.normalMap) {
+      material.bumpMap = armorGrain;
+      material.bumpScale = .003;
+    }
+    if (!material.roughnessMap) material.roughnessMap = armorGrain;
+    return material;
+  };
+  const armorSteel = armorMaterial(propSet.steel);
+  const armorDark = armorMaterial(propSet.steelDark);
+
   const radiantSteel = propSet.steel.clone();
   radiantSteel.color = new THREE.Color(0xe6c168);
   radiantSteel.metalness = 0.94;
@@ -1103,6 +1173,9 @@ export async function loadMiaHero(options = {}) {
     // bar runs across the palm, so the forearm takes the weight in every clip.
     const basis = new THREE.Matrix4().makeBasis(leftFist.gripAxis, leftFist.sideAxis, leftFist.palmNormal);
     shield.group.quaternion.setFromRotationMatrix(basis);
+    // The model's decorated face is +Z; turn it outward from the hand rather
+    // than hiding the boss and rivets against the forearm.
+    shield.group.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI));
     shield.group.scale.setScalar(0.95);
     shield.group.position.copy(leftFist.palmCenter);
     leftFist.hand.add(shield.group);
@@ -1113,18 +1186,42 @@ export async function loadMiaHero(options = {}) {
     shield.group
   ]));
   let currentGear = { weapon: 'sword', shield: false };
+  let armorPieces = null;
+  let backShield = null;
 
   /** Show the weapon family (and shield) the player is wearing right now. */
   function setGear(gear = {}) {
     const worn = gear && gear.weapon ? gear.weapon.id : null;
-    let kind = weaponKindFor(worn);
-    if (!weaponLoadout[kind] || (kind === 'bow' && !leftFist)) kind = 'sword';
+    let kind = worn ? weaponKindFor(worn) : null;
+    if (kind && (!weaponLoadout[kind] || (kind === 'bow' && !leftFist))) kind = 'sword';
     Object.entries(weaponLoadout).forEach(([key, entry]) => {
       entry.group.visible = key === kind;
     });
-    const showShield = Boolean(gear && gear.shield && kind !== 'bow' && leftFist);
-    shield.group.visible = showShield;
-    currentGear = { weapon: kind, shield: showShield };
+    const showShield = Boolean(gear && gear.shield && leftFist);
+    // A bow occupies the shield hand. Store the equipped shield on the back
+    // rather than making an equipped item disappear.
+    const shieldOnBack = Boolean(showShield && kind === 'bow' && backShield);
+    shield.group.visible = showShield && !shieldOnBack;
+    if (backShield) backShield.visible = shieldOnBack;
+    if (armorPieces) {
+      const tunic = visibleMeshes.find(mesh => mesh.name === 'Female_Ranger_Body');
+      if (tunic) tunic.visible = !(gear && gear.chest);
+      Object.entries(armorPieces).forEach(([key, piece]) => {
+        piece.group.visible = Boolean(gear && gear[key]);
+        if (key === 'chest' && gear && gear.chest) {
+          const royal = gear.chest.id === 'chest_plate_royal';
+          piece.plate.material = royal ? armorDark : armorSteel;
+          piece.emblem.material = royal ? radiantGold : propSet.gold;
+          piece.royalDetail.visible = royal;
+        }
+      });
+    }
+    currentGear = {
+      weapon: kind, shield: showShield,
+      shieldLocation: showShield ? (shieldOnBack ? 'back' : 'hand') : null,
+      helmet: gear?.helmet?.id || null, chest: gear?.chest?.id || null,
+      gauntlets: gear?.gauntlets?.id || null, boots: gear?.boots?.id || null
+    };
     return currentGear;
   }
 
@@ -1235,9 +1332,12 @@ export async function loadMiaHero(options = {}) {
    * faster cycles covers the ground speed most closely (fewest sliding feet).
    */
   const speedToClip = (speed) => {
-    if (speed <= 0.12) return 'Sword_Idle';
+    // Hysteresis avoids repeatedly restarting a blend when measured movement
+    // jitters around the idle/walk or walk/run boundary.
+    if (speed <= (currentName === 'Sword_Idle' ? 0.16 : 0.08)) return 'Sword_Idle';
     const walk = referenceSpeed['Walk_Loop'] || WALK_REFERENCE_SPEED;
-    if (speed <= walk * 1.45) return 'Walk_Loop';
+    const walkLimit = currentName === 'Walk_Loop' ? 1.50 : 1.40;
+    if (speed <= walk * walkLimit) return 'Walk_Loop';
     const jog = referenceSpeed['Jog_Fwd_Loop'] || JOG_REFERENCE_SPEED;
     const sprint = referenceSpeed['Sprint_Loop'] || SPRINT_REFERENCE_SPEED;
     if (!jog || !sprint) return 'Walk_Loop';
@@ -1252,15 +1352,13 @@ export async function loadMiaHero(options = {}) {
   const playOneShot = (name, fadeDuration = 0.12) => {
     const actions = actionSets.get(name);
     if (!actions) return null;
-    actionSets.get(currentName)?.forEach((action) => action.fadeOut(fadeDuration));
     actions.forEach((action) => {
       action.reset();
       action.setLoop(THREE.LoopOnce, 1);
       action.clampWhenFinished = true;
-      action.setEffectiveWeight(1);
-      action.fadeIn(fadeDuration);
       action.play();
     });
+    setWeights(name, fadeDuration);
     oneShotName = name;
     oneShotTimer = (byName.get(name)?.duration || 0.6) - fadeDuration * 0.5;
     return actions;
@@ -1290,8 +1388,9 @@ export async function loadMiaHero(options = {}) {
     } else {
       oneShotTimer -= dt;
       if (oneShotTimer <= 0) {
-        actionSets.get(oneShotName)?.forEach((action) => action.fadeOut(0.18));
         oneShotName = null;
+        const next = speedToClip(speed);
+        if (actionSets.has(next)) currentName = next;
         setWeights(currentName, 0.2);
       }
     }
@@ -1304,8 +1403,32 @@ export async function loadMiaHero(options = {}) {
     const sway = Math.min(1, speed / 1.2) * 0.11;
     wristSwayRight.setFromAxisAngle(WRIST_SWAY_AXIS, Math.sin(gaitPhase) * sway);
     wristSwayLeft.setFromAxisAngle(WRIST_SWAY_AXIS, Math.sin(gaitPhase + Math.PI) * sway * 0.7);
+    advanceBlend(dt);
     mixer.update(dt);
     applyOffsets(correctionWeight);
+    if (fist && correctionWeight > .01 &&
+        (currentGear.weapon === 'sword' || currentGear.weapon === 'radiant')) {
+      // Retain the animated arm swing, but turn the wrist so the carried blade
+      // points down and away from the torso instead of crossing the abdomen.
+      // Corrections are applied to every clothing/skin armature and recorded
+      // as the applied pose so missing wrist tracks cannot accumulate rotation.
+      root.updateMatrixWorld(true);
+      const handWorld = fist.hand.getWorldQuaternion(new THREE.Quaternion());
+      const blade = new THREE.Vector3(0,1,0).applyQuaternion(handWorld.clone().multiply(sword.group.quaternion));
+      const desired = new THREE.Vector3(-.48,-.84,.25).normalize().applyQuaternion(root.getWorldQuaternion(new THREE.Quaternion()));
+      const axis = new THREE.Vector3().crossVectors(blade,desired);
+      const angle = blade.angleTo(desired);
+      if (axis.lengthSq() > 1e-8 && angle > .001) {
+        axis.normalize();
+        const worldCorrection = new THREE.Quaternion().setFromAxisAngle(axis,Math.min(angle,2.2)*correctionWeight);
+        eachBoneCopy('hand_r', bone => {
+          const parentWorld = bone.parent.getWorldQuaternion(new THREE.Quaternion());
+          bone.quaternion.premultiply(parentWorld.clone().invert().multiply(worldCorrection).multiply(parentWorld));
+          const group = offsetGroups.find(entry => entry.bone === bone);
+          if (group) group.applied.copy(bone.quaternion);
+        });
+      }
+    }
   };
 
   // Apply the resting corrections, then frame the character for the existing
@@ -1325,6 +1448,194 @@ export async function loadMiaHero(options = {}) {
   root.scale.setScalar(scale);
   root.position.y = -bodyBounds.min.y * scale;
 
+  // Lightweight fitted equipment follows the real animated bones. Build each
+  // piece in the current root-space pose, then attach it to its own joint so
+  // it moves in idle, locomotion and every spell without a separate animation.
+  root.updateMatrixWorld(true);
+  const positionOf = name => root.worldToLocal(boneByName.get(name).getWorldPosition(new THREE.Vector3()));
+  const jointPiece = (boneName, name, position) => {
+    const part = new THREE.Group();
+    part.name = name;
+    part.position.copy(position);
+    root.add(part);
+    root.updateMatrixWorld(true);
+    boneByName.get(boneName).attach(part);
+    return part;
+  };
+  const addMesh = (group, geometry, material, x = 0, y = 0, z = 0) => {
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.set(x, y, z);
+    mesh.castShadow = true;
+    group.add(mesh);
+    return mesh;
+  };
+  armorPieces = {};
+  const helmetContainer = new THREE.Group(); helmetContainer.name = 'EquippedHelmet';
+  const helmet = jointPiece('Head', 'HelmetOnHead', positionOf('Head').add(new THREE.Vector3(0, .13, 0)));
+  const dome = addMesh(helmet, new THREE.SphereGeometry(.165, 24, 14, 0, Math.PI * 2, 0, Math.PI * .55), armorSteel);
+  dome.scale.set(1, .90, .95);
+  const rim = addMesh(helmet, new THREE.TorusGeometry(.163, .008, 8, 32), propSet.gold);
+  rim.rotation.x = Math.PI / 2;
+  rim.scale.y = .95;
+  // Low central ridge, engraved brow and cheek guards give the helm a forged,
+  // layered profile without obscuring Mia's face or replacing her hairstyle.
+  const tube = (parent, points, radius, material) => addMesh(parent,
+    new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points.map(p => new THREE.Vector3(...p))), 20, radius, 6, false), material);
+  tube(helmet, [[0,-.002,-.155],[0,.085,-.12],[0,.145,0],[0,.085,.12],[0,.005,.155]], .0045, propSet.gold);
+  for (const side of [-1, 1]) {
+    const cheek = addMesh(helmet, new THREE.SphereGeometry(1, 16, 12), armorDark, side*.145, -.04, -.05);
+    cheek.scale.set(.015, .06, .045);
+    const stud = addMesh(helmet, new THREE.SphereGeometry(.009, 10, 8), propSet.gold, side*.158, -.018, .025);
+    stud.scale.set(.65,1,1);
+  }
+  // Keep face visible: this is an open-faced helm, not a full visor.
+  boneByName.get('Head').add(helmetContainer);
+  helmetContainer.add(helmet);
+  armorPieces.helmet = { group: helmetContainer };
+
+  const chestContainer = new THREE.Group(); chestContainer.name = 'EquippedChest';
+  const chest = jointPiece('spine_02', 'ChestOnSpine', positionOf('spine_02').add(new THREE.Vector3(0, .09, 0)));
+  // Shaped cuirass: a tapered oval shell instead of a spherical breastplate.
+  const cuirassProfile = [
+    new THREE.Vector2(.155, -.19), new THREE.Vector2(.18, -.17),
+    new THREE.Vector2(.20, -.08), new THREE.Vector2(.22, .04),
+    new THREE.Vector2(.21, .14), new THREE.Vector2(.16, .19)
+  ];
+  const plate = addMesh(chest, new THREE.LatheGeometry(cuirassProfile, 32), armorSteel);
+  plate.scale.z = .84;
+  // The chest plate is layered with curved forged edges, a raised ridge and a
+  // small eight-point sun. All lines follow the shell rather than floating in
+  // a flat plane across the torso.
+  const star = new THREE.Shape();
+  for (let i=0; i<16; i++) {
+    const angle = Math.PI / 2 + i * Math.PI / 8;
+    const radius = i % 2 ? .014 : .032;
+    const x = Math.cos(angle) * radius, y = Math.sin(angle) * radius;
+    if (!i) star.moveTo(x,y); else star.lineTo(x,y);
+  }
+  star.closePath();
+  const emblem = addMesh(chest, new THREE.ExtrudeGeometry(star, {depth:.003, bevelEnabled:true, bevelSize:.001, bevelThickness:.001, bevelSegments:1}), propSet.gold, 0, .055, .187);
+  const boss = addMesh(chest, new THREE.SphereGeometry(.009, 12, 8), armorDark, 0, .055, .192);
+  boss.scale.z = .38;
+  for (const [y, radius] of [[-.16, .182], [.125, .212]]) {
+    const edging = addMesh(chest, new THREE.TorusGeometry(radius, .0045, 6, 32), propSet.gold, 0, y, 0);
+    edging.rotation.x = Math.PI / 2;
+    edging.scale.y = .84;
+  }
+  for (const side of [-1,1]) {
+    tube(chest, [[side*.165,.12,.115],[side*.11,.10,.16],[side*.065,.08,.18]], .003, propSet.gold);
+    tube(chest, [[side*.145,-.105,.13],[side*.10,-.12,.155],[0,-.135,.159]], .003, armorDark);
+    for (const y of [-.13,.10]) {
+      const stud = addMesh(chest, new THREE.SphereGeometry(.006, 8, 6), propSet.gold, side*.14, y, y > 0 ? .139 : .112);
+      stud.scale.z = .65;
+    }
+  }
+  // Overlapping waist lames soften the silhouette and suggest flexible armor.
+  // They stay above the hips, so the leg swing remains unobstructed.
+  for (let i=0; i<2; i++) {
+    const y = -.145 - i*.018;
+    const radius = .185 - i*.013;
+    const lame = addMesh(chest, new THREE.LatheGeometry([
+      new THREE.Vector2(radius-.004,y+.012), new THREE.Vector2(radius+.003,y+.006),
+      new THREE.Vector2(radius,y-.009)
+    ], 32), armorDark);
+    lame.name = `CuirassWaistLame${i}`;
+    lame.scale.z = .84;
+    const edge = addMesh(chest, new THREE.TorusGeometry(radius+.002,.0025,5,32), propSet.gold, 0, y+.006, 0);
+    edge.rotation.x = Math.PI/2; edge.scale.y = .84;
+  }
+  // The dark royal cuirass has its own symmetrical engraved filigree rather
+  // than merely changing the color of the regular Persian breastplate.
+  const royalDetail = new THREE.Group();
+  royalDetail.name = 'RoyalCuirassFiligree';
+  royalDetail.visible = false;
+  chest.add(royalDetail);
+  const surface = (x,y) => {
+    let i = 1;
+    while (i < cuirassProfile.length - 1 && cuirassProfile[i].y < y) i++;
+    const a = cuirassProfile[i-1], b = cuirassProfile[i];
+    const t = THREE.MathUtils.clamp((y-a.y)/(b.y-a.y),0,1);
+    const r = THREE.MathUtils.lerp(a.x,b.x,t);
+    return [x,y,.84*Math.sqrt(Math.max(0,r*r-x*x))+.003];
+  };
+  for (const side of [-1,1]) {
+    const path = [[.045,.025],[.07,-.005],[.095,-.025],[.12,-.02],[.135,.005]]
+      .map(([x,y]) => surface(side*x,y));
+    tube(royalDetail,path,.0025,propSet.gold);
+    const point = surface(side*.12,-.02);
+    const rivet = addMesh(royalDetail,new THREE.SphereGeometry(.005,8,6),propSet.gold,...point);
+    rivet.scale.z=.6;
+  }
+  boneByName.get('spine_02').add(chestContainer); chestContainer.add(chest);
+  armorPieces.chest = { group: chestContainer, plate, emblem, royalDetail };
+
+  const limbArmor = (slot, startName, endName, fraction, length, radius) => {
+    const start = positionOf(startName), end = positionOf(endName);
+    const center = start.clone().lerp(end, fraction);
+    const piece = jointPiece(startName, `${slot}-${startName}`, center);
+    const axis = end.clone().sub(start).normalize();
+    // Group is already in the bone's local frame; rotate a mesh in world/root
+    // space first, then convert that orientation into the attached frame.
+    const boneRotation = piece.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(root.getWorldQuaternion(new THREE.Quaternion()));
+    const profile = [
+      new THREE.Vector2(radius*.78,-length*.50), new THREE.Vector2(radius*.92,-length*.43),
+      new THREE.Vector2(radius,-length*.18), new THREE.Vector2(radius*.95,length*.25),
+      new THREE.Vector2(radius*.77,length*.48)
+    ];
+    const shell = addMesh(piece, new THREE.LatheGeometry(profile, 20), armorDark);
+    shell.quaternion.copy(boneRotation).multiply(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),axis));
+    for (const [y, r] of [[-length*.39,radius*.96],[length*.27,radius*.96]]) {
+      const band = addMesh(shell, new THREE.TorusGeometry(r, .004, 6, 24), propSet.gold, 0, y, 0);
+      band.rotation.x = Math.PI / 2;
+    }
+    // A raised central plate with overlapping edges, shaped rather than a box.
+    const overlay = addMesh(shell, new THREE.SphereGeometry(1, 16, 12), armorSteel, 0, 0, radius*1.02);
+    overlay.scale.set(radius*.42, length*.35, .012);
+    for (const y of [-length*.25, length*.20]) {
+      const rivet = addMesh(shell, new THREE.SphereGeometry(.006, 8, 6), propSet.gold, 0, y, radius*.98);
+      rivet.scale.z = .65;
+    }
+    return piece;
+  };
+  for (const [slot, a, b, fraction, length, radius] of [
+    ['gauntlets','lowerarm_l','hand_l',.70,.16,.075],
+    ['gauntlets','lowerarm_r','hand_r',.70,.16,.075],
+    ['boots','calf_l','foot_l',.72,.22,.095],
+    ['boots','calf_r','foot_r',.72,.22,.095]
+  ]) {
+    if (!armorPieces[slot]) armorPieces[slot] = { group: new THREE.Group(), parts: [] };
+    // Parts are attached independently, since left and right limbs animate apart.
+    const part = limbArmor(slot,a,b,fraction,length,radius);
+    armorPieces[slot].parts.push(part);
+  }
+  // Toe plates follow the forefoot bone, not the shin or ankle.
+  for (const side of ['l', 'r']) {
+    const footName = `foot_${side}`, ballName = `ball_${side}`;
+    const direction = positionOf(ballName).sub(positionOf(footName)); direction.y = 0; direction.normalize();
+    const center = positionOf(ballName).addScaledVector(direction, .015).add(new THREE.Vector3(0, .032, 0));
+    const toe = jointPiece(ballName, `boots-${ballName}`, center);
+    const cap = addMesh(toe, new THREE.SphereGeometry(1, 18, 12, 0, Math.PI * 2, 0, Math.PI / 2), armorSteel);
+    cap.scale.set(.061, .028, .085);
+    cap.rotation.y = Math.atan2(direction.x, direction.z);
+    armorPieces.boots.parts.push(toe);
+  }
+  // Paired parts have different parents: visibility is applied to each part.
+  for (const slot of ['gauntlets', 'boots']) {
+    const entry = armorPieces[slot];
+    entry.group = { set visible(value) { entry.parts.forEach(part => { part.visible = value; }); } };
+  }
+  backShield = shield.group.clone();
+  backShield.name = 'EquippedShieldOnBack';
+  backShield.position.copy(positionOf('spine_03').add(new THREE.Vector3(0, -.04, -.23)));
+  backShield.rotation.set(0, Math.PI, 0);
+  backShield.scale.setScalar(.75);
+  root.add(backShield); root.updateMatrixWorld(true);
+  boneByName.get('spine_03').attach(backShield);
+  // Start with the familiar base sword; the game synchronizes the saved slots
+  // immediately after loading and hides every item whose slot is empty.
+  Object.values(armorPieces).forEach(piece => { piece.group.visible = false; });
+  backShield.visible = false;
+
   return {
     root,
     meshes: visibleMeshes,
@@ -1340,7 +1651,7 @@ export async function loadMiaHero(options = {}) {
     clip: () => currentName,
     // Ground speed each cycle covers at its own tempo (world units / second).
     clipSpeeds: () => ({ ...referenceSpeed }),
-    worn: () => (weaponLoadout[currentGear.weapon] || weaponLoadout.sword).group,
+    worn: () => currentGear.weapon ? (weaponLoadout[currentGear.weapon] || weaponLoadout.sword).group : null,
     shield: shield.group,
     sword: sword.group,
     sash: tailLeft.mesh,

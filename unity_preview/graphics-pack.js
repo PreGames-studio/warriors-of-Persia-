@@ -5,8 +5,8 @@
  * download at all. The 4K/8K PBR maps live in an optional pack that the Android
  * shell (`window.WoPPack`) downloads and unpacks into app storage; once it is
  * installed the texture module resolves `pack/*.webp` from that storage instead
- * of the inline data URIs. In a desktop browser there is no bridge and this
- * module renders nothing.
+ * of the inline data URIs. In a desktop browser the settings explain that
+ * pack installation is available on Android.
  */
 
 const bridge = () => (typeof window !== 'undefined' ? window.WoPPack : undefined);
@@ -37,14 +37,15 @@ function formatBytes(bytes) {
 }
 
 const STYLE = `
-#wop-pack { position: fixed; inset-inline-start: 14px; inset-block-end: calc(14px + env(safe-area-inset-bottom, 0px));
+#wop-pack { position: fixed; top: calc(42px + env(safe-area-inset-top, 0px)); right: calc(8px + env(safe-area-inset-right, 0px));
   z-index: 9000; font-family: Vazirmatn, "Segoe UI", Tahoma, sans-serif; direction: rtl; color: #f7efe2;
   -webkit-user-select: none; user-select: none; }
 #wop-pack-chip { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 14px;
   border-radius: 22px; border: 1px solid rgba(226, 184, 106, .55); background: rgba(24, 18, 12, .82);
-  box-shadow: 0 6px 22px rgba(0, 0, 0, .45); font-size: 14px; cursor: pointer; backdrop-filter: blur(6px); }
+  box-shadow: 0 6px 22px rgba(0, 0, 0, .45); font-size: 14px; cursor: default; backdrop-filter: blur(6px); }
 #wop-pack-chip b { color: #e2b86a; font-weight: 700; }
 #wop-pack-card { display: none; width: min(420px, 82vw); margin-block-end: 10px; padding: 16px;
+  max-height: calc(100vh - 54px - env(safe-area-inset-bottom, 0px)); overflow-y: auto;
   border-radius: 16px; border: 1px solid rgba(226, 184, 106, .45); background: rgba(20, 15, 10, .94);
   box-shadow: 0 14px 40px rgba(0, 0, 0, .55); backdrop-filter: blur(8px); }
 #wop-pack.open #wop-pack-card { display: block; }
@@ -72,12 +73,13 @@ function el(tag, attrs = {}, text) {
 }
 
 /**
- * Mount the chip/panel. Safe to call once; returns false when there is no
- * Android bridge (browser preview) so nothing is drawn there.
+ * Mount the settings panel. Safe to call once; pack downloads are only
+ * available when the Android bridge is present.
  */
 export function mountGraphicsPack(options = {}) {
-  const status = readStatus();
-  if (!status) return false;
+  const status = readStatus() || { installed: false, packs: [] };
+  const settingsButton = document.getElementById('btn-settings');
+  if (!settingsButton) return false;
   if (document.getElementById('wop-pack')) return true;
 
   const style = el('style');
@@ -86,7 +88,7 @@ export function mountGraphicsPack(options = {}) {
 
   const root = el('div', { id: 'wop-pack' });
   const card = el('div', { id: 'wop-pack-card' });
-  const chip = el('div', { id: 'wop-pack-chip', role: 'button', tabindex: '0' });
+  const chip = el('div', { id: 'wop-pack-chip' });
 
   const title = el('h3', {}, 'گرافیک بازی');
   const intro = el('p', {}, 'نسخهٔ استاندارد با بافت ۲K نصب شده است. برای سنگ، چوب، سقف، سنگفرش و فلز با جزئیات ۴K/۸K می‌توانی بستهٔ گرافیکی را همین‌جا دانلود کنی. بازی بدون آن هم کامل کار می‌کند.');
@@ -100,7 +102,8 @@ export function mountGraphicsPack(options = {}) {
   bar.appendChild(barFill);
   progressWrap.append(bar, hint);
   card.append(title, intro, buttons, manage, progressWrap);
-  root.append(card, chip);
+  card.insertBefore(chip, title);
+  root.appendChild(card);
   document.body.appendChild(root);
 
   const packs = Array.isArray(status.packs) ? status.packs : [];
@@ -112,8 +115,8 @@ export function mountGraphicsPack(options = {}) {
     const installed = current && current.installed;
     const active = installed ? packs.find((pack) => pack.tier === current.tier) : null;
     chip.append(
-      el('span', {}, installed ? `گرافیک: ${active ? active.label : 'بستهٔ HQ'}` : 'گرافیک: ۲K استاندارد'),
-      el('b', {}, installed ? 'تغییر' : 'ارتقا'),
+      el('span', {}, !bridge() ? 'بستهٔ گرافیکی در نسخهٔ اندروید در دسترس است' : installed ? `گرافیک: ${active ? active.label : 'بستهٔ HQ'}` : 'گرافیک: ۲K استاندارد'),
+      el('b', {}, !bridge() ? '' : installed ? 'تغییر' : 'ارتقا'),
     );
     hint.textContent = installed
       ? `بستهٔ نصب‌شده: ${active ? active.label : current.tier} — ${formatBytes(current.packBytes)} روی حافظه`
@@ -174,26 +177,15 @@ export function mountGraphicsPack(options = {}) {
   };
 
   const toggle = () => {
-    root.classList.toggle('open');
+    const opened = root.classList.toggle('open');
+    settingsButton.setAttribute('aria-expanded', String(opened));
     paintChip();
   };
-  chip.addEventListener('click', toggle);
-  chip.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter' || event.key === ' ') toggle();
-  });
+  settingsButton.addEventListener('click', toggle);
 
   paintChip();
   removeButton.style.display = status.installed ? '' : 'none';
 
-  // First launch on a phone: open the card once so the option is discoverable,
-  // unless the player already dismissed it.
-  const seenKey = 'wop.pack.prompt';
-  let seen = false;
-  try { seen = localStorage.getItem(seenKey) === '1'; } catch (error) { seen = true; }
-  if (!status.installed && !seen && options.promptOnFirstRun !== false) {
-    root.classList.add('open');
-    try { localStorage.setItem(seenKey, '1'); } catch (error) { /* private mode */ }
-  }
   window.__wopPack = { status: readStatus, start: startDownload, toggle };
   return true;
 }
