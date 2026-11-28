@@ -86,7 +86,7 @@ grep -q 'heroGear[^}]*weapon' "$OUT/boot.txt.norm" || fail GEAR-MODEL-MISSING 28
 grep -q 'hammer[^,}]*true' "$OUT/boot.txt.norm" || fail GEAR-NO-HAMMER 29
 grep -q 'shieldOn[^,}]*true' "$OUT/boot.txt.norm" || fail GEAR-NO-SHIELD 30
 grep -q 'shieldBare[^,}]*true' "$OUT/boot.txt.norm" || fail GEAR-SHIELD-STUCK 31
-grep -q 'bowHidesShield[^,}]*true' "$OUT/boot.txt.norm" || fail GEAR-BOW-SHIELD 32
+grep -q 'bowCarriesShield[^,}]*true' "$OUT/boot.txt.norm" || fail GEAR-BOW-SHIELD 32
 grep -q 'kinds[^,}]*6' "$OUT/boot.txt.norm" || fail GEAR-FAMILIES 33
 grep -q 'weaponFamilies[^]]*spear' "$OUT/boot.txt.norm" || fail GEAR-SPEAR 34
 

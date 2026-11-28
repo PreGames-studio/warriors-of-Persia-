@@ -115,6 +115,16 @@ check(slotForItem({ type: 'hp' }) === null, 'potions stay in the bag');
   check(state.party[0].atk === 24 + 18, 'equipping from the bag applies the bonus once');
 }
 
+// Re-equipping a stored item replaces, rather than stacks, its predecessor's bonus.
+{
+  const state = freshState(); const api = createEquipment({ state });
+  api.equipItem(sword); api.equipItem(sword2);
+  const index = state.inventory.findIndex(item => item.id === sword.id);
+  api.equipFromBag(index);
+  check(state.party[0].atk === 24 + 18, 'bag swap removes the displaced weapon bonus');
+  check(state.equipment.weapon.id === sword.id && state.inventory.some(item => item.id === sword2.id), 'bag swap preserves displaced weapon');
+}
+
 // --- a 1.0.16 save (gear in the bag, stats already applied) --------------
 {
   const state = freshState();

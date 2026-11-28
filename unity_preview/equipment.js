@@ -176,7 +176,10 @@ export function createEquipment({ state, onChange = () => {}, onToast = null }) 
     const equipment = worn();
     const current = equipment[slot] || null;
     items.splice(index, 1);
-    if (current) items.push(current);
+    if (current) {
+      applyItemBonuses(current, -1);
+      items.push(current);
+    }
     equipment[slot] = item;
     applyItemBonuses(item, 1);
     return { ok: true, slot, swapped: current || null };

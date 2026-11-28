@@ -46,7 +46,7 @@
     /* ================= COMPACT MOBILE-FRIENDLY TOP BAR ================= */
     .app-topbar {
       min-height: 38px;
-      padding: 4px 10px;
+      padding: calc(4px + env(safe-area-inset-top, 0px)) calc(10px + env(safe-area-inset-right, 0px)) 4px calc(10px + env(safe-area-inset-left, 0px));
       background: rgba(15, 23, 42, 0.94);
       border-bottom: 1px solid #334155;
       display: flex;
@@ -1682,11 +1682,12 @@
 </style></head>
 <body>
 
-  <!-- TOP BAR: only the two persistent player actions remain visible. -->
+  <!-- Persistent player actions and settings. -->
   <div class="app-topbar">
     <div class="nav-group topbar-actions">
       <button class="top-btn emerald" id="btn-open-inventory" title="کیف و تجهیزات میا"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:12px;height:12px;fill:currentColor;vertical-align:-1px;margin-inline-end:4px"><path d="M9 3h6l1 3h3a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h3l1-3zm-1 6H6v10h12V9h-2v3a1 1 0 0 1-2 0V9h-4v3a1 1 0 0 1-2 0V9z"/></svg>کیف (<span id="badge-inv-count">1</span>)</button>
       <button class="top-btn emerald" id="btn-manual-save" title="ذخیره فوری لول، سکه و تجهیزات">💾 ذخیره</button>
+      <button class="top-btn emerald" id="btn-settings" type="button" aria-label="تنظیمات" aria-expanded="false" title="تنظیمات">⚙️ تنظیمات</button>
     </div>
   </div>
 
@@ -3285,7 +3286,6 @@
         });
         floatingLabels.forEach(label => { label.pos.y += combatHeight(zoneId, tier, label.pos.x, label.pos.z); });
         mapRoot.add(activeCave?buildCave(THREE,activeCave,MATS.volcanicRock):buildCombatLandscape(THREE, villageKit, MATS, zoneId, tier, activeCombatPlan));
-        activeCombatPlan.plots.forEach(plot => addOrientedCollider(plot.x, plot.z, 4.7 * plot.scale * villageKit.districtBuildingScale, 3.75 * plot.scale * villageKit.districtBuildingScale, plot.rotY));
         (activeCombatPlan.walls || []).forEach(rock => addColliderBox(rock.x, rock.z, 2 * rock.scale, 2 * rock.scale));
         activeCombatPlan.landmarks.forEach(p => addWorldLabel(`${p.symbol} ${p.title}`, new THREE.Vector3(p.x, combatHeight(zoneId, tier, p.x, p.z) + 7, p.z), '#d8b66a'));
       }
@@ -3581,6 +3581,7 @@
     // The hero model only swaps when something is actually worn; the signature
     // keeps it to a few string comparisons per frame.
     let gearSignature = '';
+    let gearMesh = null;
     function heroGearState() {
       const mesh = state.party[0] && state.party[0].mesh;
       return mesh && mesh.userData && typeof mesh.userData.gearState === 'function'
@@ -3590,12 +3591,14 @@
     function syncHeroGear(force = false) {
       const gear = state.equipment || {};
       const signature = EQUIP_KEYS.map((key) => (gear[key] && gear[key].id) || '-').join('|');
-      if (!force && signature === gearSignature) return heroGearState();
       const mesh = state.party[0] && state.party[0].mesh;
+      if (!force && mesh === gearMesh && signature === gearSignature) return heroGearState();
       const apply = mesh && mesh.userData && mesh.userData.setGear;
       if (typeof apply !== 'function') return null;
-      gearSignature = signature;
-      return apply(gear) || heroGearState();
+      const applied = apply(gear);
+      // A loading model has not applied anything yet: retry on the next frame.
+      if (applied) { gearSignature = signature; gearMesh = mesh; }
+      return applied || heroGearState();
     }
 
     // Test/inspection hook: proves the equipment cells really exist and that
@@ -3740,7 +3743,7 @@
             shieldOn: withGear.shield === true,
             shieldBare: bare.shield === false,
             bow: withBow.weapon === 'bow',
-            bowHidesShield: withBow.shield === false,
+            bowCarriesShield: withBow.shield === true && withBow.shieldLocation === 'back',
             kinds: (() => {
               const mia = state.party[0].mesh.userData.getMia ? state.party[0].mesh.userData.getMia() : null;
               return mia && Array.isArray(mia.weaponKinds) ? mia.weaponKinds.length : 0;
@@ -5097,7 +5100,7 @@
       const mia = mesh && mesh.userData && mesh.userData.getMia ? mesh.userData.getMia() : null;
       if (!mia || !mia.bone || !mia.update) return null;
       const hand = mia.bone('hand_r');
-      const prop = mia.worn ? mia.worn() : mia.sword;
+      const prop = (mia.worn && mia.worn()) || mia.sword;
       if (!hand || !prop) return null;
       const dt = 1 / 60;
       const frames = Math.round(seconds / dt);
@@ -5157,7 +5160,7 @@
         until: performance.now() + seconds * 1000,
         started: performance.now(),
         hand: mia && mia.bone ? mia.bone('hand_r') : null,
-        sword: mia ? (mia.worn ? mia.worn() : mia.sword) : null,
+        sword: mia ? ((mia.worn && mia.worn()) || mia.sword) : null,
         clipOf: mia && mia.clip ? mia.clip : null,
         previousHand: null,
         firstRel: null,
